@@ -10,7 +10,7 @@ from pathlib import Path
 from akta.cards import validate_card_file
 from akta.context import AKTAContext
 from akta.gate import AKTAGate
-from akta.records import AKTADecision, AKTARecord
+from akta.records import AKTADecision, AKTARecord, validate_against_schema
 
 
 def _load_json(path: str) -> dict | list | str:
@@ -81,7 +81,8 @@ def cmd_export_pcs(args: argparse.Namespace) -> int:
     from adapters.pcs.export_artifact import export_pcs_bundle
 
     record = AKTARecord.from_file(args.record)
-    export_pcs_bundle(record, args.out)
+    decision = AKTADecision.from_file(args.decision).to_dict() if args.decision else None
+    export_pcs_bundle(record, args.out, decision=decision, validate=args.validate)
     print(f"PCS artifact bundle exported to {args.out}")
     return 0
 
@@ -90,13 +91,31 @@ def cmd_export_pf(args: argparse.Namespace) -> int:
     from adapters.pf_core.export_obligation import export_pf_obligation
 
     record = AKTARecord.from_file(args.record)
-    path = export_pf_obligation(record, args.out)
+    decision_id = None
+    if args.decision:
+        decision_id = AKTADecision.from_file(args.decision).to_dict().get("decision_id")
+    path = export_pf_obligation(record, args.out, validate=args.validate, decision_id=decision_id)
     print(f"PF-Core obligation exported to {path}")
     return 0
 
 
+def cmd_review_trigger_export(args: argparse.Namespace) -> int:
+    decision = AKTADecision.from_file(args.decision)
+    d = decision.to_dict()
+    trigger = d.get("review_trigger")
+    if not trigger:
+        print("Decision has no review_trigger (admissibility may not require review)", file=sys.stderr)
+        return 1
+    validate_against_schema(trigger, "review_trigger.schema.json")
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(trigger, indent=2), encoding="utf-8")
+    print(json.dumps(trigger, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="akta", description="AKTA v0.1 — Open Scientific Action Protocol")
+    parser = argparse.ArgumentParser(prog="akta", description="AKTA v0.2 — Open Scientific Action Protocol")
     sub = parser.add_subparsers(dest="command", required=True)
 
     gate = sub.add_parser("gate", help="Evaluate scientific action admissibility")
@@ -139,13 +158,24 @@ def build_parser() -> argparse.ArgumentParser:
 
     pcs = export_sub.add_parser("pcs", help="Export PCS artifact bundle")
     pcs.add_argument("--record", required=True)
+    pcs.add_argument("--decision", help="Optional full decision JSON for manifest")
     pcs.add_argument("--out", required=True)
+    pcs.add_argument("--validate", action="store_true", help="Validate manifest against PCS schema")
     pcs.set_defaults(func=cmd_export_pcs)
 
     pf = export_sub.add_parser("pf", help="Export PF-Core obligation")
     pf.add_argument("--record", required=True)
+    pf.add_argument("--decision", help="Optional decision JSON for decision_id")
     pf.add_argument("--out", required=True)
+    pf.add_argument("--validate", action="store_true", help="Validate against PF obligation schema")
     pf.set_defaults(func=cmd_export_pf)
+
+    rev = sub.add_parser("review-trigger", help="Review trigger operations")
+    rev_sub = rev.add_subparsers(dest="review_command", required=True)
+    rev_export = rev_sub.add_parser("export", help="Export review trigger from decision")
+    rev_export.add_argument("--decision", required=True)
+    rev_export.add_argument("--out", required=True)
+    rev_export.set_defaults(func=cmd_review_trigger_export)
 
     return parser
 
