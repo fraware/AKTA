@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/domain_overlay.schema.json",
+  "title": "AKTA Domain Overlay",
+  "type": "object",
+  "required": ["domain", "version"],
+  "properties": {
+    "domain": { "type": "string" },
+    "version": { "type": "string" },
+    "operational": { "type": "boolean" },
+    "disclaimer": { "type": "string" },
+    "minimum_evidence_for": { "type": "object" },
+    "required_review_roles": { "type": "object" },
+    "blocked_actions": { "type": "array", "items": { "type": "string" } },
+    "metadata_requirements": { "type": "array", "items": { "type": "string" } },
+    "tool_restrictions": { "type": "object" }
+  },
+  "additionalProperties": true
+}

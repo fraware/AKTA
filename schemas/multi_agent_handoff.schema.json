@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/multi_agent_handoff.schema.json",
+  "title": "AKTA Multi-Agent Handoff",
+  "type": "object",
+  "properties": {
+    "handoff_chain": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["agent_id", "output_summary", "action_type", "responsibility_level"],
+        "properties": {
+          "agent_id": { "type": "string" },
+          "output_summary": { "type": "string" },
+          "action_type": { "type": "string" },
+          "responsibility_level": { "type": "string" }
+        }
+      }
+    },
+    "authority_transfer_detected": { "type": "boolean" },
+    "final_action_owner": { "type": "string" }
+  }
+}

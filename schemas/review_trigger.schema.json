@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/review_trigger.schema.json",
+  "title": "AKTA Review Trigger",
+  "type": "object",
+  "required": [
+    "review_trigger_id",
+    "source_record_id",
+    "required_review_role",
+    "review_scope",
+    "review_artifacts_required",
+    "approval_effect",
+    "default_expiration"
+  ],
+  "properties": {
+    "review_trigger_id": { "type": "string" },
+    "source_record_id": { "type": "string" },
+    "required_review_role": { "type": "string" },
+    "review_scope": { "type": "string" },
+    "review_artifacts_required": { "type": "array", "items": { "type": "string" } },
+    "approval_effect": { "type": "string" },
+    "default_expiration": { "type": "string" }
+  }
+}

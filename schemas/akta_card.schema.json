@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/akta_card.schema.json",
+  "title": "AKTA Card",
+  "type": "object",
+  "required": [
+    "akta_card_version",
+    "system_name",
+    "system_owner",
+    "domain",
+    "deployment_profile",
+    "maximum_responsibility_level",
+    "allowed_actions",
+    "blocked_actions",
+    "non_certification_statement"
+  ],
+  "properties": {
+    "akta_card_version": { "type": "string" },
+    "system_name": { "type": "string" },
+    "system_owner": { "type": "string" },
+    "domain": { "type": "string" },
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["model_id"],
+        "properties": {
+          "model_id": { "type": "string" },
+          "role": { "type": "string" }
+        }
+      }
+    },
+    "skills": { "type": "array", "items": { "type": "string" } },
+    "tools": { "type": "array", "items": { "type": "string" } },
+    "deployment_profile": { "type": "string" },
+    "maximum_responsibility_level": { "type": "string" },
+    "allowed_actions": { "type": "array", "items": { "type": "string" } },
+    "review_required_actions": { "type": "array", "items": { "type": "string" } },
+    "blocked_actions": { "type": "array", "items": { "type": "string" } },
+    "evidence_thresholds": { "type": "object" },
+    "validation_thresholds": { "type": "object" },
+    "review_process": { "type": "object" },
+    "audit": { "type": "object" },
+    "known_failure_modes": { "type": "array", "items": { "type": "string" } },
+    "non_certification_statement": { "type": "string" }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/akta_context.schema.json",
+  "title": "AKTA Context",
+  "type": "object",
+  "properties": {
+    "domain": { "type": "string" },
+    "project_id": { "type": "string" },
+    "system_id": { "type": "string" },
+    "model_id": { "type": "string" },
+    "agent_id": { "type": "string" },
+    "session_id": { "type": "string" },
+    "evidence_state": { "type": "string" },
+    "validation_status": { "type": "string" },
+    "verification_status": { "type": "string" },
+    "consequential": { "type": "boolean" },
+    "metadata": { "type": "object" },
+    "vsa_report": { "type": ["object", "null"] },
+    "prior_akta_records": { "type": "array", "items": { "type": "object" } },
+    "handoff_chain": { "type": "array", "items": { "type": "object" } }
+  },
+  "additionalProperties": true
+}

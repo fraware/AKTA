@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/tool_registry.schema.json",
+  "title": "AKTA Tool Registry",
+  "type": "object",
+  "required": ["version", "tools"],
+  "properties": {
+    "version": { "type": "string" },
+    "tools": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["action_type", "mutates_state", "external_effect", "default_permission"],
+        "properties": {
+          "action_type": { "type": "string" },
+          "mutates_state": { "type": "boolean" },
+          "external_effect": { "type": "boolean" },
+          "default_permission": { "type": "string" }
+        }
+      }
+    }
+  }
+}

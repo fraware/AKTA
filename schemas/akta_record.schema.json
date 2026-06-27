@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/akta_record.schema.json",
+  "title": "AKTA Record",
+  "type": "object",
+  "required": [
+    "record_id",
+    "record_type",
+    "timestamp",
+    "system",
+    "scientific_context",
+    "ai_output",
+    "requested_transition",
+    "classification",
+    "decision",
+    "provenance",
+    "integrations",
+    "record_hash"
+  ],
+  "properties": {
+    "record_id": { "type": "string" },
+    "record_type": { "type": "string", "const": "scientific_action_record" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "system": {
+      "type": "object",
+      "required": ["system_id"],
+      "properties": {
+        "system_id": { "type": "string" },
+        "model_id": { "type": "string" },
+        "agent_id": { "type": "string" },
+        "session_id": { "type": "string" }
+      }
+    },
+    "scientific_context": {
+      "type": "object",
+      "required": ["deployment_profile"],
+      "properties": {
+        "domain": { "type": "string" },
+        "project_id": { "type": "string" },
+        "deployment_profile": { "type": "string" },
+        "domain_overlay": { "type": "string" }
+      }
+    },
+    "ai_output": {
+      "type": "object",
+      "required": ["summary"],
+      "properties": {
+        "summary": { "type": "string" },
+        "raw_ref": { "type": "string" },
+        "output_type": { "type": "string" }
+      }
+    },
+    "requested_transition": {
+      "type": "object",
+      "required": ["requested_action", "requested_tool"],
+      "properties": {
+        "requested_action": { "type": "string" },
+        "requested_tool": { "type": "string" },
+        "tool_payload_ref": { "type": "string" }
+      }
+    },
+    "classification": {
+      "type": "object",
+      "required": [
+        "scientific_action_type",
+        "responsibility_level",
+        "evidence_state",
+        "validation_status",
+        "verification_status"
+      ],
+      "properties": {
+        "scientific_action_type": { "type": "string" },
+        "responsibility_level": { "type": "string" },
+        "evidence_state": { "type": "string" },
+        "validation_status": { "type": "string" },
+        "verification_status": { "type": "string" },
+        "classifier_confidence": { "type": "number" }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "required": ["admissibility", "decision_reason", "blocked_tools", "allowed_tools", "next_admissible_steps"],
+      "properties": {
+        "admissibility": { "type": "string" },
+        "decision_reason": { "type": "string" },
+        "blocked_tools": { "type": "array", "items": { "type": "string" } },
+        "allowed_tools": { "type": "array", "items": { "type": "string" } },
+        "required_review_role": { "type": ["string", "null"] },
+        "next_admissible_steps": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["policy_version", "policy_hash", "tool_registry_hash"],
+      "properties": {
+        "policy_version": { "type": "string" },
+        "policy_hash": { "type": "string" },
+        "domain_overlay_version": { "type": ["string", "null"] },
+        "domain_overlay_hash": { "type": ["string", "null"] },
+        "tool_registry_hash": { "type": "string" }
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "properties": {
+        "vsa_report_ref": { "type": ["string", "null"] },
+        "pf_core_obligation_ref": { "type": ["string", "null"] },
+        "pcs_artifact_ref": { "type": ["string", "null"] },
+        "prior_akta_records": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "record_hash": { "type": "string", "pattern": "^sha256:" }
+  },
+  "additionalProperties": true
+}
