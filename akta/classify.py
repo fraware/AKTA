@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
+from akta.classifier_plugins import run_plugin_classification
 from akta.context import AKTAContext
 from akta.policy import PolicyBundle
 from akta.tool_registry import ToolSpec
@@ -51,15 +52,39 @@ ACTION_KEYWORDS: list[tuple[str, str]] = [
     (r"explain|describe|what is", "A0_explanation"),
 ]
 
+CONFIDENCE_THRESHOLD = 0.7
+
 
 @dataclass
 class ClassificationResult:
-    """Classification output."""
+    """Rich classification output (v0.2).
+
+    Attributes:
+        action_type: Resolved AKTA action ontology identifier (e.g. ``A7_resource_or_queue_prioritization``).
+        responsibility_level: Mapped responsibility tier (e.g. ``R6_resource_allocation``).
+        confidence: Classifier confidence in ``[0, 1]``; low values trigger fail-closed admissibility.
+        rationale: Human-readable audit string explaining the classification path.
+        alternate_action_types: Other action types considered from NL or plugin input.
+        matched_source: Provenance of the primary classification (tool_registry, requested_action, plugin, etc.).
+        matched_evidence: Short pointer to the signal used (tool name, action text, etc.).
+        uncertainty_flags: Taxonomy flags such as ``nl_tool_mismatch`` or ``model_assisted_fallback``.
+        classifier_mode: ``deterministic`` or ``model_assisted`` when a plugin contributed.
+    """
 
     action_type: str
     responsibility_level: str
     confidence: float
     rationale: str
+    alternate_action_types: list[str] = field(default_factory=list)
+    matched_source: str = "deterministic"
+    matched_evidence: str = ""
+    uncertainty_flags: list[str] = field(default_factory=list)
+    classifier_mode: str = "deterministic"
+
+    @property
+    def primary_action_type(self) -> str:
+        """Primary action type alias for record export."""
+        return self.action_type
 
 
 def action_rank(action_type: str) -> int:
@@ -75,12 +100,15 @@ def action_to_responsibility(policy: PolicyBundle, action_type: str) -> str:
     return mapping.get(action_type, "R3_consequential_interpretation")
 
 
-def classify_from_action_text(requested_action: str) -> str | None:
+def classify_from_action_text(requested_action: str) -> tuple[str | None, list[str]]:
     text = requested_action.lower()
+    matches: list[str] = []
     for pattern, action_type in ACTION_KEYWORDS:
         if re.search(pattern, text):
-            return action_type
-    return None
+            matches.append(action_type)
+    if not matches:
+        return None, []
+    return matches[0], matches[1:]
 
 
 def infer_evidence_from_vsa(vsa_report: dict[str, Any] | None) -> str | None:
@@ -141,31 +169,76 @@ def classify(
 ) -> ClassificationResult:
     """Classify scientific action type and responsibility level."""
     action_type: str | None = None
+    alternates: list[str] = []
     confidence = 0.95
     rationale_parts: list[str] = []
+    matched_source = "deterministic"
+    matched_evidence = ""
+    uncertainty_flags: list[str] = []
+    classifier_mode = "deterministic"
 
     if tool_spec.known:
         action_type = tool_spec.action_type
+        matched_source = "tool_registry"
+        matched_evidence = f"tool={requested_tool}"
         rationale_parts.append(f"tool registry maps {requested_tool} to {action_type}")
         confidence = 0.98
+        nl_action, nl_alts = classify_from_action_text(requested_action)
+        if nl_action and nl_action != action_type:
+            alternates.append(nl_action)
+            alternates.extend(nl_alts)
+            uncertainty_flags.append("nl_tool_mismatch")
+            rationale_parts.append(
+                f"NL text suggests {nl_action} but tool registry overrides to {action_type}"
+            )
     else:
-        action_type = classify_from_action_text(requested_action)
+        action_type, alternates = classify_from_action_text(requested_action)
         if action_type:
+            matched_source = "requested_action"
+            matched_evidence = f"action={requested_action}"
             rationale_parts.append(f"requested_action '{requested_action}' matched {action_type}")
             confidence = 0.85
         elif ai_output:
             text = ai_output if isinstance(ai_output, str) else str(
                 ai_output.get("summary", ai_output) if isinstance(ai_output, dict) else ai_output
             )
-            action_type = classify_from_action_text(text) or classify_from_action_text(requested_action)
+            action_type, alternates = classify_from_action_text(text) or (None, [])
+            if not action_type:
+                action_type, alternates = classify_from_action_text(requested_action)
             if action_type:
+                matched_source = "ai_output"
+                matched_evidence = "ai_output text"
                 rationale_parts.append("inferred from ai_output text")
                 confidence = 0.75
 
     if not action_type:
+        plugin_result = run_plugin_classification(
+            policy,
+            requested_tool,
+            requested_action,
+            tool_spec,
+            context,
+            ai_output=ai_output,
+        )
+        if plugin_result is not None:
+            classifier_mode = "model_assisted"
+            action_type = plugin_result.action_type
+            confidence = plugin_result.confidence
+            alternates.extend(plugin_result.alternates)
+            uncertainty_flags.extend(plugin_result.uncertainty_flags)
+            matched_source = plugin_result.source
+            matched_evidence = f"plugin={plugin_result.source}"
+            rationale_parts.append(plugin_result.rationale)
+
+    if not action_type:
         action_type = "A8_tool_or_workflow_mutation"
+        matched_source = "default_fail_closed"
         rationale_parts.append("default to A8 for unclassified mutating request")
         confidence = 0.5
+        uncertainty_flags.append("unclassified_mutating_request")
+
+    if len(alternates) > 1 or (alternates and confidence < CONFIDENCE_THRESHOLD):
+        uncertainty_flags.append("ambiguous_wording")
 
     responsibility_level = action_to_responsibility(policy, action_type)
 
@@ -183,7 +256,10 @@ def classify(
         if action_rank(max_handoff_action) > action_rank(action_type):
             action_type = max_handoff_action
             responsibility_level = action_to_responsibility(policy, action_type)
+            matched_source = "handoff_chain"
+            matched_evidence = "handoff escalation"
             rationale_parts.append("escalated via handoff chain action type")
+            uncertainty_flags.append("handoff_escalation")
         if responsibility_rank(max_handoff_resp) > responsibility_rank(responsibility_level):
             responsibility_level = max_handoff_resp
             rationale_parts.append("escalated via handoff chain responsibility")
@@ -193,6 +269,11 @@ def classify(
         responsibility_level=responsibility_level,
         confidence=confidence,
         rationale="; ".join(rationale_parts) or "deterministic classification",
+        alternate_action_types=list(dict.fromkeys(alternates)),
+        matched_source=matched_source,
+        matched_evidence=matched_evidence,
+        uncertainty_flags=list(dict.fromkeys(uncertainty_flags)),
+        classifier_mode=classifier_mode,
     )
 
 
