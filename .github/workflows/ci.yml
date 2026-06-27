@@ -27,6 +27,9 @@ jobs:
       - name: Run pytest
         run: pytest tests/ skills/akta-scientific-action-admissibility/tests/ -v
 
+      - name: Run integration contract tests
+        run: pytest tests/integration/ -v
+
       - name: Validate JSON schemas
         run: pytest tests/test_schemas.py -v
 
@@ -37,18 +40,18 @@ jobs:
             --expected scenarios/expected_decisions.jsonl \
             --out evals/reports/canonical_5.json
 
-      - name: Run public_40 scenario eval
+      - name: Run public_100 scenario eval
         run: |
           akta eval \
-            --scenarios scenarios/public_40.jsonl \
+            --scenarios scenarios/public_100.jsonl \
             --expected scenarios/expected_decisions.jsonl \
-            --out evals/reports/public_40.json
+            --out evals/reports/public_100.json
 
       - name: Invalid fixtures must fail
         run: pytest tests/test_invalid_cases.py -v
 
       - name: Run integrated weak-evidence demo
-        run: python scripts/demo_weak_evidence.py
+        run: python scripts/demo_integrated_weak_evidence.py
 
       - name: Upload eval reports
         if: always()
