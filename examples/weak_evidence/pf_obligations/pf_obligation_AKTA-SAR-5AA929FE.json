@@ -1,0 +1,19 @@
+{
+  "obligation_type": "tool_block",
+  "source": "AKTA",
+  "source_record_id": "AKTA-SAR-5AA929FE",
+  "blocked_tools": [
+    "lab_scheduler.prioritize",
+    "robot_queue.submit"
+  ],
+  "allowed_tools": [],
+  "policy_hash": "sha256:e24b8e190a692c7f245cc54d3510aaabf486bac9d3052dd47e25ddb2da14d975",
+  "decision": "blocked",
+  "next_admissible_steps": [
+    "downgrade to hypothesis discussion",
+    "draft a validation experiment",
+    "request domain review before prioritization",
+    "gather additional evidence"
+  ],
+  "required_review_role": null
+}
