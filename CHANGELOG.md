@@ -4,6 +4,34 @@ All notable changes to AKTA are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.0] - 2026-06-27
+
+### Added
+
+- Per-action evidence-to-action rules (`policy/evidence_to_action_rules.yaml`) replacing rank-only loopholes
+- Consequentiality classification with `consequentiality` and `consequentiality_reason` on decisions
+- Conditional alias resolution: `allowed_log_or_review`, `draft_only_or_review_required`, `draft_validation_only`
+- SCOPE-compatible review triggers with full bridge fields and schema validation
+- CLI: `akta review-trigger export`, `akta export pcs --validate`, `akta export pf --validate`
+- Rich classifier output: alternates, matched_source, uncertainty_flags, classifier_mode
+- Low-confidence fail-closed for mutating/external tools
+- PF-Core obligation schema and contract (`schemas/pf_core_obligation.schema.json`)
+- PCS artifact schema and validated export (`schemas/pcs_akta_artifact.schema.json`)
+- AKTA-Bench expanded to 100 public scenarios with per-failure-class metrics
+- Integrated weak-evidence demo (`examples/integrated_weak_evidence/`, `make demo-akta-weak-evidence`)
+- 30+ new tests covering evidence rules, consequentiality, review triggers, classifier, PF/PCS contracts
+
+### Changed
+
+- Evidence matrix layer renamed to `evidence_rules` in evaluation layers
+- Review triggers emitted for both `review_required` and `authorization_required`
+- PCS manifest schema version bumped to `akta-record-v0.2`
+- `public_30_strong_evidence_draft` expected decision: `draft_only` (draft tool, non-mutating)
+
+### Security
+
+- Per-action evidence constraints prevent rank-based A5 escalation under weak evidence
+
 ## [0.1.0] - 2026-06-27
 
 ### Added
