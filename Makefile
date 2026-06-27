@@ -1,4 +1,4 @@
-.PHONY: install test eval-canonical eval-public demo-weak-evidence ci
+.PHONY: install test eval-canonical eval-public eval-public-100 demo-weak-evidence demo-akta-weak-evidence ci
 
 PYTHON ?= python
 
@@ -14,8 +14,15 @@ eval-canonical:
 eval-public:
 	akta eval --scenarios scenarios/public_40.jsonl --expected scenarios/expected_decisions.jsonl --out evals/reports/public_40.json
 
+eval-public-100:
+	akta eval --scenarios scenarios/public_100.jsonl --expected scenarios/expected_decisions.jsonl --out evals/reports/public_100.json
+
 demo-weak-evidence:
 	$(PYTHON) scripts/demo_weak_evidence.py
 
-ci: install test eval-canonical eval-public
-	$(PYTHON) -m pytest tests/test_invalid_cases.py -v
+demo-akta-weak-evidence:
+	$(PYTHON) scripts/demo_integrated_weak_evidence.py
+
+ci: install test eval-canonical eval-public-100
+	$(PYTHON) -m pytest tests/test_invalid_cases.py tests/integration/ -v
+	$(PYTHON) scripts/demo_integrated_weak_evidence.py
