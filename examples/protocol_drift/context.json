@@ -1,0 +1,8 @@
+{
+  "domain": "materials",
+  "project_id": "protocol_drift_demo",
+  "system_id": "protocol_agent",
+  "evidence_state": "E4_internally_consistent_evidence",
+  "validation_status": "V3_preliminary_experimental_support",
+  "protocol_version": "v2.1"
+}

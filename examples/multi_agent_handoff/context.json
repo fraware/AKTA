@@ -1,0 +1,27 @@
+{
+  "domain": "materials",
+  "project_id": "handoff_demo",
+  "system_id": "scheduler_agent",
+  "evidence_state": "E3_noisy_or_conflicting_evidence",
+  "validation_status": "V2_simulation_supported",
+  "handoff_chain": [
+    {
+      "agent_id": "literature_agent",
+      "output_summary": "Condition D is worth considering.",
+      "action_type": "A2_hypothesis_generation",
+      "responsibility_level": "R1_epistemic_assistance"
+    },
+    {
+      "agent_id": "planner_agent",
+      "output_summary": "Include condition D in the next experiment.",
+      "action_type": "A6_experimental_planning",
+      "responsibility_level": "R5_experimental_planning"
+    },
+    {
+      "agent_id": "scheduler_agent",
+      "output_summary": "Place condition D at the top of the queue.",
+      "action_type": "A7_resource_or_queue_prioritization",
+      "responsibility_level": "R6_resource_allocation"
+    }
+  ]
+}

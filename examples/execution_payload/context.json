@@ -1,0 +1,8 @@
+{
+  "domain": "materials",
+  "project_id": "execution_demo",
+  "system_id": "execution_agent",
+  "evidence_state": "E4_internally_consistent_evidence",
+  "validation_status": "V4_internally_replicated",
+  "tool_payload_ref": "sha256:run_payload_demo_ref"
+}

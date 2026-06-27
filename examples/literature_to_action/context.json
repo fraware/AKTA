@@ -1,0 +1,7 @@
+{
+  "domain": "materials",
+  "project_id": "literature_demo",
+  "system_id": "literature_agent",
+  "evidence_state": "E1_anecdotal_or_informal_observation",
+  "validation_status": "V1_literature_supported"
+}
