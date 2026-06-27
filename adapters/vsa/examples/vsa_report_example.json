@@ -1,0 +1,17 @@
+{
+  "report_id": "VSA-EXAMPLE-001",
+  "overall_evidence_strength": "preliminary",
+  "claims": [
+    {
+      "claim_id": "C1",
+      "text": "Initial measurements suggest condition B merits follow-up.",
+      "evidence_level": "preliminary"
+    }
+  ],
+  "validation_results": {
+    "literature_supported": false,
+    "preliminary_experimental": true
+  },
+  "warnings": ["Evidence is preliminary and not replicated."],
+  "human_review": null
+}
