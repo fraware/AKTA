@@ -11,6 +11,7 @@ from akta.classify import (
     resolve_validation_status,
     resolve_verification_status,
 )
+from akta.consequentiality import classify_consequentiality
 from akta.context import AKTAContext
 from akta.evaluate import evaluate_admissibility
 from akta.overlays import DomainOverlay
@@ -78,6 +79,16 @@ class AKTAGate:
         validation_status = resolve_validation_status(ctx)
         verification_status = resolve_verification_status(ctx)
 
+        consequentiality = classify_consequentiality(
+            classification.action_type,
+            tool_spec,
+            requested_tool,
+            requested_action,
+            ai_output,
+            ctx,
+            overlay_obj,
+        )
+
         evaluation = evaluate_admissibility(
             policy=self.policy,
             profile=deployment_profile,
@@ -87,10 +98,51 @@ class AKTAGate:
             requested_tool=requested_tool,
             context=ctx,
             overlay=overlay_obj,
+            consequentiality=consequentiality,
+            classifier_confidence=classification.confidence,
+            ai_output=ai_output,
+            requested_action=requested_action,
         )
 
+        decision_id = new_decision_id()
+        record_id = f"AKTA-SAR-PENDING-{decision_id.split('-')[-1]}"
+        review_trigger = None
+        if evaluation.review_required or evaluation.authorization_required:
+            review_trigger = build_review_trigger(
+                decision_id=decision_id,
+                record_id=record_id,
+                role=evaluation.required_review_role or "domain_scientist",
+                action_type=classification.action_type,
+                requested_tool=requested_tool,
+                requested_action=requested_action,
+                deployment_profile=deployment_profile,
+                scientific_action_type=classification.action_type,
+                responsibility_level=classification.responsibility_level,
+                evidence_state=evidence_state,
+                validation_status=validation_status,
+                verification_status=verification_status,
+                admissibility=evaluation.admissibility,
+                decision_reason=evaluation.decision_reason,
+                blocked_tools=evaluation.blocked_tools,
+                allowed_next_steps=evaluation.next_admissible_steps,
+                policy_hash=self.policy.policy_hash,
+                tool_registry_hash=self.policy.tool_registry_hash,
+                domain_overlay_hash=overlay_obj.overlay_hash if overlay_obj else None,
+                classifier_confidence=classification.confidence,
+                classification_rationale=classification.rationale,
+                consequentiality=evaluation.consequentiality,
+                consequentiality_reason=evaluation.consequentiality_reason,
+                scientific_context={
+                    "domain": ctx.domain or (overlay_obj.domain if overlay_obj else "generic"),
+                    "project_id": ctx.project_id,
+                    "system_id": ctx.system_id,
+                },
+            )
+            if validate_output:
+                validate_against_schema(review_trigger, "review_trigger.schema.json")
+
         decision_data: dict[str, Any] = {
-            "decision_id": new_decision_id(),
+            "decision_id": decision_id,
             "timestamp": utc_now_iso(),
             "system_id": ctx.system_id,
             "deployment_profile": deployment_profile,
@@ -111,6 +163,8 @@ class AKTAGate:
             "record_required": evaluation.record_required,
             "review_required": evaluation.review_required,
             "authorization_required": evaluation.authorization_required,
+            "consequentiality": evaluation.consequentiality,
+            "consequentiality_reason": evaluation.consequentiality_reason,
             "policy_version": self.policy.version,
             "policy_hash": self.policy.policy_hash,
             "domain_overlay_version": overlay_obj.version if overlay_obj else None,
@@ -118,19 +172,22 @@ class AKTAGate:
             "tool_registry_hash": self.policy.tool_registry_hash,
             "classifier_confidence": classification.confidence,
             "classification_rationale": classification.rationale,
+            "classification": {
+                "primary_action_type": classification.primary_action_type,
+                "alternate_action_types": classification.alternate_action_types,
+                "matched_source": classification.matched_source,
+                "matched_evidence": classification.matched_evidence,
+                "uncertainty_flags": classification.uncertainty_flags,
+                "classifier_mode": classification.classifier_mode,
+            },
             "ai_output_summary": (
                 ai_output if isinstance(ai_output, str)
                 else (ai_output.get("summary") if isinstance(ai_output, dict) else str(ai_output))
             ),
         }
 
-        if evaluation.review_required:
-            record_id = f"AKTA-SAR-PENDING-{decision_data['decision_id'].split('-')[-1]}"
-            decision_data["review_trigger"] = build_review_trigger(
-                record_id,
-                evaluation.required_review_role or "domain_scientist",
-                classification.action_type,
-            )
+        if review_trigger:
+            decision_data["review_trigger"] = review_trigger
 
         decision = AKTADecision(decision_data)
         if validate_output:
