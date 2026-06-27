@@ -58,13 +58,17 @@
     "record_required": { "type": "boolean" },
     "review_required": { "type": "boolean" },
     "authorization_required": { "type": "boolean" },
+    "consequentiality": { "type": "boolean" },
+    "consequentiality_reason": { "type": "string" },
     "policy_version": { "type": "string" },
     "policy_hash": { "type": "string", "pattern": "^sha256:" },
     "domain_overlay_version": { "type": ["string", "null"] },
     "domain_overlay_hash": { "type": ["string", "null"], "pattern": "^sha256:" },
     "tool_registry_hash": { "type": "string", "pattern": "^sha256:" },
     "review_trigger": { "type": ["object", "null"] },
-    "classifier_confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+    "classifier_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "classification_rationale": { "type": "string" },
+    "classification": { "type": "object" }
   },
   "additionalProperties": true
 }
