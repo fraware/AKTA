@@ -4,7 +4,7 @@ from akta.context import AKTAContext
 from akta.gate import AKTAGate
 from akta.records import AKTADecision, AKTARecord
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "AKTAGate",
