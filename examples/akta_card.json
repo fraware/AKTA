@@ -1,0 +1,50 @@
+{
+  "akta_card_version": "0.1",
+  "system_name": "Example AI Science Agent",
+  "system_owner": "Example Lab",
+  "domain": "materials",
+  "models": [{"model_id": "demo_model_v1", "role": "planner"}],
+  "skills": ["akta-scientific-action-admissibility"],
+  "tools": [
+    "literature_search.query",
+    "notebook.run_analysis",
+    "experiment_planner.create_run_plan"
+  ],
+  "deployment_profile": "P3_review_gated_evidence_interpreter",
+  "maximum_responsibility_level": "R3_consequential_interpretation",
+  "allowed_actions": [
+    "A0_explanation",
+    "A1_retrieval_or_summary",
+    "A2_hypothesis_generation",
+    "A3_evidence_interpretation"
+  ],
+  "review_required_actions": ["A4_recommendation"],
+  "blocked_actions": [
+    "A5_protocol_modification",
+    "A6_experimental_planning",
+    "A7_resource_or_queue_prioritization",
+    "A8_tool_or_workflow_mutation",
+    "A9_execution_adjacent_or_external_action"
+  ],
+  "evidence_thresholds": {
+    "recommendation": "E4_internally_consistent_evidence",
+    "experimental_planning": "E5_internally_replicated_evidence"
+  },
+  "review_process": {
+    "review_required": true,
+    "review_roles": ["domain_scientist", "protocol_owner"],
+    "review_packet_schema": "akta-review-v0.1"
+  },
+  "audit": {
+    "akta_records_enabled": true,
+    "record_retention": "project_duration_plus_1_year",
+    "pcs_export_enabled": true,
+    "pf_core_bridge_enabled": true
+  },
+  "known_failure_modes": [
+    "weak_evidence_escalation",
+    "protocol_drift",
+    "literature_to_action_laundering"
+  ],
+  "non_certification_statement": "This card describes the system deployment profile. It is not a safety certification."
+}
