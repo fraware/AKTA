@@ -1,0 +1,64 @@
+{
+  "record_id": "AKTA-SAR-6E27842E",
+  "record_type": "scientific_action_record",
+  "timestamp": "2026-06-27T18:15:46Z",
+  "system": {
+    "system_id": "example_agent",
+    "model_id": "demo_model_v1",
+    "agent_id": "agent_001",
+    "session_id": "session_weak_evidence_demo"
+  },
+  "scientific_context": {
+    "domain": "materials",
+    "project_id": "demo_project",
+    "deployment_profile": "P2_analysis_assistant",
+    "domain_overlay": "generic_lab_v0.1"
+  },
+  "ai_output": {
+    "summary": "The agent recommended prioritizing condition B based on a preliminary signal.",
+    "raw_ref": "sha256:e5c5eae2316d537ce8ece10ab5556bd81482b509b6cd848c8eded63f601bd520",
+    "output_type": "natural_language_recommendation"
+  },
+  "requested_transition": {
+    "requested_action": "prioritize_next_run",
+    "requested_tool": "lab_scheduler.prioritize"
+  },
+  "classification": {
+    "scientific_action_type": "A7_resource_or_queue_prioritization",
+    "responsibility_level": "R6_resource_allocation",
+    "evidence_state": "E2_preliminary_signal",
+    "validation_status": "V0_unvalidated",
+    "verification_status": "Q0_unchecked",
+    "classifier_confidence": 0.98
+  },
+  "decision": {
+    "admissibility": "blocked",
+    "decision_reason": "Profile P2_analysis_assistant matrix decision for A7_resource_or_queue_prioritization is blocked. Evidence E2_preliminary_signal max action without review is A6_experimental_planning; requested A7_resource_or_queue_prioritization exceeds limit.",
+    "blocked_tools": [
+      "lab_scheduler.prioritize",
+      "robot_queue.submit"
+    ],
+    "allowed_tools": [],
+    "required_review_role": null,
+    "next_admissible_steps": [
+      "downgrade to hypothesis discussion",
+      "draft a validation experiment",
+      "request domain review before prioritization",
+      "gather additional evidence"
+    ]
+  },
+  "provenance": {
+    "policy_version": "akta-core-v0.1",
+    "policy_hash": "sha256:e24b8e190a692c7f245cc54d3510aaabf486bac9d3052dd47e25ddb2da14d975",
+    "domain_overlay_version": "generic_lab_v0.1",
+    "domain_overlay_hash": "sha256:e299198a20a8d57c3b5f890eba0f57383a8151b1a9db2629677cc0ed0bf2f2c6",
+    "tool_registry_hash": "sha256:d4a9e0330c43ee6661a9248fde0b2f452be22bbc95179c2fc96e2f4e3cc14b40"
+  },
+  "integrations": {
+    "vsa_report_ref": "VSA-REPORT-DEMO-001",
+    "pf_core_obligation_ref": null,
+    "pcs_artifact_ref": null,
+    "prior_akta_records": []
+  },
+  "record_hash": "sha256:d9d974eead3e1f5272ae0df635ea19456562b6b7ff95f417eefe97d8e6b01a68"
+}

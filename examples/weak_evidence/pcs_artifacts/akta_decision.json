@@ -1,0 +1,9 @@
+{
+  "decision_id": "AKTA-DEC-6E27842E",
+  "admissibility": "blocked",
+  "scientific_action_type": "A7_resource_or_queue_prioritization",
+  "responsibility_level": "R6_resource_allocation",
+  "evidence_state": "E2_preliminary_signal",
+  "decision_reason": "Profile P2_analysis_assistant matrix decision for A7_resource_or_queue_prioritization is blocked. Evidence E2_preliminary_signal max action without review is A6_experimental_planning; requested A7_resource_or_queue_prioritization exceeds limit.",
+  "policy_hash": "sha256:e24b8e190a692c7f245cc54d3510aaabf486bac9d3052dd47e25ddb2da14d975"
+}
