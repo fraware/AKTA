@@ -24,6 +24,8 @@ SCHEMAS = ROOT / "schemas"
         "tool_registry.schema.json",
         "domain_overlay.schema.json",
         "review_trigger.schema.json",
+        "pf_core_obligation.schema.json",
+        "pcs_akta_artifact.schema.json",
         "multi_agent_handoff.schema.json",
     ],
 )
