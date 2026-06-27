@@ -1,0 +1,17 @@
+{
+  "report_id": "VSA-REPORT-DEMO-001",
+  "overall_evidence_strength": "preliminary",
+  "claims": [
+    {
+      "claim_id": "C1",
+      "text": "Condition B shows a preliminary signal in initial measurements.",
+      "evidence_level": "preliminary"
+    }
+  ],
+  "validation_results": {
+    "literature_supported": false,
+    "preliminary_experimental": true
+  },
+  "warnings": ["Evidence is preliminary and not replicated."],
+  "human_review": null
+}

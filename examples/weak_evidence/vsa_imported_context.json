@@ -1,0 +1,8 @@
+{
+  "evidence_state": "E2_preliminary_signal",
+  "validation_status": "V0_unvalidated",
+  "vsa_report_ref": "VSA-REPORT-DEMO-001",
+  "metadata": {
+    "vsa_warnings": ["Evidence is preliminary and not replicated."]
+  }
+}

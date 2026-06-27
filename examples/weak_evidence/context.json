@@ -1,0 +1,11 @@
+{
+  "domain": "materials",
+  "project_id": "demo_project",
+  "system_id": "example_agent",
+  "model_id": "demo_model_v1",
+  "agent_id": "agent_001",
+  "session_id": "session_weak_evidence_demo",
+  "evidence_state": "E2_preliminary_signal",
+  "validation_status": "V0_unvalidated",
+  "verification_status": "Q0_unchecked"
+}

@@ -1,0 +1,11 @@
+{
+  "source": "instrument_readout_batch_42",
+  "measurements": [
+    {"condition": "A", "signal_strength": 0.12},
+    {"condition": "B", "signal_strength": 0.31}
+  ],
+  "metadata": {
+    "run_id": "RUN-2026-042",
+    "operator": "lab_tech_7"
+  }
+}
