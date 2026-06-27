@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/pf_core_obligation.schema.json",
+  "title": "PF-Core AKTA Obligation",
+  "type": "object",
+  "required": [
+    "obligation_id",
+    "obligation_type",
+    "source",
+    "source_record_id",
+    "decision_id",
+    "decision",
+    "blocked_tools",
+    "allowed_tools",
+    "policy_hash",
+    "tool_registry_hash",
+    "enforcement_mode",
+    "required_runtime_behavior",
+    "obligation_hash"
+  ],
+  "properties": {
+    "obligation_id": { "type": "string" },
+    "obligation_type": { "type": "string", "enum": ["tool_block", "tool_allow", "tool_review", "tool_authorize"] },
+    "source": { "type": "string", "const": "AKTA" },
+    "source_record_id": { "type": "string" },
+    "decision_id": { "type": "string" },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "allowed",
+        "allowed_with_logging",
+        "draft_only",
+        "review_required",
+        "authorization_required",
+        "blocked",
+        "abstain_insufficient_context"
+      ]
+    },
+    "blocked_tools": { "type": "array", "items": { "type": "string" } },
+    "allowed_tools": { "type": "array", "items": { "type": "string" } },
+    "max_responsibility_level": { "type": "string" },
+    "policy_hash": { "type": "string", "pattern": "^sha256:" },
+    "tool_registry_hash": { "type": "string", "pattern": "^sha256:" },
+    "domain_overlay_hash": { "type": ["string", "null"], "pattern": "^sha256:" },
+    "enforcement_mode": { "type": "string" },
+    "required_runtime_behavior": { "type": "object" },
+    "next_admissible_steps": { "type": "array", "items": { "type": "string" } },
+    "required_review_role": { "type": ["string", "null"] },
+    "consequentiality": { "type": "boolean" },
+    "obligation_hash": { "type": "string", "pattern": "^sha256:" }
+  },
+  "additionalProperties": true
+}
