@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def test_policy_bundle_loads() -> None:
     bundle = PolicyBundle.from_dir(ROOT / "policy")
-    assert bundle.version == "akta-core-v0.1"
+    assert bundle.version == "akta-core-v0.2"
     assert bundle.policy_hash.startswith("sha256:")
     assert bundle.tool_registry_hash.startswith("sha256:")
     assert "tools" in bundle.tool_registry or "lab_scheduler.prioritize" in bundle.tool_registry.get("tools", {})
