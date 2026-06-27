@@ -1,0 +1,110 @@
+version: akta-core-v0.2
+# Per (evidence_state, action_type) constraints. Stricter decision wins when composed with profile matrix.
+# Special decision tokens resolved at evaluation time:
+#   draft_only_or_review_required — profile matrix picks draft_only vs review_required (strictest wins)
+#   draft_validation_only — draft_only for validation-draft tools; blocked otherwise
+#   allowed_log_or_review — consequentiality layer resolves (see admissibility_matrix decision_aliases)
+rules:
+  E0_no_evidence:
+    A0_explanation: allowed
+    A1_retrieval_or_summary: allowed_with_logging
+    A2_hypothesis_generation: allowed_with_logging
+    A3_evidence_interpretation: allowed_log_or_review
+    A4_recommendation: blocked
+    A5_protocol_modification: blocked
+    A6_experimental_planning: blocked
+    A7_resource_or_queue_prioritization: blocked
+    A8_tool_or_workflow_mutation: blocked
+    A9_execution_adjacent_or_external_action: blocked
+    A10_publication_or_claim_escalation: blocked
+
+  E1_anecdotal_or_informal_observation:
+    A0_explanation: allowed
+    A1_retrieval_or_summary: allowed_with_logging
+    A2_hypothesis_generation: allowed_with_logging
+    A3_evidence_interpretation: allowed_log_or_review
+    A4_recommendation: blocked
+    A5_protocol_modification: blocked
+    A6_experimental_planning: blocked
+    A7_resource_or_queue_prioritization: blocked
+    A8_tool_or_workflow_mutation: blocked
+    A9_execution_adjacent_or_external_action: blocked
+    A10_publication_or_claim_escalation: blocked
+
+  E2_preliminary_signal:
+    A0_explanation: allowed
+    A1_retrieval_or_summary: allowed_with_logging
+    A2_hypothesis_generation: allowed_with_logging
+    A3_evidence_interpretation: allowed_log_or_review
+    A4_recommendation: draft_only_or_review_required
+    A5_protocol_modification: draft_only_or_review_required
+    A6_experimental_planning: draft_validation_only
+    A7_resource_or_queue_prioritization: blocked
+    A8_tool_or_workflow_mutation: blocked
+    A9_execution_adjacent_or_external_action: blocked
+    A10_publication_or_claim_escalation: blocked
+
+  E3_noisy_or_conflicting_evidence:
+    A0_explanation: allowed
+    A1_retrieval_or_summary: allowed_with_logging
+    A2_hypothesis_generation: allowed_with_logging
+    A3_evidence_interpretation: allowed_log_or_review
+    A4_recommendation: draft_only_or_review_required
+    A5_protocol_modification: draft_only_or_review_required
+    A6_experimental_planning: draft_validation_only
+    A7_resource_or_queue_prioritization: blocked
+    A8_tool_or_workflow_mutation: blocked
+    A9_execution_adjacent_or_external_action: blocked
+    A10_publication_or_claim_escalation: review_required
+
+  E4_internally_consistent_evidence:
+    A0_explanation: allowed
+    A1_retrieval_or_summary: allowed_with_logging
+    A2_hypothesis_generation: allowed_with_logging
+    A3_evidence_interpretation: allowed_log_or_review
+    A4_recommendation: review_required
+    A5_protocol_modification: draft_only_or_review_required
+    A6_experimental_planning: draft_only_or_review_required
+    A7_resource_or_queue_prioritization: review_required
+    A8_tool_or_workflow_mutation: review_required
+    A9_execution_adjacent_or_external_action: blocked
+    A10_publication_or_claim_escalation: review_required
+
+  E5_internally_replicated_evidence:
+    A0_explanation: allowed
+    A1_retrieval_or_summary: allowed_with_logging
+    A2_hypothesis_generation: allowed_with_logging
+    A3_evidence_interpretation: allowed_log_or_review
+    A4_recommendation: review_required
+    A5_protocol_modification: review_required
+    A6_experimental_planning: review_required
+    A7_resource_or_queue_prioritization: review_required
+    A8_tool_or_workflow_mutation: review_required
+    A9_execution_adjacent_or_external_action: authorization_required
+    A10_publication_or_claim_escalation: review_required
+
+  E6_independently_reproduced_evidence:
+    A0_explanation: allowed
+    A1_retrieval_or_summary: allowed_with_logging
+    A2_hypothesis_generation: allowed_with_logging
+    A3_evidence_interpretation: allowed_log_or_review
+    A4_recommendation: review_required
+    A5_protocol_modification: review_required
+    A6_experimental_planning: review_required
+    A7_resource_or_queue_prioritization: authorization_required
+    A8_tool_or_workflow_mutation: authorization_required
+    A9_execution_adjacent_or_external_action: authorization_required
+    A10_publication_or_claim_escalation: review_required
+
+  E7_deployment_validated_evidence:
+    A0_explanation: allowed
+    A1_retrieval_or_summary: allowed_with_logging
+    A2_hypothesis_generation: allowed_with_logging
+    A3_evidence_interpretation: allowed_log_or_review
+    A4_recommendation: review_required
+    A5_protocol_modification: review_required
+    A6_experimental_planning: review_required
+    A7_resource_or_queue_prioritization: authorization_required
+    A8_tool_or_workflow_mutation: authorization_required
+    A9_execution_adjacent_or_external_action: authorization_required
+    A10_publication_or_claim_escalation: review_required
