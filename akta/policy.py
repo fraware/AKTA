@@ -21,6 +21,7 @@ POLICY_FILES = [
     "deployment_profiles.yaml",
     "admissibility_matrix.yaml",
     "evidence_to_action_matrix.yaml",
+    "evidence_to_action_rules.yaml",
 ]
 
 
@@ -37,8 +38,9 @@ class PolicyBundle:
     deployment_profiles: dict[str, Any]
     admissibility_matrix: dict[str, Any]
     evidence_to_action_matrix: dict[str, Any]
+    evidence_to_action_rules: dict[str, Any]
     tool_registry: dict[str, Any]
-    version: str = "akta-core-v0.1"
+    version: str = "akta-core-v0.2"
     policy_hash: str = ""
     tool_registry_hash: str = ""
     _raw_files: dict[str, str] = field(default_factory=dict, repr=False)
@@ -70,7 +72,7 @@ class PolicyBundle:
         raw_files["default_tool_registry.yaml"] = registry_content
         tool_registry = yaml.safe_load(registry_content)
 
-        version = loaded["action_ontology"].get("version", "akta-core-v0.1")
+        version = loaded["action_ontology"].get("version", "akta-core-v0.2")
         policy_hash = hash_object({k: raw_files[k] for k in sorted(raw_files) if k != "default_tool_registry.yaml"})
         tool_registry_hash = hash_file_content(registry_content)
 
@@ -84,6 +86,7 @@ class PolicyBundle:
             deployment_profiles=loaded["deployment_profiles"],
             admissibility_matrix=loaded["admissibility_matrix"],
             evidence_to_action_matrix=loaded["evidence_to_action_matrix"],
+            evidence_to_action_rules=loaded["evidence_to_action_rules"],
             tool_registry=tool_registry,
             version=version,
             policy_hash=policy_hash,
@@ -98,7 +101,7 @@ class PolicyBundle:
         info = profiles[profile]
         if not info.get("supported", True):
             raise PolicyError(
-                f"Deployment profile {profile} is not supported in v0.1: "
+                f"Deployment profile {profile} is not supported: "
                 f"{info.get('disclaimer', '')}"
             )
         return info
@@ -106,3 +109,8 @@ class PolicyBundle:
     def normalize_decision(self, raw: str) -> str:
         aliases = self.admissibility_matrix.get("decision_aliases", {})
         return aliases.get(raw, raw)
+
+    def profile_matrix_raw(self, profile: str, action_type: str) -> str:
+        matrix = self.admissibility_matrix.get("matrix", {})
+        row = matrix.get(action_type, {})
+        return row.get(profile, "blocked")
