@@ -54,16 +54,54 @@ def ai_output_summary(ai_output: Any) -> str:
     return str(ai_output)
 
 
-def build_review_trigger(record_id: str, role: str, action_type: str) -> dict[str, Any]:
+def build_review_trigger(
+    *,
+    decision_id: str,
+    record_id: str,
+    role: str,
+    action_type: str,
+    requested_tool: str = "",
+    requested_action: str = "",
+    deployment_profile: str = "",
+    scientific_action_type: str = "",
+    responsibility_level: str = "",
+    evidence_state: str = "",
+    validation_status: str = "",
+    verification_status: str = "",
+    admissibility: str = "",
+    decision_reason: str = "",
+    blocked_tools: list[str] | None = None,
+    allowed_next_steps: list[str] | None = None,
+    policy_hash: str = "",
+    tool_registry_hash: str = "",
+    domain_overlay_hash: str | None = None,
+    classifier_confidence: float = 0.95,
+    classification_rationale: str = "",
+    consequentiality: bool = False,
+    consequentiality_reason: str = "",
+    scientific_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build SCOPE-compatible review trigger artifact."""
     scope_map = {
         "A5_protocol_modification": "protocol_draft_to_validation_run",
         "A6_experimental_planning": "experimental_plan_review",
         "A7_resource_or_queue_prioritization": "queue_prioritization_review",
         "A10_publication_or_claim_escalation": "publication_claim_review",
     }
-    return {
+    trigger = {
         "review_trigger_id": new_review_trigger_id(),
+        "decision_id": decision_id,
         "source_record_id": record_id,
+        "requested_tool": requested_tool,
+        "requested_action": requested_action,
+        "deployment_profile": deployment_profile,
+        "scientific_action_type": scientific_action_type or action_type,
+        "responsibility_level": responsibility_level,
+        "evidence_state": evidence_state,
+        "validation_status": validation_status,
+        "verification_status": verification_status,
+        "admissibility": admissibility,
+        "decision_reason": decision_reason,
         "required_review_role": role or "domain_scientist",
         "review_scope": scope_map.get(action_type, "scientific_action_review"),
         "review_artifacts_required": [
@@ -75,9 +113,24 @@ def build_review_trigger(record_id: str, role: str, action_type: str) -> dict[st
             "blocked_tools",
             "next_admissible_steps",
         ],
+        "blocked_tools": blocked_tools or [],
+        "allowed_next_steps": allowed_next_steps or [],
         "approval_effect": "Allows scoped next step only; not global permission.",
         "default_expiration": "single_run",
+        "policy_hash": policy_hash,
+        "tool_registry_hash": tool_registry_hash,
+        "classifier_confidence": classifier_confidence,
+        "classification_rationale": classification_rationale,
+        "consequentiality": consequentiality,
+        "consequentiality_reason": consequentiality_reason,
+        "scientific_context": scientific_context or {},
     }
+    if domain_overlay_hash:
+        trigger["domain_overlay_hash"] = domain_overlay_hash
+    trigger["review_trigger_hash"] = hash_object(
+        {k: v for k, v in trigger.items() if k != "review_trigger_hash"}
+    )
+    return trigger
 
 
 class AKTADecision:
@@ -119,6 +172,17 @@ class AKTADecision:
         summary = ai_output_summary(ai_output) if ai_output else self._data.get("ai_output_summary", "")
         raw_ref = hash_object(summary) if summary else None
 
+        classification_block = {
+            "scientific_action_type": self._data["scientific_action_type"],
+            "responsibility_level": self._data["responsibility_level"],
+            "evidence_state": self._data["evidence_state"],
+            "validation_status": self._data["validation_status"],
+            "verification_status": self._data["verification_status"],
+            "classifier_confidence": self._data.get("classifier_confidence", 0.95),
+        }
+        if self._data.get("classification"):
+            classification_block["classification_detail"] = self._data["classification"]
+
         record_body = {
             "record_id": new_record_id(),
             "record_type": "scientific_action_record",
@@ -153,14 +217,7 @@ class AKTADecision:
                     else {}
                 ),
             },
-            "classification": {
-                "scientific_action_type": self._data["scientific_action_type"],
-                "responsibility_level": self._data["responsibility_level"],
-                "evidence_state": self._data["evidence_state"],
-                "validation_status": self._data["validation_status"],
-                "verification_status": self._data["verification_status"],
-                "classifier_confidence": self._data.get("classifier_confidence", 0.95),
-            },
+            "classification": classification_block,
             "decision": {
                 "admissibility": self._data["admissibility"],
                 "decision_reason": self._data["decision_reason"],
@@ -168,6 +225,8 @@ class AKTADecision:
                 "allowed_tools": self._data.get("allowed_tools", []),
                 "required_review_role": self._data.get("required_review_role"),
                 "next_admissible_steps": self._data.get("next_admissible_steps", []),
+                "consequentiality": self._data.get("consequentiality", False),
+                "consequentiality_reason": self._data.get("consequentiality_reason", ""),
             },
             "provenance": {
                 "policy_version": self._data["policy_version"],
@@ -191,6 +250,8 @@ class AKTADecision:
                 "prior_akta_records": ctx.get("prior_akta_records", []),
             },
         }
+        if self._data.get("review_trigger"):
+            record_body["review_trigger"] = self._data["review_trigger"]
         record_body["record_hash"] = hash_object({k: v for k, v in record_body.items() if k != "record_hash"})
         return AKTARecord(record_body)
 
