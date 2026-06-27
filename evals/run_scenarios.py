@@ -69,6 +69,10 @@ def run_scenario_eval(
         }
         if exp.get("validation_status"):
             checks["validation_status"] = d["validation_status"] == exp["validation_status"]
+        if exp.get("next_admissible_steps_min"):
+            checks["next_admissible_steps"] = (
+                len(d.get("next_admissible_steps", [])) >= exp["next_admissible_steps_min"]
+            )
 
         passed = all(checks.values())
         if passed:
