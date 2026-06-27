@@ -58,6 +58,7 @@ def compare_evaluations(
     metric_delta = {
         k: after_metrics.get(k, 0) - before_metrics.get(k, 0)
         for k in set(before_metrics) | set(after_metrics)
+        if isinstance(before_metrics.get(k), (int, float)) and isinstance(after_metrics.get(k), (int, float))
     }
 
     return {
