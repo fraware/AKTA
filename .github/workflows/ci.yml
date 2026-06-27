@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run pytest
+        run: pytest tests/ skills/akta-scientific-action-admissibility/tests/ -v
+
+      - name: Validate JSON schemas
+        run: pytest tests/test_schemas.py -v
+
+      - name: Run canonical scenario eval
+        run: |
+          akta eval \
+            --scenarios scenarios/canonical_5.jsonl \
+            --expected scenarios/expected_decisions.jsonl \
+            --out evals/reports/canonical_5.json
+
+      - name: Run public_40 scenario eval
+        run: |
+          akta eval \
+            --scenarios scenarios/public_40.jsonl \
+            --expected scenarios/expected_decisions.jsonl \
+            --out evals/reports/public_40.json
+
+      - name: Invalid fixtures must fail
+        run: pytest tests/test_invalid_cases.py -v
+
+      - name: Run integrated weak-evidence demo
+        run: python scripts/demo_weak_evidence.py
+
+      - name: Upload eval reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-reports-py${{ matrix.python-version }}
+          path: evals/reports/
