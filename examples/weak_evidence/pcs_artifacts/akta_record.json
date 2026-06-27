@@ -1,7 +1,7 @@
 {
-  "record_id": "AKTA-SAR-6E27842E",
+  "record_id": "AKTA-SAR-5AA929FE",
   "record_type": "scientific_action_record",
-  "timestamp": "2026-06-27T18:15:46Z",
+  "timestamp": "2026-06-27T18:26:04Z",
   "system": {
     "system_id": "example_agent",
     "model_id": "demo_model_v1",
@@ -60,5 +60,5 @@
     "pcs_artifact_ref": null,
     "prior_akta_records": []
   },
-  "record_hash": "sha256:d9d974eead3e1f5272ae0df635ea19456562b6b7ff95f417eefe97d8e6b01a68"
+  "record_hash": "sha256:e98920803480c566771472789597d24026b07215965287ef0ab7e00a210cdc76"
 }

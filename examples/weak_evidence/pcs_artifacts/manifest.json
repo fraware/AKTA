@@ -1,7 +1,7 @@
 {
   "artifact_type": "akta_scientific_action_record",
   "schema_version": "akta-record-v0.1",
-  "record_hash": "sha256:d9d974eead3e1f5272ae0df635ea19456562b6b7ff95f417eefe97d8e6b01a68",
+  "record_hash": "sha256:e98920803480c566771472789597d24026b07215965287ef0ab7e00a210cdc76",
   "policy_hash": "sha256:e24b8e190a692c7f245cc54d3510aaabf486bac9d3052dd47e25ddb2da14d975",
   "domain_overlay_hash": "sha256:e299198a20a8d57c3b5f890eba0f57383a8151b1a9db2629677cc0ed0bf2f2c6",
   "tool_registry_hash": "sha256:d4a9e0330c43ee6661a9248fde0b2f452be22bbc95179c2fc96e2f4e3cc14b40",
