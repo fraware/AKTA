@@ -48,6 +48,10 @@ Domain overlays may override roles (e.g., `compute_lead` for computational scien
 
 PF-Core can enforce that mutating tools require a valid review trigger reference matching the current AKTA Record. See [pf_core_bridge.md](pf_core_bridge.md).
 
+## SCOPE consumption
+
+SCOPE orchestrates human review from AKTA review triggers. See [scope_bridge.md](scope_bridge.md) for the full consumption contract, required fields, and anti-patterns.
+
 ## CLI and API
 
 Review triggers are embedded in decision JSON when `review_required`:
