@@ -1,0 +1,138 @@
+"""AKTA Gate — primary runtime decision engine."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from akta.classify import (
+    classify,
+    resolve_evidence_state,
+    resolve_validation_status,
+    resolve_verification_status,
+)
+from akta.context import AKTAContext
+from akta.evaluate import evaluate_admissibility
+from akta.overlays import DomainOverlay
+from akta.policy import PolicyBundle
+from akta.records import (
+    AKTADecision,
+    build_review_trigger,
+    new_decision_id,
+    utc_now_iso,
+    validate_against_schema,
+)
+from akta.tool_registry import ToolRegistry
+
+
+class AKTAGate:
+    """Scientific action admissibility gate."""
+
+    def __init__(
+        self,
+        policy: PolicyBundle,
+        overlays_dir: str | Path | None = None,
+    ) -> None:
+        self.policy = policy
+        self.tool_registry = ToolRegistry(policy.tool_registry)
+        self.overlays_dir = Path(overlays_dir or "overlays")
+
+    @classmethod
+    def from_policy_dir(
+        cls,
+        policy_dir: str | Path = "policy/",
+        overlays_dir: str | Path | None = None,
+        tool_registry_path: str | Path | None = None,
+    ) -> AKTAGate:
+        policy = PolicyBundle.from_dir(policy_dir, tool_registry_path=tool_registry_path)
+        return cls(policy, overlays_dir=overlays_dir)
+
+    def evaluate(
+        self,
+        ai_output: Any,
+        requested_tool: str,
+        requested_action: str,
+        context: AKTAContext | dict[str, Any] | None = None,
+        deployment_profile: str = "P2_analysis_assistant",
+        domain_overlay: str | None = None,
+        validate_output: bool = True,
+    ) -> AKTADecision:
+        ctx = context if isinstance(context, AKTAContext) else AKTAContext.from_dict(context or {})
+        self.policy.get_profile(deployment_profile)
+
+        overlay_obj: DomainOverlay | None = None
+        if domain_overlay:
+            overlay_obj = DomainOverlay.load(domain_overlay, self.overlays_dir)
+
+        tool_spec = self.tool_registry.resolve(requested_tool)
+        classification = classify(
+            self.policy,
+            requested_tool,
+            requested_action,
+            tool_spec,
+            ctx,
+            ai_output=ai_output,
+        )
+
+        evidence_state = resolve_evidence_state(ctx)
+        validation_status = resolve_validation_status(ctx)
+        verification_status = resolve_verification_status(ctx)
+
+        evaluation = evaluate_admissibility(
+            policy=self.policy,
+            profile=deployment_profile,
+            action_type=classification.action_type,
+            evidence_state=evidence_state,
+            tool_spec=tool_spec,
+            requested_tool=requested_tool,
+            context=ctx,
+            overlay=overlay_obj,
+        )
+
+        decision_data: dict[str, Any] = {
+            "decision_id": new_decision_id(),
+            "timestamp": utc_now_iso(),
+            "system_id": ctx.system_id,
+            "deployment_profile": deployment_profile,
+            "domain": ctx.domain or (overlay_obj.domain if overlay_obj else "generic"),
+            "requested_action": requested_action,
+            "requested_tool": requested_tool,
+            "scientific_action_type": classification.action_type,
+            "responsibility_level": classification.responsibility_level,
+            "evidence_state": evidence_state,
+            "validation_status": validation_status,
+            "verification_status": verification_status,
+            "admissibility": evaluation.admissibility,
+            "decision_reason": evaluation.decision_reason,
+            "required_review_role": evaluation.required_review_role,
+            "blocked_tools": evaluation.blocked_tools,
+            "allowed_tools": evaluation.allowed_tools,
+            "next_admissible_steps": evaluation.next_admissible_steps,
+            "record_required": evaluation.record_required,
+            "review_required": evaluation.review_required,
+            "authorization_required": evaluation.authorization_required,
+            "policy_version": self.policy.version,
+            "policy_hash": self.policy.policy_hash,
+            "domain_overlay_version": overlay_obj.version if overlay_obj else None,
+            "domain_overlay_hash": overlay_obj.overlay_hash if overlay_obj else None,
+            "tool_registry_hash": self.policy.tool_registry_hash,
+            "classifier_confidence": classification.confidence,
+            "classification_rationale": classification.rationale,
+            "ai_output_summary": (
+                ai_output if isinstance(ai_output, str)
+                else (ai_output.get("summary") if isinstance(ai_output, dict) else str(ai_output))
+            ),
+        }
+
+        if evaluation.review_required:
+            record_id = f"AKTA-SAR-PENDING-{decision_data['decision_id'].split('-')[-1]}"
+            decision_data["review_trigger"] = build_review_trigger(
+                record_id,
+                evaluation.required_review_role or "domain_scientist",
+                classification.action_type,
+            )
+
+        decision = AKTADecision(decision_data)
+        if validate_output:
+            validate_against_schema(decision.to_dict(), "akta_decision.schema.json")
+        return decision
