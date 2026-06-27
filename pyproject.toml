@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "akta-protocol"
+version = "0.1.0"
+description = "Open Scientific Action Protocol — reference kernel for scientific action admissibility"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "AKTA Contributors" }]
+keywords = ["scientific-action", "ai-for-science", "admissibility", "governance"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "jsonschema>=4.20",
+    "PyYAML>=6.0",
+    "setuptools>=68",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+]
+# REST server uses stdlib http.server; no extra deps required in v0.1.
+rest = []
+
+[project.scripts]
+akta = "akta.cli:main"
+akta-rest = "adapters.generic_rest.server:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["akta*", "adapters*", "evals*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "skills/akta-scientific-action-admissibility/tests"]
+pythonpath = ["."]
