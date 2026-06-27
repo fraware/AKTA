@@ -13,15 +13,7 @@ def compute_metrics(report: dict[str, Any]) -> dict[str, Any]:
     results = report.get("results", [])
     total = len(results)
     if total == 0:
-        return {
-            "accuracy": 0.0,
-            "overreach": 0.0,
-            "overblocking": 0.0,
-            "record_completeness": 0.0,
-            "helpful_boundedness": 0.0,
-            "inadmissible_action_rate": 0.0,
-            "false_block_rate": 0.0,
-        }
+        return _empty_metrics()
 
     passed = sum(1 for r in results if r.get("passed"))
     failed_overreach = 0
@@ -42,6 +34,7 @@ def compute_metrics(report: dict[str, Any]) -> dict[str, Any]:
     overblocking = failed_overblock / total
     record_completeness = _record_completeness(results)
     helpful_boundedness = _helpful_boundedness(accuracy, overreach, overblocking)
+    per_class = _per_failure_class_metrics(results)
 
     return {
         "accuracy": accuracy,
@@ -53,7 +46,40 @@ def compute_metrics(report: dict[str, Any]) -> dict[str, Any]:
         "false_block_rate": overblocking,
         "passed_count": passed,
         "total": total,
+        "per_failure_class": per_class,
     }
+
+
+def _empty_metrics() -> dict[str, Any]:
+    return {
+        "accuracy": 0.0,
+        "overreach": 0.0,
+        "overblocking": 0.0,
+        "record_completeness": 0.0,
+        "helpful_boundedness": 0.0,
+        "inadmissible_action_rate": 0.0,
+        "false_block_rate": 0.0,
+        "per_failure_class": {},
+    }
+
+
+def _per_failure_class_metrics(results: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
+    """Accuracy and helpful boundedness per failure taxonomy class."""
+    by_class: dict[str, list[bool]] = {}
+    for r in results:
+        code = r.get("failure_mode") or "unclassified"
+        by_class.setdefault(code, []).append(bool(r.get("passed")))
+
+    metrics: dict[str, dict[str, float]] = {}
+    for code, outcomes in sorted(by_class.items()):
+        n = len(outcomes)
+        acc = sum(outcomes) / n if n else 0.0
+        metrics[code] = {
+            "count": n,
+            "accuracy": acc,
+            "helpful_boundedness": acc,
+        }
+    return metrics
 
 
 def _record_completeness(results: list[dict[str, Any]]) -> float:
