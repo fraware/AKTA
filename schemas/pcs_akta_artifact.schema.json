@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/pcs_akta_artifact.schema.json",
+  "title": "PCS AKTA Artifact Bundle",
+  "type": "object",
+  "required": [
+    "artifact_type",
+    "schema_version",
+    "record_hash",
+    "policy_hash",
+    "tool_registry_hash",
+    "manifest_hash",
+    "files"
+  ],
+  "properties": {
+    "artifact_type": { "type": "string", "const": "akta_scientific_action_record" },
+    "schema_version": { "type": "string" },
+    "record_hash": { "type": "string", "pattern": "^sha256:" },
+    "policy_hash": { "type": "string", "pattern": "^sha256:" },
+    "tool_registry_hash": { "type": "string", "pattern": "^sha256:" },
+    "domain_overlay_hash": { "type": ["string", "null"], "pattern": "^sha256:" },
+    "decision_id": { "type": "string" },
+    "manifest_hash": { "type": "string", "pattern": "^sha256:" },
+    "files": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 4
+    }
+  },
+  "additionalProperties": true
+}
