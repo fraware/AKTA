@@ -1,0 +1,74 @@
+{
+  "record_id": "AKTA-SAR-DEMO0001",
+  "record_type": "scientific_action_record",
+  "timestamp": "2026-06-01T12:00:00Z",
+  "system": {
+    "system_id": "example_agent",
+    "model_id": "demo_model_v1",
+    "agent_id": "agent_001",
+    "session_id": "session_integrated_weak_evidence"
+  },
+  "scientific_context": {
+    "domain": "materials",
+    "project_id": "integrated_demo_project",
+    "deployment_profile": "P2_analysis_assistant",
+    "domain_overlay": "generic_lab_v0.1"
+  },
+  "ai_output": {
+    "summary": "The agent recommended prioritizing condition B based on a preliminary signal.",
+    "raw_ref": "sha256:e5c5eae2316d537ce8ece10ab5556bd81482b509b6cd848c8eded63f601bd520",
+    "output_type": "natural_language_recommendation"
+  },
+  "requested_transition": {
+    "requested_action": "prioritize_next_run",
+    "requested_tool": "lab_scheduler.prioritize"
+  },
+  "classification": {
+    "scientific_action_type": "A7_resource_or_queue_prioritization",
+    "responsibility_level": "R6_resource_allocation",
+    "evidence_state": "E2_preliminary_signal",
+    "validation_status": "V0_unvalidated",
+    "verification_status": "Q0_unchecked",
+    "classifier_confidence": 0.98,
+    "classification_detail": {
+      "primary_action_type": "A7_resource_or_queue_prioritization",
+      "alternate_action_types": [],
+      "matched_source": "tool_registry",
+      "matched_evidence": "tool=lab_scheduler.prioritize",
+      "uncertainty_flags": [],
+      "classifier_mode": "deterministic"
+    }
+  },
+  "decision": {
+    "admissibility": "blocked",
+    "decision_reason": "Profile P2_analysis_assistant matrix decision for A7_resource_or_queue_prioritization is blocked. Evidence rule E2_preliminary_signal+A7_resource_or_queue_prioritization constrains to blocked (resolved from blocked).",
+    "blocked_tools": [
+      "lab_scheduler.prioritize",
+      "robot_queue.submit"
+    ],
+    "allowed_tools": [],
+    "required_review_role": null,
+    "next_admissible_steps": [
+      "downgrade to hypothesis discussion",
+      "draft a validation experiment",
+      "request domain review before prioritization",
+      "gather additional evidence"
+    ],
+    "consequentiality": true,
+    "consequentiality_reason": "mutating tool; external effect; action type A7_resource_or_queue_prioritization; resource allocation; next-run or prioritization language"
+  },
+  "provenance": {
+    "policy_version": "akta-core-v0.2",
+    "policy_hash": "sha256:0430016c6b03d5ab038208784ba502d00e6c7b7e344fcea0e4c6a4cedef1809f",
+    "domain_overlay_version": "generic_lab_v0.1",
+    "domain_overlay_hash": "sha256:e299198a20a8d57c3b5f890eba0f57383a8151b1a9db2629677cc0ed0bf2f2c6",
+    "tool_registry_hash": "sha256:d4a9e0330c43ee6661a9248fde0b2f452be22bbc95179c2fc96e2f4e3cc14b40"
+  },
+  "integrations": {
+    "vsa_report_ref": "VSA-REPORT-INTEGRATED-001",
+    "pf_core_obligation_ref": null,
+    "pcs_artifact_ref": null,
+    "prior_akta_records": []
+  },
+  "record_hash": "sha256:f79dc3916776f4986e3900739696b4b5e7bcdc33ff27ed11587f714c96bd4120"
+}

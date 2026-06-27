@@ -1,0 +1,38 @@
+{
+  "obligation_id": "PF-OBL-AKTA-SAR-DEMO0001",
+  "obligation_type": "tool_block",
+  "source": "AKTA",
+  "source_record_id": "AKTA-SAR-DEMO0001",
+  "decision_id": "AKTA-DEC-DEMO0001",
+  "decision": "blocked",
+  "blocked_tools": [
+    "lab_scheduler.prioritize",
+    "robot_queue.submit"
+  ],
+  "allowed_tools": [],
+  "max_responsibility_level": "R6_resource_allocation",
+  "policy_hash": "sha256:0430016c6b03d5ab038208784ba502d00e6c7b7e344fcea0e4c6a4cedef1809f",
+  "tool_registry_hash": "sha256:d4a9e0330c43ee6661a9248fde0b2f452be22bbc95179c2fc96e2f4e3cc14b40",
+  "domain_overlay_hash": "sha256:e299198a20a8d57c3b5f890eba0f57383a8151b1a9db2629677cc0ed0bf2f2c6",
+  "enforcement_mode": "hard_block",
+  "required_runtime_behavior": {
+    "block_execution": true,
+    "require_review_before_tool_call": false,
+    "require_authorization_before_tool_call": false,
+    "blocked_tools": [
+      "lab_scheduler.prioritize",
+      "robot_queue.submit"
+    ],
+    "allowed_tools": [],
+    "log_all_tool_calls": false
+  },
+  "next_admissible_steps": [
+    "downgrade to hypothesis discussion",
+    "draft a validation experiment",
+    "request domain review before prioritization",
+    "gather additional evidence"
+  ],
+  "required_review_role": null,
+  "consequentiality": true,
+  "obligation_hash": "sha256:650f4de2f339c9d642eaf083db5a7209089096404783a34e71195c059825a01d"
+}

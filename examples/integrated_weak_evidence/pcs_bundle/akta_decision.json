@@ -1,0 +1,49 @@
+{
+  "decision_id": "AKTA-DEC-DEMO0001",
+  "timestamp": "2026-06-01T12:00:00Z",
+  "system_id": "example_agent",
+  "deployment_profile": "P2_analysis_assistant",
+  "domain": "materials",
+  "requested_action": "prioritize_next_run",
+  "requested_tool": "lab_scheduler.prioritize",
+  "scientific_action_type": "A7_resource_or_queue_prioritization",
+  "responsibility_level": "R6_resource_allocation",
+  "evidence_state": "E2_preliminary_signal",
+  "validation_status": "V0_unvalidated",
+  "verification_status": "Q0_unchecked",
+  "admissibility": "blocked",
+  "decision_reason": "Profile P2_analysis_assistant matrix decision for A7_resource_or_queue_prioritization is blocked. Evidence rule E2_preliminary_signal+A7_resource_or_queue_prioritization constrains to blocked (resolved from blocked).",
+  "required_review_role": null,
+  "blocked_tools": [
+    "lab_scheduler.prioritize",
+    "robot_queue.submit"
+  ],
+  "allowed_tools": [],
+  "next_admissible_steps": [
+    "downgrade to hypothesis discussion",
+    "draft a validation experiment",
+    "request domain review before prioritization",
+    "gather additional evidence"
+  ],
+  "record_required": true,
+  "review_required": false,
+  "authorization_required": false,
+  "consequentiality": true,
+  "consequentiality_reason": "mutating tool; external effect; action type A7_resource_or_queue_prioritization; resource allocation; next-run or prioritization language",
+  "policy_version": "akta-core-v0.2",
+  "policy_hash": "sha256:0430016c6b03d5ab038208784ba502d00e6c7b7e344fcea0e4c6a4cedef1809f",
+  "domain_overlay_version": "generic_lab_v0.1",
+  "domain_overlay_hash": "sha256:e299198a20a8d57c3b5f890eba0f57383a8151b1a9db2629677cc0ed0bf2f2c6",
+  "tool_registry_hash": "sha256:d4a9e0330c43ee6661a9248fde0b2f452be22bbc95179c2fc96e2f4e3cc14b40",
+  "classifier_confidence": 0.98,
+  "classification_rationale": "tool registry maps lab_scheduler.prioritize to A7_resource_or_queue_prioritization",
+  "classification": {
+    "primary_action_type": "A7_resource_or_queue_prioritization",
+    "alternate_action_types": [],
+    "matched_source": "tool_registry",
+    "matched_evidence": "tool=lab_scheduler.prioritize",
+    "uncertainty_flags": [],
+    "classifier_mode": "deterministic"
+  },
+  "ai_output_summary": "The agent recommended prioritizing condition B based on a preliminary signal."
+}
