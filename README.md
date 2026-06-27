@@ -27,11 +27,20 @@ akta record \
 
 pytest tests/ -v
 akta eval --scenarios scenarios/canonical_5.jsonl --expected scenarios/expected_decisions.jsonl
-akta eval --scenarios scenarios/public_40.jsonl --expected scenarios/expected_decisions.jsonl
+akta eval --scenarios scenarios/public_100.jsonl --expected scenarios/expected_decisions.jsonl
 
-# Integrated weak-evidence demo (spec section 39)
-python scripts/demo_weak_evidence.py
-# or: make demo-weak-evidence
+# Export adapters (v0.2)
+akta export pcs --record examples/weak_evidence/akta_record.json \
+  --decision examples/weak_evidence/akta_decision.json \
+  --out dist/pcs_bundle/ --validate
+akta export pf --record examples/weak_evidence/akta_record.json \
+  --decision examples/weak_evidence/akta_decision.json \
+  --out dist/pf_obligations/ --validate
+akta review-trigger export --decision decision.json --out review_trigger.json
+
+# Integrated weak-evidence demo (v0.2)
+python scripts/demo_integrated_weak_evidence.py
+# or: make demo-akta-weak-evidence
 ```
 
 ## Architecture
@@ -90,6 +99,7 @@ record = decision.to_record()
 - [AKTA Card guide](docs/akta_card_guide.md)
 - [Domain overlay guide](docs/domain_overlay_guide.md)
 - [Review integration](docs/review_integration.md)
+- [SCOPE bridge](docs/scope_bridge.md)
 - [PF-Core bridge](docs/pf_core_bridge.md)
 - [PCS export](docs/pcs_export.md)
 - [VSA import](docs/vsa_import.md)
@@ -110,7 +120,26 @@ akta-rest --host 127.0.0.1 --port 8765
 # GET  /v0/policy, /v0/health
 ```
 
-## v0.1 acceptance status
+## v0.2 acceptance status
+
+| Criterion | Status |
+|-----------|--------|
+| Per-action evidence-to-action rules | Pass |
+| Consequentiality-aware `allowed_log_or_review` | Pass |
+| SCOPE-compatible review triggers | Pass |
+| Rich classifier with fail-closed low confidence | Pass |
+| PF-Core obligation schema + export | Pass |
+| PCS artifact schema + validated export | Pass |
+| AKTA-Bench 100 scenarios + per-class metrics | Pass |
+| Integrated weak-evidence demo (one command) | Pass |
+| CLI gate on canonical 5 | Pass |
+| Schemas validate (decision, record, review trigger) | Pass |
+| Policy + matrices enforced | Pass |
+| Unknown mutating tools blocked | Pass |
+| next_admissible_steps on blocked | Pass |
+| Policy/record hashes + CI validation | Pass |
+
+## v0.1 acceptance status (retained)
 
 | Criterion | Status |
 |-----------|--------|
@@ -128,4 +157,4 @@ akta-rest --host 127.0.0.1 --port 8765
 
 ## Status
 
-AKTA v0.1 is a reference implementation. It is not a safety certification. Deployment profile P7 (fully autonomous scientific operator) is defined for taxonomy only and is not supported in v0.1.
+AKTA v0.2 is a reference implementation. It is not a safety certification. Deployment profile P7 (fully autonomous scientific operator) is defined for taxonomy only and is not supported.
