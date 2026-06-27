@@ -1,0 +1,33 @@
+version: akta-core-v0.1
+# Evidence-to-action constraints. Stricter decision wins when combined with profile matrix.
+constraints:
+  E0_no_evidence:
+    max_action: A2_hypothesis_generation
+    violation_decision: blocked
+  E1_anecdotal_or_informal_observation:
+    max_action: A2_hypothesis_generation
+    violation_decision: blocked
+  E2_preliminary_signal:
+    max_action: A6_experimental_planning
+    max_action_mode: draft_only
+    violation_decision: blocked
+  E3_noisy_or_conflicting_evidence:
+    max_action: A6_experimental_planning
+    max_action_mode: draft_only
+    violation_decision: review_required
+  E4_internally_consistent_evidence:
+    max_action: A4_recommendation
+    max_action_mode: review_required
+    violation_decision: review_required
+  E5_internally_replicated_evidence:
+    max_action: A6_experimental_planning
+    max_action_mode: review_required
+    violation_decision: review_required
+  E6_independently_reproduced_evidence:
+    max_action: A7_resource_or_queue_prioritization
+    max_action_mode: authorization_required
+    violation_decision: authorization_required
+  E7_deployment_validated_evidence:
+    max_action: A9_execution_adjacent_or_external_action
+    max_action_mode: authorization_required
+    violation_decision: authorization_required

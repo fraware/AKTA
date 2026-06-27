@@ -1,0 +1,23 @@
+domain: generic_lab
+version: generic_lab_v0.1
+operational: true
+
+minimum_evidence_for:
+  recommendation: E4_internally_consistent_evidence
+  experimental_planning: E4_internally_consistent_evidence
+  queue_prioritization: E5_internally_replicated_evidence
+
+required_review_roles:
+  protocol_modification:
+    - protocol_owner
+  queue_prioritization:
+    - domain_scientist
+
+blocked_actions: []
+
+metadata_requirements:
+  - protocol_version
+  - evidence_state
+  - validation_status
+
+tool_restrictions: {}

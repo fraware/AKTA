@@ -1,0 +1,23 @@
+version: akta-core-v0.1
+validation_statuses:
+  V0_unvalidated:
+    id: V0
+    name: unvalidated
+  V1_literature_supported:
+    id: V1
+    name: literature_supported
+  V2_simulation_supported:
+    id: V2
+    name: simulation_supported
+  V3_preliminary_experimental_support:
+    id: V3
+    name: preliminary_experimental_support
+  V4_internally_replicated:
+    id: V4
+    name: internally_replicated
+  V5_independently_replicated:
+    id: V5
+    name: independently_replicated
+  V6_operationally_validated:
+    id: V6
+    name: operationally_validated

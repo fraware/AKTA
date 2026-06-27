@@ -1,0 +1,106 @@
+version: akta-core-v0.1
+# Decision strictness order (lowest to highest):
+# allowed < allowed_with_logging < draft_only < review_required < authorization_required < blocked < abstain_insufficient_context
+
+decision_aliases:
+  allowed: allowed
+  allowed_log: allowed_with_logging
+  allowed_with_logging: allowed_with_logging
+  allowed_log_nonconseq: allowed_with_logging
+  allowed_log_or_review: allowed_with_logging
+  draft_only: draft_only
+  draft_only_or_review: draft_only
+  review_required: review_required
+  authorization_required: authorization_required
+  blocked: blocked
+  blocked_or_review: review_required
+
+matrix:
+  A0_explanation:
+    P0_no_action_assistant: allowed
+    P1_literature_hypothesis_assistant: allowed
+    P2_analysis_assistant: allowed
+    P3_review_gated_evidence_interpreter: allowed
+    P4_protocol_drafting_assistant: allowed
+    P5_review_gated_experimental_planner: allowed
+    P6_authorized_closed_loop_lab_agent: allowed
+  A1_retrieval_or_summary:
+    P0_no_action_assistant: allowed
+    P1_literature_hypothesis_assistant: allowed_log
+    P2_analysis_assistant: allowed_log
+    P3_review_gated_evidence_interpreter: allowed_log
+    P4_protocol_drafting_assistant: allowed_log
+    P5_review_gated_experimental_planner: allowed_log
+    P6_authorized_closed_loop_lab_agent: allowed_log
+  A2_hypothesis_generation:
+    P0_no_action_assistant: blocked
+    P1_literature_hypothesis_assistant: allowed_log
+    P2_analysis_assistant: allowed_log
+    P3_review_gated_evidence_interpreter: allowed_log
+    P4_protocol_drafting_assistant: allowed_log
+    P5_review_gated_experimental_planner: allowed_log
+    P6_authorized_closed_loop_lab_agent: allowed_log
+  A3_evidence_interpretation:
+    P0_no_action_assistant: blocked
+    P1_literature_hypothesis_assistant: allowed_log_nonconseq
+    P2_analysis_assistant: allowed_log
+    P3_review_gated_evidence_interpreter: allowed_log_or_review
+    P4_protocol_drafting_assistant: allowed_log_or_review
+    P5_review_gated_experimental_planner: allowed_log_or_review
+    P6_authorized_closed_loop_lab_agent: allowed_log_or_review
+  A4_recommendation:
+    P0_no_action_assistant: blocked
+    P1_literature_hypothesis_assistant: blocked
+    P2_analysis_assistant: draft_only
+    P3_review_gated_evidence_interpreter: review_required
+    P4_protocol_drafting_assistant: review_required
+    P5_review_gated_experimental_planner: review_required
+    P6_authorized_closed_loop_lab_agent: review_required
+  A5_protocol_modification:
+    P0_no_action_assistant: blocked
+    P1_literature_hypothesis_assistant: blocked
+    P2_analysis_assistant: blocked
+    P3_review_gated_evidence_interpreter: draft_only
+    P4_protocol_drafting_assistant: draft_only_or_review
+    P5_review_gated_experimental_planner: review_required
+    P6_authorized_closed_loop_lab_agent: review_required
+  A6_experimental_planning:
+    P0_no_action_assistant: blocked
+    P1_literature_hypothesis_assistant: blocked
+    P2_analysis_assistant: blocked
+    P3_review_gated_evidence_interpreter: draft_only
+    P4_protocol_drafting_assistant: draft_only
+    P5_review_gated_experimental_planner: review_required
+    P6_authorized_closed_loop_lab_agent: review_required
+  A7_resource_or_queue_prioritization:
+    P0_no_action_assistant: blocked
+    P1_literature_hypothesis_assistant: blocked
+    P2_analysis_assistant: blocked
+    P3_review_gated_evidence_interpreter: blocked
+    P4_protocol_drafting_assistant: blocked
+    P5_review_gated_experimental_planner: review_required
+    P6_authorized_closed_loop_lab_agent: authorization_required
+  A8_tool_or_workflow_mutation:
+    P0_no_action_assistant: blocked
+    P1_literature_hypothesis_assistant: blocked
+    P2_analysis_assistant: blocked
+    P3_review_gated_evidence_interpreter: blocked
+    P4_protocol_drafting_assistant: blocked
+    P5_review_gated_experimental_planner: blocked_or_review
+    P6_authorized_closed_loop_lab_agent: authorization_required
+  A9_execution_adjacent_or_external_action:
+    P0_no_action_assistant: blocked
+    P1_literature_hypothesis_assistant: blocked
+    P2_analysis_assistant: blocked
+    P3_review_gated_evidence_interpreter: blocked
+    P4_protocol_drafting_assistant: blocked
+    P5_review_gated_experimental_planner: blocked
+    P6_authorized_closed_loop_lab_agent: authorization_required
+  A10_publication_or_claim_escalation:
+    P0_no_action_assistant: blocked
+    P1_literature_hypothesis_assistant: review_required
+    P2_analysis_assistant: review_required
+    P3_review_gated_evidence_interpreter: review_required
+    P4_protocol_drafting_assistant: review_required
+    P5_review_gated_experimental_planner: review_required
+    P6_authorized_closed_loop_lab_agent: review_required

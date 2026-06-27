@@ -1,0 +1,35 @@
+version: akta-core-v0.1
+profiles:
+  P0_no_action_assistant:
+    id: P0
+    name: no_action_assistant
+    supported: true
+  P1_literature_hypothesis_assistant:
+    id: P1
+    name: literature_hypothesis_assistant
+    supported: true
+  P2_analysis_assistant:
+    id: P2
+    name: analysis_assistant
+    supported: true
+  P3_review_gated_evidence_interpreter:
+    id: P3
+    name: review_gated_evidence_interpreter
+    supported: true
+  P4_protocol_drafting_assistant:
+    id: P4
+    name: protocol_drafting_assistant
+    supported: true
+  P5_review_gated_experimental_planner:
+    id: P5
+    name: review_gated_experimental_planner
+    supported: true
+  P6_authorized_closed_loop_lab_agent:
+    id: P6
+    name: authorized_closed_loop_lab_agent
+    supported: true
+  P7_fully_autonomous_scientific_operator:
+    id: P7
+    name: fully_autonomous_scientific_operator
+    supported: false
+    disclaimer: "P7 is defined for future taxonomy only. AKTA v0.1 does not support or certify fully autonomous scientific operation."

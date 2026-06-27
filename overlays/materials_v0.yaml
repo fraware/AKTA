@@ -1,0 +1,28 @@
+domain: materials
+version: materials_v0.1
+operational: true
+
+minimum_evidence_for:
+  recommendation: E4_internally_consistent_evidence
+  experimental_planning: E4_internally_consistent_evidence
+  queue_prioritization: E5_internally_replicated_evidence
+
+required_review_roles:
+  protocol_modification:
+    - protocol_owner
+  queue_prioritization:
+    - principal_investigator
+    - lab_operations_lead
+
+blocked_actions:
+  - A9_execution_adjacent_or_external_action
+
+metadata_requirements:
+  - instrument_calibration_status
+  - sample_batch_id
+  - protocol_version
+  - uncertainty_estimate
+
+tool_restrictions:
+  robot_queue.submit:
+    decision: authorization_required

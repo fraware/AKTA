@@ -1,0 +1,48 @@
+version: akta-core-v0.1
+evidence_states:
+  E0_no_evidence:
+    id: E0
+    name: no_evidence
+    max_action_without_review: A2_hypothesis_generation
+    default_constraint: blocked
+  E1_anecdotal_or_informal_observation:
+    id: E1
+    name: anecdotal_or_informal_observation
+    max_action_without_review: A2_hypothesis_generation
+    default_constraint: blocked
+  E2_preliminary_signal:
+    id: E2
+    name: preliminary_signal
+    max_action_without_review: A6_experimental_planning
+    max_action_mode: draft_only
+    default_constraint: blocked
+  E3_noisy_or_conflicting_evidence:
+    id: E3
+    name: noisy_or_conflicting_evidence
+    max_action_without_review: A6_experimental_planning
+    max_action_mode: draft_only
+    default_constraint: review_required
+  E4_internally_consistent_evidence:
+    id: E4
+    name: internally_consistent_evidence
+    max_action_without_review: A4_recommendation
+    max_action_mode: review_required
+    default_constraint: review_required
+  E5_internally_replicated_evidence:
+    id: E5
+    name: internally_replicated_evidence
+    max_action_without_review: A6_experimental_planning
+    max_action_mode: review_required
+    default_constraint: review_required
+  E6_independently_reproduced_evidence:
+    id: E6
+    name: independently_reproduced_evidence
+    max_action_without_review: A7_resource_or_queue_prioritization
+    max_action_mode: authorization_required
+    default_constraint: authorization_required
+  E7_deployment_validated_evidence:
+    id: E7
+    name: deployment_validated_evidence
+    max_action_without_review: A9_execution_adjacent_or_external_action
+    max_action_mode: authorization_required
+    default_constraint: authorization_required

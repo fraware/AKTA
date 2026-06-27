@@ -1,0 +1,61 @@
+version: akta-tool-registry-v0.1
+tools:
+  literature_search.query:
+    action_type: A1_retrieval_or_summary
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+
+  notebook.run_analysis:
+    action_type: A3_evidence_interpretation
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+
+  protocol_editor.draft_change:
+    action_type: A5_protocol_modification
+    mutates_state: false
+    external_effect: false
+    default_permission: draft_only
+
+  protocol_editor.update_active_protocol:
+    action_type: A5_protocol_modification
+    mutates_state: true
+    external_effect: true
+    default_permission: review_required
+
+  experiment_planner.create_run_plan:
+    action_type: A6_experimental_planning
+    mutates_state: false
+    external_effect: false
+    default_permission: review_required
+
+  experiment_planner.create_validation_draft:
+    action_type: A6_experimental_planning
+    mutates_state: false
+    external_effect: false
+    default_permission: draft_only
+
+  lab_scheduler.prioritize:
+    action_type: A7_resource_or_queue_prioritization
+    mutates_state: true
+    external_effect: true
+    default_permission: review_required
+
+  robot_queue.submit:
+    action_type: A9_execution_adjacent_or_external_action
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+
+  workflow.update_state:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: true
+    external_effect: false
+    default_permission: authorization_required
+
+  publication.draft_claim:
+    action_type: A10_publication_or_claim_escalation
+    mutates_state: false
+    external_effect: false
+    default_permission: review_required

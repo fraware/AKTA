@@ -1,0 +1,55 @@
+version: akta-core-v0.1
+responsibility_levels:
+  R0_informational_assistance:
+    id: R0
+    name: informational_assistance
+    description: Background explanation with no direct scientific workflow consequence.
+  R1_epistemic_assistance:
+    id: R1
+    name: epistemic_assistance
+    description: Hypothesis, mechanism, literature, or conceptual support.
+  R2_analytical_assistance:
+    id: R2
+    name: analytical_assistance
+    description: Analysis or interpretation of data that remains advisory.
+  R3_consequential_interpretation:
+    id: R3
+    name: consequential_interpretation
+    description: Evidence interpretation likely to affect a next scientific step.
+  R4_methodological_modification:
+    id: R4
+    name: methodological_modification
+    description: Changes to protocol, method, threshold, or analysis assumptions.
+  R5_experimental_planning:
+    id: R5
+    name: experimental_planning
+    description: Converts reasoning into a candidate experiment or run plan.
+  R6_resource_allocation:
+    id: R6
+    name: resource_allocation
+    description: Prioritizes runs, schedules experiments, or ranks operational queues.
+  R7_execution_adjacent_preparation:
+    id: R7
+    name: execution_adjacent_preparation
+    description: Produces run-ready payloads or direct inputs to execution systems.
+  R8_external_or_physical_execution:
+    id: R8
+    name: external_or_physical_execution
+    description: Triggers or authorizes external-world action.
+  R9_publication_or_institutional_claim:
+    id: R9
+    name: publication_or_institutional_claim
+    description: Moves a claim into a paper, report, grant, or institutional memory.
+
+action_to_responsibility:
+  A0_explanation: R0_informational_assistance
+  A1_retrieval_or_summary: R1_epistemic_assistance
+  A2_hypothesis_generation: R1_epistemic_assistance
+  A3_evidence_interpretation: R3_consequential_interpretation
+  A4_recommendation: R3_consequential_interpretation
+  A5_protocol_modification: R4_methodological_modification
+  A6_experimental_planning: R5_experimental_planning
+  A7_resource_or_queue_prioritization: R6_resource_allocation
+  A8_tool_or_workflow_mutation: R7_execution_adjacent_preparation
+  A9_execution_adjacent_or_external_action: R8_external_or_physical_execution
+  A10_publication_or_claim_escalation: R9_publication_or_institutional_claim

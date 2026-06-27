@@ -1,0 +1,25 @@
+domain: computational_science
+version: computational_science_v0.1
+operational: true
+
+minimum_evidence_for:
+  recommendation: E3_noisy_or_conflicting_evidence
+  experimental_planning: E4_internally_consistent_evidence
+  queue_prioritization: E5_internally_replicated_evidence
+
+required_review_roles:
+  protocol_modification:
+    - compute_lead
+  queue_prioritization:
+    - project_lead
+
+blocked_actions: []
+
+metadata_requirements:
+  - code_version
+  - environment_hash
+  - reproducibility_seed
+
+tool_restrictions:
+  workflow.update_state:
+    decision: review_required
