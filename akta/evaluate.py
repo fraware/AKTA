@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from akta.classify import action_rank, responsibility_rank
+from akta.consequentiality import ConsequentialityResult, classify_consequentiality
 from akta.context import AKTAContext
 from akta.overlays import DomainOverlay
 from akta.policy import PolicyBundle
@@ -22,11 +23,9 @@ DECISION_ORDER = {
     "abstain_insufficient_context": 6,
 }
 
-def _evidence_rank(evidence_state: str) -> int:
-    if evidence_state.startswith("E") and len(evidence_state) > 1 and evidence_state[1].isdigit():
-        return int(evidence_state[1])
-    return 0
-
+VALIDATION_DRAFT_TOOLS = frozenset({
+    "experiment_planner.create_validation_draft",
+})
 
 PERMISSION_TO_DECISION = {
     "allowed": "allowed",
@@ -62,6 +61,8 @@ class EvaluationResult:
     review_required: bool = False
     authorization_required: bool = False
     record_required: bool = True
+    consequentiality: bool = False
+    consequentiality_reason: str = ""
 
 
 def strictest(*decisions: str) -> str:
@@ -70,18 +71,102 @@ def strictest(*decisions: str) -> str:
     return max(decisions, key=lambda d: DECISION_ORDER.get(d, 99))
 
 
-def profile_decision(policy: PolicyBundle, profile: str, action_type: str) -> str:
-    matrix = policy.admissibility_matrix.get("matrix", {})
-    row = matrix.get(action_type, {})
-    raw = row.get(profile, "blocked")
+def resolve_conditional_decision(
+    policy: PolicyBundle,
+    raw: str,
+    profile: str,
+    action_type: str,
+    tool_spec: ToolSpec,
+    requested_tool: str,
+    consequentiality: ConsequentialityResult,
+) -> str:
+    """Resolve profile/evidence conditional decision tokens."""
+    if raw in ("allowed", "allowed_with_logging", "draft_only", "review_required",
+               "authorization_required", "blocked", "abstain_insufficient_context"):
+        return policy.normalize_decision(raw)
+
+    if raw in ("allowed_log_or_review", "allowed_log_nonconseq"):
+        if raw == "allowed_log_nonconseq":
+            return "allowed_with_logging"
+        return "review_required" if consequentiality.consequential else "allowed_with_logging"
+
+    if raw in ("draft_only_or_review_required", "draft_only_or_review"):
+        profile_raw = policy.profile_matrix_raw(profile, action_type)
+        candidates: list[str] = []
+        for token in (raw, profile_raw):
+            norm = policy.normalize_decision(token)
+            if norm in ("draft_only", "review_required"):
+                candidates.append(norm)
+            elif token in ("draft_only_or_review_required", "draft_only_or_review"):
+                if tool_spec.mutates_state or tool_spec.external_effect or "active" in requested_tool:
+                    candidates.append("review_required")
+                else:
+                    candidates.append("draft_only")
+        if not candidates:
+            candidates.append("review_required")
+        return strictest(*candidates)
+
+    if raw == "draft_validation_only":
+        if requested_tool in VALIDATION_DRAFT_TOOLS or "validation_draft" in requested_tool:
+            return "draft_only"
+        if tool_spec.default_permission == "draft_only" and not tool_spec.mutates_state:
+            return "draft_only"
+        return "blocked"
+
+    if raw == "blocked_or_review":
+        return "review_required"
+
     return policy.normalize_decision(raw)
+
+
+def profile_decision(
+    policy: PolicyBundle,
+    profile: str,
+    action_type: str,
+    tool_spec: ToolSpec,
+    requested_tool: str,
+    consequentiality: ConsequentialityResult,
+) -> str:
+    raw = policy.profile_matrix_raw(profile, action_type)
+    return resolve_conditional_decision(
+        policy, raw, profile, action_type, tool_spec, requested_tool, consequentiality
+    )
 
 
 def evidence_decision(
     policy: PolicyBundle,
     evidence_state: str,
     action_type: str,
+    profile: str,
+    tool_spec: ToolSpec,
+    requested_tool: str,
+    consequentiality: ConsequentialityResult,
 ) -> tuple[str | None, str]:
+    """Per-action evidence constraint lookup (v0.2)."""
+    rules = policy.evidence_to_action_rules.get("rules", {})
+    state_rules = rules.get(evidence_state)
+    if not state_rules:
+        return _legacy_evidence_decision(policy, evidence_state, action_type)
+
+    raw = state_rules.get(action_type)
+    if raw is None:
+        return None, ""
+
+    decision = resolve_conditional_decision(
+        policy, raw, profile, action_type, tool_spec, requested_tool, consequentiality
+    )
+    return decision, (
+        f"Evidence rule {evidence_state}+{action_type} constrains to {decision} "
+        f"(resolved from {raw})."
+    )
+
+
+def _legacy_evidence_decision(
+    policy: PolicyBundle,
+    evidence_state: str,
+    action_type: str,
+) -> tuple[str | None, str]:
+    """Fallback to legacy rank-based matrix for backward compatibility."""
     constraints = policy.evidence_to_action_matrix.get("constraints", {})
     constraint = constraints.get(evidence_state)
     if not constraint:
@@ -161,6 +246,12 @@ def overlay_decision(
     return layers
 
 
+def _evidence_rank(evidence_state: str) -> int:
+    if evidence_state.startswith("E") and len(evidence_state) > 1 and evidence_state[1].isdigit():
+        return int(evidence_state[1])
+    return 0
+
+
 def tool_registry_decision(tool_spec: ToolSpec, requested_tool: str) -> EvaluationLayer | None:
     if not tool_spec.known and (tool_spec.mutates_state or tool_spec.external_effect):
         return EvaluationLayer(
@@ -196,6 +287,26 @@ def handoff_escalation_decision(context: AKTAContext) -> EvaluationLayer | None:
             source="handoff_chain",
             decision="review_required",
             reason="Handoff chain reaches resource allocation responsibility level.",
+        )
+    return None
+
+
+def low_confidence_decision(
+    confidence: float,
+    tool_spec: ToolSpec,
+    requested_tool: str,
+    threshold: float = 0.7,
+) -> EvaluationLayer | None:
+    if confidence >= threshold:
+        return None
+    if tool_spec.mutates_state or tool_spec.external_effect or not tool_spec.known:
+        return EvaluationLayer(
+            source="classifier_confidence",
+            decision="abstain_insufficient_context",
+            reason=(
+                f"Classifier confidence {confidence:.2f} below {threshold} for "
+                f"mutating/external tool {requested_tool}; fail-closed."
+            ),
         )
     return None
 
@@ -286,11 +397,23 @@ def evaluate_admissibility(
     requested_tool: str,
     context: AKTAContext,
     overlay: DomainOverlay | None = None,
+    consequentiality: ConsequentialityResult | None = None,
+    classifier_confidence: float = 0.95,
+    ai_output: Any = None,
+    requested_action: str = "",
 ) -> EvaluationResult:
     """Compose admissibility from all policy layers."""
+    if consequentiality is None:
+        consequentiality = classify_consequentiality(
+            action_type, tool_spec, requested_tool, requested_action,
+            ai_output, context, overlay,
+        )
+
     layers: list[EvaluationLayer] = []
 
-    prof = profile_decision(policy, profile, action_type)
+    prof = profile_decision(
+        policy, profile, action_type, tool_spec, requested_tool, consequentiality
+    )
     layers.append(
         EvaluationLayer(
             source="deployment_profile",
@@ -299,9 +422,12 @@ def evaluate_admissibility(
         )
     )
 
-    ev_dec, ev_reason = evidence_decision(policy, evidence_state, action_type)
+    ev_dec, ev_reason = evidence_decision(
+        policy, evidence_state, action_type, profile,
+        tool_spec, requested_tool, consequentiality,
+    )
     if ev_dec:
-        layers.append(EvaluationLayer(source="evidence_matrix", decision=ev_dec, reason=ev_reason))
+        layers.append(EvaluationLayer(source="evidence_rules", decision=ev_dec, reason=ev_reason))
 
     layers.extend(overlay_decision(overlay, action_type, evidence_state, requested_tool))
 
@@ -312,6 +438,10 @@ def evaluate_admissibility(
     handoff_layer = handoff_escalation_decision(context)
     if handoff_layer:
         layers.append(handoff_layer)
+
+    conf_layer = low_confidence_decision(classifier_confidence, tool_spec, requested_tool)
+    if conf_layer:
+        layers.append(conf_layer)
 
     final = strictest(*(layer.decision for layer in layers))
     reasons = [layer.reason for layer in layers if layer.decision == final]
@@ -329,6 +459,8 @@ def evaluate_admissibility(
     elif final == "draft_only":
         blocked_tools = [requested_tool] if tool_spec.mutates_state else []
         allowed_tools = ["experiment_planner.create_validation_draft"]
+        if requested_tool in VALIDATION_DRAFT_TOOLS or not tool_spec.mutates_state:
+            allowed_tools.append(requested_tool)
     else:
         allowed_tools = [requested_tool]
 
@@ -345,4 +477,6 @@ def evaluate_admissibility(
         review_required=final == "review_required",
         authorization_required=final == "authorization_required",
         record_required=final != "allowed",
+        consequentiality=consequentiality.consequential,
+        consequentiality_reason=consequentiality.reason,
     )
