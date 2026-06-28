@@ -1,5 +1,6 @@
 {
   "status": "granted",
   "granted_scope": "protocol_draft",
-  "reviewer_id": "protocol_owner"
+  "reviewer_id": "protocol_owner",
+  "adapter_mode": "simulated"
 }
