@@ -1,20 +1,35 @@
 {
   "artifact_type": "akta_scientific_action_record",
-  "schema_version": "akta-record-v0.4",
-  "record_hash": "sha256:cc2fdfe1aa6c243dcfbacac9f46e24cfc3d30f65f5431d82326eecd5481ff614",
-  "policy_hash": "sha256:e0951ca2ff63b3fce9b3c841b324c3bf23d0f2e4b062c0c3dd5a057f7af5944d",
-  "domain_overlay_hash": "sha256:67d13db14ede89da9ffbd5592e7f081b209d25a03bc3942e7a7f1feac1d4eaab",
-  "tool_registry_hash": "sha256:106f428d42b42d5f0f459d8e65da25f1f9ee237efb6a3b27fe880f83d7bc604c",
+  "schema_version": "akta-record-v0.5",
+  "record_hash": "sha256:3ac8a1b29ee653b79afe83420a82f2bbeb2153b4a2f4714b75cfba9c3cc90c05",
+  "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
+  "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
+  "tool_registry_hash": "sha256:90746b4b61b236802bf9762b6755e966a676c6294e83fd3606ce0826f1aff50a",
   "decision_id": "AKTA-DEC-DRIFT0001",
   "files": [
-    "akta_record.json",
     "akta_decision.json",
-    "policy_hash.txt",
+    "akta_record.json",
     "domain_overlay_hash.txt",
-    "tool_registry_hash.txt",
+    "manifest.json",
+    "pf_obligation.json",
+    "policy_hash.txt",
     "review_trigger.json",
+    "scope_decision.json",
+    "scope_grant.json",
     "scope_review_packet.json",
-    "manifest.json"
+    "tool_registry_hash.txt"
   ],
-  "manifest_hash": "sha256:17b3eadfa5a4043243b665f31561786db1dcba82eee658145b1cab4474bb0e00"
+  "file_hashes": {
+    "akta_decision.json": "sha256:5bfd0b359c63421f2369251037c8823cc12f23d7e183c819ae86a9330dae9767",
+    "akta_record.json": "sha256:6e07f468fb7149d9646d6dae8cdf3cf86f4dccceb6c4c6dfd3611b47733967e6",
+    "domain_overlay_hash.txt": "sha256:aff97a5c94f9f99549b9f4043617ba8dcfce973312fde13d63101d173bcb0860",
+    "pf_obligation.json": "sha256:9c534e59645bbb43efb388dcaf5fb7c44c49aa3a128f32bcb9e69ed863881e11",
+    "policy_hash.txt": "sha256:918d683b234533a1c7da8178e581eff636b2786f9b7cc373873ea805994b15ff",
+    "review_trigger.json": "sha256:5d53e1970c5e390b2d65698b00fcb490941ff1c5afc1d4d8137d48c4ab3e8e4b",
+    "scope_decision.json": "sha256:f4cbdd8608cf0cc49c9b139fe31ef1504ec9d17e3d5dde9d95a0c4d28f841088",
+    "scope_grant.json": "sha256:8025e247844ffb17efd9a41755319b011a1aae7463d86df416134da816597334",
+    "scope_review_packet.json": "sha256:860ad06369f4920b24a52bfbcf68ea6b6f187a6442e96646ec0f084e3664b801",
+    "tool_registry_hash.txt": "sha256:6375791d242c7aad891c23def053d895a7ab6ac579524866cf45fa5a2e7e9863"
+  },
+  "manifest_hash": "sha256:6d490365f8e19f5f29d26bb2e6f5aa0edd511cef3ec1ac3008b2fb16644fce94"
 }
