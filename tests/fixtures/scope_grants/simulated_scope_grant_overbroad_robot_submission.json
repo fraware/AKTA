@@ -1,0 +1,6 @@
+{
+  "grant_id": "SCOPE-GRANT-SIM-OVERBROAD01",
+  "granted_scope": "robot_queue_submission",
+  "requested_scope": "active_protocol_update",
+  "adapter_mode": "simulated"
+}
