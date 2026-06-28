@@ -46,7 +46,10 @@
     "required_runtime_behavior": { "type": "object" },
     "next_admissible_steps": { "type": "array", "items": { "type": "string" } },
     "required_review_role": { "type": ["string", "null"] },
-    "consequentiality": { "type": "boolean" },
+    "decision_reason_hash": { "type": "string", "pattern": "^sha256:" },
+    "scope_grant_ref": { "type": ["string", "null"] },
+    "review_trigger_id": { "type": ["string", "null"] },
+    "expires_at": { "type": ["string", "null"] },
     "obligation_hash": { "type": "string", "pattern": "^sha256:" }
   },
   "additionalProperties": true
