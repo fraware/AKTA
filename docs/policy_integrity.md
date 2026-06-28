@@ -22,6 +22,7 @@ Every AKTA Decision and Record includes:
 ```json
 {
   "policy_version": "akta-core-v0.5",
+  "policy_integrity_mode": "deployment_hmac_attested",
   "policy_file_versions": { "action_ontology.yaml": "action_ontology-v0.5", "...": "..." },
   "policy_hash": "sha256:...",
   "tool_registry_hash": "sha256:..."
@@ -47,6 +48,20 @@ If policy files are modified without updating references:
 1. Decision `policy_hash` will not match loaded bundle
 2. PF-Core obligations become invalid
 3. PCS manifest hash files will not match record provenance
+
+v0.7 defines three integrity modes (exact `integrity_mode` vocabulary):
+
+| Mode | When | Env |
+|------|------|-----|
+| `dev_unsigned` | No manifest or unsigned manifest outside production | default dev |
+| `deployment_hmac_attested` | HMAC-SHA256 manifest with deployment secret | `AKTA_VERIFY_POLICY=1` + `AKTA_POLICY_HMAC_KEY` |
+| `release_ed25519_signed` | Ed25519 manifest verified against `policy/release_keys.yaml` | `AKTA_REQUIRE_SIGNED_POLICY=1` or release registry match |
+
+| Env | Behavior |
+|-----|----------|
+| `AKTA_PRODUCTION_MODE=1` | Requires signed manifest; rejects dev HMAC key |
+| `AKTA_VERIFY_POLICY=1` | Requires manifest; accepts HMAC deployment attestation |
+| `AKTA_REQUIRE_SIGNED_POLICY=1` | Requires Ed25519 release signature (rejects HMAC-only) |
 
 v0.6 adds Ed25519 signing alongside HMAC:
 

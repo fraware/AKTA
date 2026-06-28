@@ -267,6 +267,11 @@ class AKTADecision:
                     else {}
                 ),
                 "tool_registry_hash": self._data["tool_registry_hash"],
+                **(
+                    {"integrity_mode": self._data["policy_integrity_mode"]}
+                    if self._data.get("policy_integrity_mode")
+                    else {}
+                ),
             },
             "integrations": {
                 "vsa_report_ref": ctx.get("vsa_report_ref"),

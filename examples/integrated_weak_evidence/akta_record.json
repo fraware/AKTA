@@ -67,7 +67,8 @@
     "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
     "domain_overlay_version": "generic_lab_v0.2",
     "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
-    "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8"
+    "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8",
+    "integrity_mode": "deployment_hmac_attested"
   },
   "integrations": {
     "vsa_report_ref": "VSA-REPORT-INTEGRATED-001",
@@ -75,5 +76,5 @@
     "pcs_artifact_ref": null,
     "prior_akta_records": []
   },
-  "record_hash": "sha256:570f035e21a3773ce239f004779fed9593d94c8bb35112ab8520665c36def3a2"
+  "record_hash": "sha256:e949cb7469c4ab1b8e65989904302953e60a7b6b238ea0ba6efc17a2b98f644d"
 }

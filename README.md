@@ -1,250 +1,209 @@
-# AKTA — Open Scientific Action Protocol
+<p align="center">
+<pre align="center">
+###########################
+    _    _  _______  _    
+   / \  | |/ /_   _|/ \   
+  / _ \ | ' /  | | / _ \  
+ / ___ \| . \  | |/ ___ \ 
+/_/   \_\_|\_\ |_/_/   \_\
+###########################
+</pre>
+</p>
 
-AKTA is an open protocol for scientific action admissibility.
+<p align="center"><strong>Open Scientific Action Protocol</strong></p>
 
-AI-for-science systems are moving from reasoning to action. They summarize literature, interpret evidence, draft protocols, recommend experiments, call tools, and prepare execution-adjacent workflows. The field needs a way to decide when those outputs are admissible to shape what science does next.
+<p align="center"><em>Open protocol for deciding when AI-generated scientific outputs are admissible to shape what science does next</em></p>
 
-AKTA provides a reference kernel for that decision. It classifies AI-generated scientific outputs, evaluates evidence and validation status, applies deployment profiles and domain overlays, gates requested tools, and emits AKTA Records.
+[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![CI](https://img.shields.io/badge/CI-make%20ci-lightgrey)](#for-contributors)
 
-If AI changes what science does next, there should be an AKTA Record.
+---
+
+## Why AKTA exists
+
+AI-for-science systems are moving from reasoning to action. They summarize literature, interpret evidence, draft protocols, recommend experiments, call lab tools, and prepare execution-adjacent workflows. The hard question is no longer whether the model can produce an output — it is whether that output should be allowed to change what science does next.
+
+Most stacks treat this as a model-quality or prompt-engineering problem. AKTA treats it as a **governance boundary**: classify the proposed action, evaluate the evidence behind it, apply deployment policy, gate requested tools, and emit a durable record of the decision. Integrators can wire that boundary into evidence pipelines, human review, runtime proof, and release packaging without pretending the model alone is sufficient.
+
+> If AI changes what science does next, there should be an AKTA Record.
+
+AKTA is a **reference implementation** of that protocol — not a safety certification, not a substitute for institutional review, and not a guarantee of scientific correctness.
+
+---
+
+## How it works
+
+```mermaid
+flowchart LR
+  subgraph inputs["Inputs"]
+    AI[AI output]
+    Tool[Requested tool]
+    Ctx[Context / evidence report]
+    Policy[Policy bundle]
+    Overlay[Domain overlay]
+  end
+
+  inputs --> Gate[AKTA Gate]
+  Gate --> Decision[AKTA Decision]
+  Decision --> Record[AKTA Record]
+  Decision --> Review[SCOPE review trigger]
+  Decision --> PF[PF-Core obligation]
+  Record --> PCS[PCS artifact bundle]
+  Gate --> Runtime[Runtime tool enforcement]
+
+  Review --> Grant[Scoped grant]
+  Grant --> Gate
+```
+
+The gate classifies what the AI is trying to do, checks evidence and deployment policy, resolves the tool registry, and returns the strictest admissibility outcome. Blocked decisions include constructive `next_admissible_steps`. When human review authorizes a narrower scope, AKTA re-evaluates with that grant — it never broadens authorization on its own, and review grants do not override weak-evidence or profile policy by default. See [authority transfer](docs/authority_transfer.md).
+
+---
 
 ## Quick start
 
-```bash
-pip install -e ".[dev]"
+Install the reference kernel (Python 3.10+):
 
-# Dev mode (default): policy manifest optional; experimental overlays allowed
+```bash
+git clone https://github.com/fraware/AKTA.git
+cd AKTA
+pip install -e ".[dev]"
+```
+
+Run the canonical **weak-evidence block** example — preliminary signal, mutating lab tool, decision blocked:
+
+```bash
 akta gate \
   --output examples/weak_evidence/ai_output.json \
   --tool lab_scheduler.prioritize \
   --profile P2_analysis_assistant \
   --context examples/weak_evidence/context.json \
   --out examples/weak_evidence/akta_decision.json
+```
 
-# Production mode: requires policy manifest + deployment HMAC key
-# $env:AKTA_PRODUCTION_MODE = "1"
-# $env:AKTA_POLICY_HMAC_KEY = "<deployment-secret>"
-# Regenerate manifest after policy edits:
-python scripts/regenerate_policy_manifest.py
+Expected outcome (abbreviated):
 
-# SCOPE adapter modes (see docs/scope_bridge.md)
-# simulated (default) | python-import ($env:SCOPE_REPO_PATH) | cli ($env:SCOPE_CLI)
-python scripts/demo_akta_scope_protocol_drift.py
+```json
+{
+  "admissibility": "blocked",
+  "decision_reason": "Evidence E2_preliminary_signal ... exceeds limit for resource prioritization.",
+  "blocked_tools": ["lab_scheduler.prioritize", "robot_queue.submit", "..."],
+  "next_admissible_steps": [
+    "downgrade to hypothesis discussion",
+    "draft a validation experiment",
+    "request domain review before prioritization",
+    "gather additional evidence"
+  ],
+  "record_required": true
+}
+```
 
-# PCS v0.5 full-chain export (10 artifacts + file_hashes)
-akta export pcs --record examples/weak_evidence/akta_record.json \
+Generate the durable record from the decision:
+
+```bash
+akta record \
   --decision examples/weak_evidence/akta_decision.json \
-  --out dist/pcs_bundle/ --validate
+  --out examples/weak_evidence/akta_record.json
+```
 
-pytest tests/ -v
+For the full integrated chain (evidence import through packaging), see [examples/integrated_weak_evidence](examples/integrated_weak_evidence/) and `python scripts/demo_integrated_weak_evidence.py`.
+
+---
+
+## What you get
+
+Every gate evaluation produces structured artifacts you can store, audit, and hand to downstream systems:
+
+| Output | What it is |
+|--------|------------|
+| **AKTA Decision** | Admissibility verdict, blocked/allowed tools, rationale, and constructive next steps |
+| **AKTA Record** | Durable, hash-linked record suitable for provenance and replay |
+| **Review trigger** | Packet for human review when authorization or domain review is required |
+| **PF-Core obligation** | Runtime proof obligation describing what must be demonstrated before execution |
+| **PCS bundle** | Versioned artifact bundle for release and cross-system verification |
+
+REST API, MCP server, and batch evaluation are available for integrators — see [Integration guide](docs/integration_guide.md) and [OpenAPI spec](adapters/generic_rest/openapi.yaml).
+
+---
+
+## Integration at a glance
+
+| System | Role in the AKTA stack | Learn more |
+|--------|------------------------|------------|
+| **VSA** | Imports structured evidence reports into AKTA context | [VSA import](docs/vsa_import.md) |
+| **SCOPE** | Human review and scoped authorization after a trigger | [SCOPE bridge](docs/scope_bridge.md) · [Live conformance](docs/scope_live_conformance.md) |
+| **PF-Core** | Runtime proof obligations tied to admissibility decisions | [PF-Core bridge](docs/pf_core_bridge.md) |
+| **PCS** | Packages decisions, records, and hashes for release verification | [PCS export](docs/pcs_export.md) |
+
+SCOPE connects in several modes — offline simulation (default), Python import from a sibling checkout, subprocess CLI, or a one-shot review command. Details and conformance checks: [scope_live_conformance.md](docs/scope_live_conformance.md).
+
+Cross-repo environment variables for optional CI jobs: [.github/CROSS_REPO_CI.md](.github/CROSS_REPO_CI.md).
+
+---
+
+## For contributors
+
+We welcome contributions that sharpen the admissibility boundary — scenarios, domain overlays, adapters, docs, and tests. You do not need to be a policy expert to improve examples, fix edge cases, or extend integration paths.
+
+**Set up a dev environment:**
+
+```bash
+pip install -e ".[dev,security]"
 make ci
 ```
 
-### REST API (OpenAPI v0.5)
+`make ci` runs the full local check suite (tests, policy validation, scenario evals). Run `pytest tests/ -v` for a faster loop while iterating.
 
-```bash
-akta-rest --host 127.0.0.1 --port 8765
-# GET /v0/health, /v0/policy; POST /v0/evaluate, /v0/export/pcs, /v0/export/pf
-```
+**Good places to start:**
 
-### Additional commands
+| Area | Where to look |
+|------|----------------|
+| Scenarios and evals | `scenarios/`, `evals/`, `tests/` |
+| Domain overlays | `overlays/`, [domain overlay guide](docs/domain_overlay_guide.md) |
+| Adapters (VSA, SCOPE, PF, PCS, REST, MCP) | `adapters/` |
+| Documentation | `docs/` — especially [integration guide](docs/integration_guide.md) and [scientific action admissibility](docs/scientific_action_admissibility.md) |
 
-```bash
-akta record --decision examples/weak_evidence/akta_decision.json --out examples/weak_evidence/akta_record.json
-akta eval --scenarios scenarios/canonical_5.jsonl --expected scenarios/expected_decisions.jsonl
-akta eval --scenarios scenarios/public_100.jsonl --expected scenarios/expected_decisions.jsonl
-python evals/run_oracle_independent.py
-python -m adapters.mcp.server
-akta export pf --record examples/weak_evidence/akta_record.json \
-  --decision examples/weak_evidence/akta_decision.json --out dist/pf_obligations/ --validate
-akta review-trigger export --decision decision.json --out review_trigger.json
-python scripts/demo_integrated_weak_evidence.py
-```
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for pull-request expectations, [GOVERNANCE.md](GOVERNANCE.md) for protocol stewardship, and [docs/RELEASE.md](docs/RELEASE.md) for release verification. Be respectful, precise, and evidence-oriented — AKTA governs claim-to-action transitions, and contributions should preserve that boundary.
 
-## Architecture
-
-```mermaid
-flowchart LR
-  AI[AI output] --> Gate[AKTA Gate]
-  Tool[Requested tool] --> Gate
-  Ctx[Context / VSA report] --> Gate
-  Policy[Policy bundle] --> Gate
-  Overlay[Domain overlay] --> Gate
-  Gate --> Decision[AKTA Decision]
-  Decision --> Record[AKTA Record]
-  Decision --> PF[PF-Core obligation]
-  Record --> PCS[PCS artifact bundle]
-  Gate --> Runtime[Runtime tool enforcement]
-```
-
-The gate applies deployment-profile and evidence-to-action matrices, resolves the tool registry, and returns the strictest admissibility decision. Blocked decisions always include constructive `next_admissible_steps`.
-
-## Python API
-
-```python
-from akta import AKTAGate, AKTAContext
-
-gate = AKTAGate.from_policy_dir("policy/")
-decision = gate.evaluate(
-    ai_output={"summary": "Prioritize condition B based on preliminary signal."},
-    requested_tool="lab_scheduler.prioritize",
-    requested_action="prioritize_next_run",
-    context=AKTAContext.from_dict({"domain": "materials", "evidence_state": "E2_preliminary_signal"}),
-    deployment_profile="P2_analysis_assistant",
-    domain_overlay="generic_lab_v0",
-)
-record = decision.to_record()
-```
-
-## Repository layout
-
-| Path | Purpose |
-|------|---------|
-| `akta/` | Reference kernel (gate, classify, evaluate, records) |
-| `policy/` | Machine-readable policy bundle |
-| `schemas/` | JSON schemas for decisions, records, cards |
-| `overlays/` | Domain overlays (materials, computational, generic lab) |
-| `scenarios/` | Canonical and public benchmark scenarios |
-| `adapters/` | VSA import, PF-Core export, PCS export |
-| `docs/` | Protocol documentation |
+---
 
 ## Documentation
 
-- [Scientific action admissibility](docs/scientific_action_admissibility.md)
-- [Field thesis](docs/field_thesis.md)
-- [Authority transfer](docs/authority_transfer.md)
-- [Integration guide](docs/integration_guide.md)
-- [AKTA Card guide](docs/akta_card_guide.md)
-- [Domain overlay guide](docs/domain_overlay_guide.md)
+### Getting started
+
+- [Scientific action admissibility](docs/scientific_action_admissibility.md) — protocol overview
+- [Field thesis](docs/field_thesis.md) — problem framing
+- [Integration guide](docs/integration_guide.md) — wiring AKTA into your stack
+- [AKTA Card guide](docs/akta_card_guide.md) — institutional disclosure artifact
+
+### Integration
+
 - [Review integration](docs/review_integration.md)
-- [SCOPE bridge](docs/scope_bridge.md)
-- [AKTA v0.3 integration](docs/akta_v03_integration.md)
-- [Threat model](docs/threat_model.md)
-- [PF-Core bridge](docs/pf_core_bridge.md)
-- [PCS export](docs/pcs_export.md)
-- [VSA import](docs/vsa_import.md)
-- [Trusted boundary](docs/trusted_boundary.md)
-- [Policy integrity](docs/policy_integrity.md)
-- [Limitations](docs/limitations.md)
-- [Threat model](docs/threat_model.md)
+- [SCOPE bridge](docs/scope_bridge.md) · [Live SCOPE conformance](docs/scope_live_conformance.md)
+- [PF-Core bridge](docs/pf_core_bridge.md) · [PCS export](docs/pcs_export.md) · [VSA import](docs/vsa_import.md)
+- [AKTA v0.3 integration summary](docs/akta_v03_integration.md)
+
+### Policy and security
+
+- [Policy integrity](docs/policy_integrity.md) · [Domain overlay guide](docs/domain_overlay_guide.md)
+- [Trusted boundary](docs/trusted_boundary.md) · [Threat model](docs/threat_model.md)
+- [Authority transfer](docs/authority_transfer.md) · [Limitations](docs/limitations.md)
+- [Security policy](SECURITY.md)
+
+### Evaluation
+
+- [Scenario labeling guidelines](docs/scenario_labeling_guidelines.md)
+- [Holdout private governance](docs/holdout_private_governance.md)
+- Version history and release criteria: [CHANGELOG.md](CHANGELOG.md) · [docs/RELEASE.md](docs/RELEASE.md)
+
+---
+
+## Project status
+
+**v0.7.1** (`akta-protocol`) is the current reference kernel. It implements the full admissibility loop — gate, record, review triggers, grant re-gating, PF export, and PCS packaging — with 385+ tests and a green `make ci` suite. Biology, chemistry, and clinical domain overlays are experimental and not deployment-ready without institutional governance. Fully autonomous scientific operator profiles are defined for taxonomy only and are not supported at runtime. AKTA is a reference implementation under the MIT license, not a safety certification. Known gaps and non-goals: [docs/limitations.md](docs/limitations.md).
+
+---
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
-## REST API
-
-```bash
-akta-rest --host 127.0.0.1 --port 8765
-# POST /v0/evaluate, /v0/records, /v0/cards/validate, /v0/export/pcs, /v0/export/pf
-# GET  /v0/policy, /v0/health
-```
-
-## v0.5.1 acceptance status
-
-| Criterion | Status |
-|-----------|--------|
-| SCOPE python-import (`ScopeEngine.from_policy_dir`, v0.5 kwargs) | Pass |
-| SCOPE CLI v0.5 flags (`--akta-trigger`, `--akta-record`, `--reviewer`, `--decision`) | Pass |
-| PCS grant validation (`authorization.approved_scope`, narrow draft grant) | Pass |
-| 235+ tests; `make ci` green | Pass |
-
-## v0.5 acceptance status
-
-| Criterion | Status |
-|-----------|--------|
-| SCOPE adapter (simulated / python-import / cli) | Pass |
-| PCS full-chain export with file_hashes + tamper validation | Pass |
-| Production policy integrity (dev vs production HMAC) | Pass |
-| LLM classifier trust boundary (registry overrides LLM) | Pass |
-| Overlay governance tiers + production refusal | Pass |
-| Policy file versioning in decision provenance | Pass |
-| 210+ tests; `make ci` green | Pass (see v0.5.1 for SCOPE adapter patch) |
-
-## v0.4 acceptance status
-
-| Criterion | Status |
-|-----------|--------|
-| Experimental overlays (biology, chemistry, clinical) | Pass (not operational; refused in production) |
-| Policy manifest HMAC verification | Pass |
-| Review lifecycle (F12/F14, prior records) | Pass |
-| Structured classification + negation guard | Pass |
-| Optional LLM classifier (fail-closed without key) | Pass |
-| SCOPE adapter (simulated + subprocess) | Pass |
-| MCP stdio server + guardrail adapters | Pass |
-| Oracle-independent scenarios (15) | Pass |
-| Transition runner (SCOPE grant re-gate) | Pass |
-| PCS manifest `akta-record-v0.4` | Pass |
-| Tool registry 25+ tools | Pass |
-| `make ci` end-to-end | Pass |
-
-## v0.3 acceptance status
-
-| Criterion | Status |
-|-----------|--------|
-| SCOPE `requested_scope` enum on all review/auth triggers | Pass |
-| ID alias fields (`akta_decision_id`, `akta_record_id`) | Pass |
-| Tool-to-scope mapping A5–A10 | Pass |
-| Contract tests (SCOPE simulator, PF, PCS fixtures) | Pass |
-| Integrated protocol-drift demo (authority boundary) | Pass |
-| Scenario eval `requested_scope` accuracy | Pass |
-| Domain overlay hazard triggers + scope overrides | Pass |
-
-## v0.2 acceptance status
-
-| Criterion | Status |
-|-----------|--------|
-| Per-action evidence-to-action rules | Pass |
-| Consequentiality-aware `allowed_log_or_review` | Pass |
-| SCOPE-compatible review triggers | Pass |
-| Rich classifier with fail-closed low confidence | Pass |
-| PF-Core obligation schema + export | Pass |
-| PCS artifact schema + validated export | Pass |
-| AKTA-Bench 100 scenarios + per-class metrics | Pass |
-| Integrated weak-evidence demo (one command) | Pass |
-| CLI gate on canonical 5 | Pass |
-| Schemas validate (decision, record, review trigger) | Pass |
-| Policy + matrices enforced | Pass |
-| Unknown mutating tools blocked | Pass |
-| next_admissible_steps on blocked | Pass |
-| Policy/record hashes + CI validation | Pass |
-
-## v0.1 acceptance status (retained)
-
-| Criterion | Status |
-|-----------|--------|
-| CLI gate on canonical 5 | Pass |
-| Schemas validate (decision, record, card) | Pass |
-| Policy + matrices enforced | Pass |
-| Unknown mutating tools blocked | Pass |
-| Review triggers on review_required | Pass |
-| next_admissible_steps on blocked | Pass |
-| VSA import / PF export / PCS export | Pass |
-| Scenario evaluator + 40 public scenarios | Pass |
-| Metrics (accuracy, overreach, overblocking) | Pass |
-| Documentation (README + core docs) | Pass |
-| Policy/record hashes + CI validation | Pass |
-
-## Status
-
-AKTA v0.6.0 is a reference implementation. It is not a safety certification. Biology, chemistry, and clinical overlays are experimental and not deployment-ready without institutional governance. Deployment profile P7 (fully autonomous scientific operator) is defined for taxonomy only and is not supported.
-
-## v0.6 acceptance status
-
-| Criterion | Status |
-|-----------|--------|
-| Cross-repo CI jobs (optional PF/PCS/SCOPE) | Pass |
-| Closed-loop review (`evaluate_with_grant`, expiry F14) | Pass |
-| Ed25519 policy signing + `AKTA_REQUIRE_SIGNED_POLICY` | Pass |
-| VSA rich report + PCS `vsa_report.json` artifact | Pass |
-| Scientific Memory + LabTrust-Gym + PCS-Bench adapters | Pass |
-| Reconstructable experiment demo (full chain) | Pass |
-| Oracle-independent 55 scenarios + holdout eval | Pass |
-| Tool registry 50+ tools + mandatory declaration A8 | Pass |
-| Expert-reviewed overlay (`materials_expert_v0`) | Pass |
-| REST API key auth + rate limiting | Pass |
-| Inter-rater eval metadata + stats in `akta eval` | Pass |
-| Adversarial transition evals (grant expiry, scope narrowing) | Pass |
-| External PCS-Bench checkout integration (`PCS_BENCH_REPO_PATH`) | Pass |
-
-Cross-repo CI variables: see [.github/CROSS_REPO_CI.md](.github/CROSS_REPO_CI.md).

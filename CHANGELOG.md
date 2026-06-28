@@ -4,6 +4,42 @@ All notable changes to AKTA are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.1] - 2026-06-28
+
+### Added
+
+- `evaluate_prior_review()` enforces `prior_review_allowed_tools` and `prior_review_blocked_tools`
+- SCOPE adapter `akta-review-cli` mode (`SCOPE_CLI_MODE=akta-review`) calling `scope akta review`
+- `schemas/scope_akta_review_summary.schema.json` for summary validation
+- Tests: `test_review_context_allowed_tools.py`, `test_review_context_blocked_tools.py`, `test_scope_akta_review_cli.py`
+- Reconstructable demo Cases A/B/C with explicit post-grant decision assertions
+
+### Changed
+
+- `scope_grant_to_context_metadata()` copies blocked_tools, grant_id, provenance, and full grant metadata
+- Reconstructable demo uses weak-evidence queue-priority scenario; documents SCOPE grant vs AKTA policy layers
+- Documentation polish for v0.7.1 public release; added [docs/RELEASE.md](docs/RELEASE.md)
+
+## [0.7.0] - 2026-06-28
+
+### Added
+
+- Live SCOPE verification: `scripts/verify_scope_live_chain.py` (python-import and CLI modes)
+- Policy integrity modes: `dev_unsigned`, `deployment_hmac_attested`, `release_ed25519_signed` (`akta/policy_signing.py`)
+- `policy/release_keys.yaml` public Ed25519 key registry for published reference bundles
+- Closed-loop review semantics: `akta/review_loop.py` with grant allowlist, protocol/evidence invalidation, SCOPE blocked_tools preservation
+- Reconstructable experiment demo outputs canonical chain to `dist/reconstructable_experiment/` (00–11 artifacts + reports)
+- PCS scope grant fixtures: `tests/fixtures/scope_grants/` (real and simulated narrow/overbroad)
+- Adversarial transitions: F01–F15 `failure_class` per scenario, per-class reporting, inter-rater stats in eval report
+- Docs: `scope_live_conformance.md`, `failure_class_taxonomy.md`, `scenario_labeling_guidelines.md`, `holdout_private_governance.md`
+- Tests: `test_policy_signing_modes.py`, `test_evaluate_with_grant.py`, `test_pcs_scope_grant_export.py`, live SCOPE contract tests, reconstructable demo integration test
+
+### Changed
+
+- Package version `0.7.0`; `evaluate_with_grant()` applies `review_loop` constraints
+- PCS manifest records `integrity_mode`; decisions include `policy_integrity_mode`
+- `evals/adversarial_transitions.py` writes default report to `evals/reports/adversarial_transitions.json`
+
 ## [0.6.0] - 2026-06-28
 
 ### Added

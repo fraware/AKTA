@@ -1,4 +1,4 @@
-# Cross-repo CI configuration (v0.6)
+# Cross-repo CI configuration (v0.7.1)
 
 AKTA default CI runs entirely in-repo. Optional jobs validate live exports against sibling repositories when repository variables or secrets are configured.
 
@@ -33,6 +33,16 @@ env:
 
 Run locally:
 
+```bash
+export PF_CORE_REPO_PATH=/path/to/PF-Core
+export PCS_CORE_REPO_PATH=/path/to/PCS-Core
+export SCOPE_REPO_PATH=/path/to/SCOPE
+export PCS_BENCH_REPO_PATH=/path/to/PCS-Bench
+pytest tests/contracts/ -v -m integration
+```
+
+PowerShell:
+
 ```powershell
 $env:PF_CORE_REPO_PATH = "C:\path\to\PF-Core"
 $env:PCS_CORE_REPO_PATH = "C:\path\to\PCS-Core"
@@ -40,6 +50,23 @@ $env:SCOPE_REPO_PATH = "C:\path\to\SCOPE"
 $env:PCS_BENCH_REPO_PATH = "C:\path\to\PCS-Bench"
 pytest tests/contracts/ -v -m integration
 ```
+
+## Live SCOPE verification (v0.7)
+
+After configuring a SCOPE sibling:
+
+```bash
+export SCOPE_REPO_PATH=/path/to/SCOPE
+python scripts/verify_scope_live_chain.py --mode python-import
+
+export SCOPE_CLI=scope
+python scripts/verify_scope_live_chain.py --mode cli
+
+export SCOPE_CLI_MODE=akta-review
+python scripts/verify_scope_live_chain.py --mode akta-review
+```
+
+The verifier fails when the adapter falls back to `simulated` mode or when PCS export accepts an overbroad grant. See [docs/scope_live_conformance.md](../docs/scope_live_conformance.md).
 
 ## Job behavior
 
@@ -49,7 +76,7 @@ Runs when `PF_CORE_REPO_PATH` or `PCS_CORE_REPO_PATH` is non-empty. Exports AKTA
 
 ### `cross-repo-scope`
 
-Runs when `SCOPE_REPO_PATH` is set or `SCOPE_REPO_URL` secret is present. Clones SCOPE when only the secret is configured, then runs SCOPE python-import contract tests.
+Runs when `SCOPE_REPO_PATH` is set or `SCOPE_REPO_URL` secret is present. Clones SCOPE when only the secret is configured, then runs SCOPE python-import contract tests and optional live chain verification.
 
 ### `cross-repo-pcs-bench`
 
@@ -67,6 +94,10 @@ When `PCS_BENCH_REPO_PATH` points to a sibling checkout, `adapters/pcs_bench/run
 
 - Jobs are skipped when variables are unset; default CI remains green without siblings.
 - Invalid `PCS_BENCH_REPO_PATH` values fall back to the in-repo runner rather than silently passing external validation.
-- SCOPE python-import mode does not fall back to simulated grants when `SCOPE_REPO_PATH` is set.
+- SCOPE python-import and CLI modes do not fall back to simulated grants when `SCOPE_REPO_PATH` or `SCOPE_CLI` is set.
+
+## Release acceptance
+
+Default release gate: `make ci` (see [docs/RELEASE.md](../docs/RELEASE.md)). Cross-repo jobs are optional enhancements, not required for public release.
 
 See also [tests/contracts/README.md](../tests/contracts/README.md).

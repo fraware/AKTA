@@ -1,5 +1,35 @@
 # AKTA Limitations
 
+## v0.7.1
+
+AKTA v0.7.1 tightens grant-exact re-gating after SCOPE authorization. It explicitly does not:
+
+- Treat a SCOPE grant as a blanket override of AKTA evidence or deployment-profile policy
+- Permit tools listed in `prior_review_blocked_tools` even when scope rank would otherwise allow them
+- Permit tools outside `prior_review_allowed_tools` when an allowlist is present on the grant
+- Fall back to simulated SCOPE mode when `SCOPE_REPO_PATH` or `SCOPE_CLI` is configured
+
+### v0.7.1 grant re-gate limits
+
+- **Grant vs policy**: `evaluate_with_grant()` applies grant metadata then re-evaluates matrix, evidence, and overlay layers. Weak evidence under `P2_analysis_assistant` may still block queue prioritization after a narrow SCOPE grant
+- **Tool lists**: `allowed_tools` and `blocked_tools` on SCOPE grants are enforced via `prior_review_*` context metadata; blocked tools take precedence when both lists are present
+- **akta-review CLI**: Requires SCOPE CLI with `scope akta review` and `summary.json` conforming to `scope_akta_review_summary.schema.json`
+- **Live verify**: `verify_scope_live_chain.py` supports `python-import`, `cli`, and `akta-review` modes; skips when sibling SCOPE repo is absent
+
+## v0.7
+
+AKTA v0.7 adds live SCOPE conformance verification, policy integrity modes, PCS grant hard gates, and adversarial transition reporting (F01–F15). It explicitly does not:
+
+- Certify live SCOPE deployments without running `verify_scope_live_chain.py` against a real sibling repo
+- Accept unsigned policy bundles when `AKTA_PRODUCTION_MODE=1` or HMAC-only manifests when `AKTA_REQUIRE_SIGNED_POLICY=1`
+- Export PCS bundles with overbroad or shape-invalid SCOPE grants
+
+### v0.7 integration limits
+
+- **Policy integrity**: Three modes (`dev_unsigned`, `deployment_hmac_attested`, `release_ed25519_signed`); production requires explicit env configuration
+- **Reconstructable chain**: Canonical artifacts live under `dist/reconstructable_experiment/` after running the demo script; not checked into git by default
+- **Holdout private**: Governance doc describes label isolation; holdout scenarios are not published in-repo
+
 ## v0.6
 
 AKTA v0.6 closes cross-repo integration gaps and closed-loop review infrastructure. It explicitly does not:
@@ -28,13 +58,14 @@ AKTA v0.5 integrates the full AKTA → SCOPE → PF → PCS artifact chain. It e
 
 ### v0.5 SCOPE adapter modes
 
-AKTA selects a SCOPE adapter automatically from environment:
+AKTA selects a SCOPE adapter automatically from environment (v0.7.1 adds a fourth mode):
 
 | Mode | Env | Behavior |
 |------|-----|----------|
 | **simulated** | (default) | Contract simulation only; grants use flat `granted_scope` / `requested_scope` fields and are labeled `adapter_mode: simulated` |
 | **python-import** | `SCOPE_REPO_PATH` | Loads sibling SCOPE repo; constructs `ScopeEngine.from_policy_dir(policy/)`; calls v0.5 `create_packet`, `submit_decision`, `issue_grant`. No simulated fallback on import or invocation failure |
 | **cli** | `SCOPE_CLI` | Subprocess to real SCOPE v0.5 CLI: `scope packet create --akta-trigger … --akta-record …`, `scope decision submit --packet … --reviewer … --decision …`, `scope grant issue --packet … --decision …` |
+| **akta-review-cli** | `SCOPE_CLI` + `SCOPE_CLI_MODE=akta-review` | Unified `scope akta review`; validates `summary.json` against `scope_akta_review_summary.schema.json` (v0.7.1) |
 
 PCS export validates grants using `authorization.approved_scope` (real SCOPE v0.5) or `granted_scope` (simulated). Overbroad grants are rejected; narrowed `active_protocol_update` → `protocol_draft` is accepted.
 

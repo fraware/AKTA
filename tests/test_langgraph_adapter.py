@@ -48,3 +48,33 @@ def test_wrap_tool_blocks_prioritization(middleware: AKTALangGraphMiddleware) ->
             ai_output={"summary": "Prioritize B."},
             context={"evidence_state": "E2_preliminary_signal"},
         )
+
+
+def test_retry_with_grant_uses_scope_metadata() -> None:
+    mw = AKTALangGraphMiddleware(
+        policy_dir=str(ROOT / "policy"),
+        overlays_dir=str(ROOT / "overlays"),
+        deployment_profile="P5_review_gated_experimental_planner",
+        domain_overlay="generic_lab_v0",
+    )
+    grant = {
+        "grant_id": "SCOPE-GRANT-LG-RETRY",
+        "authorization": {
+            "approved_scope": "single_run_queue_priority",
+            "blocked_tools": ["lab_scheduler.prioritize"],
+        },
+        "source": {"requested_scope": "single_run_queue_priority"},
+        "expires_at": "2030-01-01T00:00:00Z",
+    }
+    result = mw.retry_with_grant(
+        grant,
+        "lab_scheduler.prioritize",
+        "prioritize_next_run",
+        ai_output={"summary": "Retry after grant."},
+        context={
+            "evidence_state": "E5_internally_replicated_evidence",
+            "validation_status": "V5_independently_replicated",
+        },
+    )
+    assert result.admissibility == "blocked"
+    assert "lab_scheduler.prioritize" in result.decision.get("blocked_tools", [])

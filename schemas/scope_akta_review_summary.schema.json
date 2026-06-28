@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scope.dev/schemas/scope_akta_review_summary.schema.json",
+  "title": "SCOPE AKTA Review Summary",
+  "type": "object",
+  "required": [
+    "packet_path",
+    "decision_path",
+    "grant_path",
+    "approved_scope",
+    "adapter_contract_version",
+    "identity_assurance_level",
+    "signing_assurance_level"
+  ],
+  "properties": {
+    "status": { "type": "string" },
+    "packet_path": { "type": "string" },
+    "decision_path": { "type": "string" },
+    "grant_path": { "type": "string" },
+    "packet_id": { "type": "string" },
+    "decision_id": { "type": "string" },
+    "grant_id": { "type": "string" },
+    "approved_scope": { "type": "string" },
+    "requested_scope": { "type": "string" },
+    "allowed_tools": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "blocked_tools": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "decision_type": { "type": "string" },
+    "adapter_contract_version": { "type": "string" },
+    "identity_assurance_level": {
+      "type": "string",
+      "enum": ["IAL0", "IAL1", "IAL2", "IAL3", "IAL4"]
+    },
+    "signing_assurance_level": {
+      "type": "string",
+      "enum": ["SAL0", "SAL1", "SAL2", "SAL3", "SAL4"]
+    },
+    "scope_trust_root_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "queue_id": { "type": "string" }
+  },
+  "additionalProperties": true
+}

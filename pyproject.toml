@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "akta-protocol"
-version = "0.6.0"
-description = "Open Scientific Action Protocol — reference kernel for scientific action admissibility"
+version = "0.7.1"
+description = "Open protocol for deciding when AI-generated scientific outputs are admissible to shape what science does next"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"

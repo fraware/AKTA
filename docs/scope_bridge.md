@@ -7,9 +7,11 @@ AKTA emits SCOPE-compatible review triggers when admissibility is `review_requir
 | System | Role |
 |--------|------|
 | AKTA | Pre-action admissibility decision and review trigger emission |
-| SCOPE | Review routing, artifact packet assembly, approval lifecycle |
+| SCOPE | Review routing, artifact packet assembly, scoped grant lifecycle |
 | PF-Core | Post-action proof that runtime honored the AKTA decision |
 | PCS-Core | Packaging of AKTA Records and review artifacts for memory/bench |
+
+**Authority boundary:** AKTA assigns `requested_scope`; SCOPE grants approval scope. AKTA does not broaden SCOPE grants. SCOPE grants do not override AKTA evidence or deployment-profile policy by default. After authorization, AKTA re-gates via `evaluate_with_grant()` using `prior_review_allowed_tools` and `prior_review_blocked_tools`.
 
 ## Trigger artifact (v0.3)
 
@@ -56,7 +58,7 @@ Tool-to-scope mapping lives in `policy/tool_to_requested_scope.yaml`. AKTA never
    - PCS bundle (`review_trigger.json` when present)
 4. SCOPE assembles review_artifacts_required packet
 5. Reviewer approves scoped next step only (matches allowed_next_steps / granted scope)
-6. Runtime re-evaluates or applies scoped authorization token
+6. Runtime re-evaluates via evaluate_with_grant() or applies scoped authorization token
 7. New AKTA Record documents the approved transition
 ```
 
@@ -77,24 +79,27 @@ akta gate --output ai_output.json --tool protocol_editor.update_active_protocol 
 akta review-trigger export --decision decision.json --out review_trigger.json
 ```
 
-## SCOPE adapter (v0.5)
+## SCOPE adapter (v0.7.1)
 
-`adapters/scope/client.py` supports three modes (auto-detected):
+`adapters/scope/client.py` supports four modes (auto-detected):
 
 | Mode | When | Behavior |
 |------|------|----------|
 | **simulated** | Default (no env vars) | Contract simulation via `akta/scope_contract.py` |
 | **python-import** | `SCOPE_REPO_PATH` set | Imports `scope.ScopeEngine` from sibling repo |
-| **cli** | `SCOPE_CLI` set (no repo path) | `scope packet create`, `scope decision submit`, `scope grant issue` |
+| **cli** | `SCOPE_CLI` set, no akta-review mode | Three-step: packet create, decision submit, grant issue |
+| **akta-review-cli** | `SCOPE_CLI` + `SCOPE_CLI_MODE=akta-review` | `scope akta review`; validates `summary.json` |
 
-Priority: `SCOPE_REPO_PATH` → python-import; else `SCOPE_CLI` → cli; else simulated.
+Priority: `SCOPE_REPO_PATH` → python-import; else `SCOPE_CLI` with mode → cli or akta-review-cli; else simulated.
 
-### CLI setup (v0.5.1 command shapes)
+No simulated fallback when `SCOPE_REPO_PATH` or `SCOPE_CLI` is configured.
+
+### CLI setup (v0.5.1 three-step command shapes)
 
 Temp files written per invocation: `review_trigger.json`, `akta_record.json` (when record present), `reviewer.json`, `decision_input.json`.
 
-```powershell
-$env:SCOPE_CLI = "scope"
+```bash
+export SCOPE_CLI=scope
 python scripts/demo_akta_scope_protocol_drift.py
 ```
 
@@ -108,20 +113,28 @@ scope grant issue --packet <scope_review_packet.json> --decision <scope_decision
 
 `decision_input.json` uses `type: approve_narrower_scope` when narrowing `active_protocol_update` to `protocol_draft`.
 
-AKTA prepends the SCOPE install root to `PYTHONPATH` and runs CLI subprocesses with `cwd` set to the SCOPE repo so `policy/` resolves when both repos are editable-installed.
+### akta-review CLI setup (v0.7.1)
+
+```bash
+export SCOPE_CLI=scope
+export SCOPE_CLI_MODE=akta-review
+python scripts/verify_scope_live_chain.py --mode akta-review
+```
+
+Output `summary.json` must conform to `schemas/scope_akta_review_summary.schema.json`.
 
 ### Python import setup
 
-```powershell
-$env:SCOPE_REPO_PATH = "C:\path\to\SCOPE"
+```bash
+export SCOPE_REPO_PATH=/path/to/SCOPE
 python scripts/demo_akta_scope_protocol_drift.py
 ```
 
-Invalid grants fail before PCS export. See [tests/contracts/README.md](../tests/contracts/README.md) and `adapters/scope/engine_protocol.py` for the python-import engine interface.
+Invalid grants fail before PCS export. See [tests/contracts/README.md](../tests/contracts/README.md), [scope_live_conformance.md](scope_live_conformance.md), and `adapters/scope/engine_protocol.py`.
 
 ## PCS bundle inclusion
 
-When a record includes `review_trigger`, PCS export adds `review_trigger.json` to the bundle and lists it in `manifest.json` files.
+When a record includes `review_trigger`, PCS export adds `review_trigger.json` to the bundle and lists it in `manifest.json` files. Full-chain exports may also include `scope_review_packet.json`, `scope_decision.json`, and `scope_grant.json`.
 
 ## Anti-patterns (SCOPE must enforce)
 
@@ -130,10 +143,12 @@ When a record includes `review_trigger`, PCS export adds `review_trigger.json` t
 - **Global permission** — approval for one run plan must not authorize queue submission or active protocol mutation
 - **Hash mismatch** — triggers with `policy_hash` not matching trusted policy must be rejected
 - **Scope mismatch** — grants must not exceed `requested_scope` without AKTA re-evaluation
+- **Grant override (v0.7.1)** — SCOPE grants must not be treated as blanket overrides of AKTA evidence or profile policy
 
 ## Related documentation
 
 - [akta_v03_integration.md](akta_v03_integration.md) — v0.3 integration summary
 - [review_integration.md](review_integration.md) — AKTA review trigger semantics
+- [scope_live_conformance.md](scope_live_conformance.md) — Live SCOPE verification
 - [pcs_export.md](pcs_export.md) — PCS bundle layout including review triggers
 - [pf_core_bridge.md](pf_core_bridge.md) — Runtime enforcement after review

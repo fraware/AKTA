@@ -1,6 +1,6 @@
 # Review Integration
 
-AKTA emits typed review triggers when admissibility is `review_required` or `authorization_required`.
+AKTA emits typed review triggers when admissibility is `review_required` or `authorization_required`. After SCOPE authorization, closed-loop re-gating applies grant constraints without overriding evidence or deployment-profile policy.
 
 ## Review trigger schema (v0.3)
 
@@ -19,6 +19,33 @@ Review triggers conform to `schemas/review_trigger.schema.json` with `review_tri
 | `default_expiration` | Typically `single_run` |
 
 Tool-to-scope mapping is defined in `policy/tool_to_requested_scope.yaml`. See [scope_bridge.md](scope_bridge.md).
+
+## Closed-loop re-gate (v0.7)
+
+After SCOPE issues a grant, AKTA applies grant metadata then re-evaluates the requested action:
+
+```python
+decision = gate.evaluate_with_grant(
+    ai_output=...,
+    requested_tool=...,
+    scope_grant=grant,
+    context=...,
+    deployment_profile=...,
+)
+```
+
+Grant fields mapped to context metadata:
+
+| Grant field | Context metadata | Enforcement |
+|-------------|------------------|-------------|
+| `allowed_tools` | `prior_review_allowed_tools` | Tool must be on allowlist when present |
+| `blocked_tools` | `prior_review_blocked_tools` | Blocked tools take precedence |
+| `authorization.approved_scope` | `prior_review_scope` | Out-of-scope tools blocked (F14) |
+| Grant expiry | `prior_review_expired` | Expired grants require new review (F14) |
+
+**Grant vs policy:** Weak evidence under `P2_analysis_assistant` may still block queue prioritization after a narrow SCOPE grant. SCOPE authorization does not automatically override AKTA evidence or profile matrices.
+
+See `akta/review_loop.py`, `examples/reconstructable_experiment/reconstruction_report.md`, and [limitations.md](limitations.md).
 
 ## Default review roles
 
@@ -40,13 +67,14 @@ Domain overlays may override roles (e.g., `compute_lead` for computational scien
 2. System emits review_trigger with requested_scope and decision/record binding
 3. SCOPE routes review; reviewer receives artifact packet
 4. Reviewer approves scoped next step only (grant must match requested_scope)
-5. Runtime re-evaluates or applies scoped authorization via PF-Core
-6. New AKTA Record documents the approved transition
+5. Runtime calls evaluate_with_grant() with scope_grant metadata
+6. AKTA re-gates: grant tool lists + evidence/profile/overlay layers
+7. PF-Core enforces resulting obligation; new AKTA Record documents the transition
 ```
 
 ## Authority-transfer boundary
 
-AKTA assigns `requested_scope`; SCOPE grants approval scope. A narrow grant must not authorize out-of-scope tools. Demonstrated in `examples/integrated_protocol_drift/`.
+AKTA assigns `requested_scope`; SCOPE grants approval scope. A narrow grant must not authorize out-of-scope tools. Demonstrated in `examples/integrated_protocol_drift/` and reconstructable experiment Case C.
 
 ## CLI export
 
@@ -57,3 +85,5 @@ akta review-trigger export --decision decision.json --out review_trigger.json
 ## SCOPE simulator (no local SCOPE repo)
 
 Use `akta.scope_contract` helpers or `tests/contracts/` for field extraction and grant validation when SCOPE is not checked out locally.
+
+Live verification with sibling repo: [scope_live_conformance.md](scope_live_conformance.md).

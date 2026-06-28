@@ -49,7 +49,7 @@ def test_health(server_url: str) -> None:
     data = _get(server_url, "/v0/health")
     assert data["status"] == "ok"
     assert data["api_version"] == "v0.6"
-    assert data["version"] == "0.6.0"
+    assert data["version"] == "0.7.1"
 
 
 def test_policy(server_url: str) -> None:
@@ -118,3 +118,60 @@ def test_export_pf_and_pcs(server_url: str) -> None:
     assert pf["obligation"]["source"] == "AKTA"
     assert pcs["exported"] is True
     assert pcs["manifest"]["artifact_type"] == "akta_scientific_action_record"
+
+
+def test_api_key_required_when_configured() -> None:
+    import urllib.error
+    import urllib.request
+
+    server = create_server(
+        "127.0.0.1",
+        0,
+        ROOT / "policy",
+        ROOT / "overlays",
+        api_key="secret-test-key",
+    )
+    host, port = server.server_address
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    url = f"http://{host}:{port}"
+
+    try:
+        with pytest.raises(urllib.error.HTTPError) as exc_info:
+            _get(url, "/v0/health")
+        assert exc_info.value.code == 401
+
+        req = urllib.request.Request(
+            f"{url}/v0/health",
+            headers={"X-API-Key": "secret-test-key"},
+        )
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        assert data["status"] == "ok"
+    finally:
+        server.shutdown()
+
+
+def test_rate_limit_returns_429() -> None:
+    import urllib.error
+
+    server = create_server(
+        "127.0.0.1",
+        0,
+        ROOT / "policy",
+        ROOT / "overlays",
+        rate_limit=2,
+    )
+    host, port = server.server_address
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    url = f"http://{host}:{port}"
+
+    try:
+        _get(url, "/v0/health")
+        _get(url, "/v0/health")
+        with pytest.raises(urllib.error.HTTPError) as exc_info:
+            _get(url, "/v0/health")
+        assert exc_info.value.code == 429
+    finally:
+        server.shutdown()

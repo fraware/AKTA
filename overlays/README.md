@@ -2,7 +2,7 @@
 
 Domain overlays modify AKTA-Core rules for specific scientific domains.
 
-## Governance tiers (v0.5)
+## Governance tiers (v0.5+)
 
 | Tier | Deployment in production |
 |------|--------------------------|
@@ -22,20 +22,21 @@ Each overlay includes:
 - `required_review_roles` per action family
 - `tool_restrictions` for domain-specific tools
 
-## Operational overlays (v0.5)
+## Operational overlays
 
 | Overlay | Domain | Tier |
 |---------|--------|------|
 | `generic_lab_v0.yaml` | Generic lab default | core_reference |
 | `materials_v0.yaml` | Materials science labs | core_reference |
 | `computational_science_v0.yaml` | Computational science workflows | core_reference |
+| `materials_expert_v0.yaml` | Materials science (expert-reviewed) | expert_reviewed_domain_overlay |
 | `biology_v0.yaml` | Biology / biosafety | experimental_domain_overlay |
 | `chemistry_v0.yaml` | Chemistry / chemical safety | experimental_domain_overlay |
 | `clinical_v0.yaml` | Clinical / IRB-governed research | experimental_domain_overlay |
 
-| `materials_expert_v0.yaml` | Materials science (expert-reviewed) | expert_reviewed_domain_overlay |
-
 Legacy aliases `biology_placeholder`, `chemistry_placeholder`, and `clinical_placeholder` resolve to the experimental overlay files for scenario compatibility.
+
+Experimental overlays are illustrative and not deployment-ready without institutional governance.
 
 ## Expert-reviewed overlay governance (v0.6)
 
@@ -48,3 +49,5 @@ To promote an overlay to `expert_reviewed_domain_overlay`:
 5. Open PR with overlay diff; maintainers verify production mode accepts the tier
 
 Reference example: `materials_expert_v0.yaml`.
+
+See [docs/domain_overlay_guide.md](../docs/domain_overlay_guide.md).

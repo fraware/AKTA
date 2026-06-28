@@ -32,10 +32,8 @@ def is_production_mode() -> bool:
 
 
 def require_signed_policy() -> bool:
-    """True when unsigned policy manifests must be rejected."""
-    if os.environ.get("AKTA_REQUIRE_SIGNED_POLICY", "").lower() in ("1", "true", "yes"):
-        return True
-    return is_production_mode()
+    """True when Ed25519 release-signed policy is required (rejects HMAC-only)."""
+    return os.environ.get("AKTA_REQUIRE_SIGNED_POLICY", "").lower() in ("1", "true", "yes")
 
 
 def _load_manifest(policy_dir: Path) -> dict[str, Any] | None:
@@ -213,37 +211,7 @@ def sign_manifest_ed25519(manifest: dict[str, Any], private_key_bytes: bytes) ->
 
 def verify_policy_integrity(policy_dir: str | Path, *, required: bool | None = None) -> bool:
     """Verify policy manifest when present or when production/verify mode is active."""
-    policy_dir = Path(policy_dir)
-    production = is_production_mode()
-    signed_required = require_signed_policy()
-    if required is None:
-        required = production
+    from akta.policy_signing import verify_policy_bundle_integrity
 
-    manifest = _load_manifest(policy_dir)
-    if manifest is None:
-        if required or production:
-            raise PolicyError(f"Policy verification required but no {MANIFEST_FILENAME} found")
-        return False
-
-    verify_manifest_hashes(policy_dir, manifest)
-
-    sig = manifest.get("signature")
-    if sig:
-        algorithm = sig.get("algorithm", HMAC_ALGORITHM)
-        if algorithm == ED25519_ALGORITHM:
-            verify_ed25519_signature(manifest)
-        elif algorithm == HMAC_ALGORITHM:
-            key = _resolve_hmac_key(production=production)
-            if key is None:
-                raise PolicyError("Policy manifest HMAC signature present but no verification key configured")
-            verify_hmac_signature(manifest, key)
-            if not production and key == DEFAULT_HMAC_KEY:
-                logger.warning(
-                    "Policy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production"
-                )
-        else:
-            raise PolicyError(f"Unsupported signature algorithm: {algorithm}")
-    elif signed_required or production:
-        raise PolicyError("Policy manifest missing signature block")
-
-    return True
+    result = verify_policy_bundle_integrity(policy_dir, required=required)
+    return result.verified

@@ -99,8 +99,9 @@ def run_demo() -> int:
         "python-import": "python-import (SCOPE_REPO_PATH sibling repo)",
         "cli": "cli (SCOPE_CLI subprocess)",
     }.get(adapter_mode, adapter_mode)
-    print(f"=== AKTA v0.5 Demo: Integrated Protocol Drift (AKTA x SCOPE) ===")
-    print(f"SCOPE adapter mode: {mode_label}\n")
+    print(f"=== AKTA v0.7 Demo: Integrated Protocol Drift (AKTA x SCOPE) ===")
+    print(f"SCOPE adapter mode: {mode_label}")
+    print(f"adapter_mode={adapter_mode}\n")
 
     context_data = json.loads((demo_dir / "context.json").read_text(encoding="utf-8"))
     ai_output = json.loads((demo_dir / "ai_output.json").read_text(encoding="utf-8"))

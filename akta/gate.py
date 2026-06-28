@@ -170,6 +170,7 @@ class AKTAGate:
             "policy_version": self.policy.version,
             "policy_hash": self.policy.policy_hash,
             "policy_file_versions": dict(self.policy.policy_file_versions),
+            "policy_integrity_mode": self.policy.integrity_mode,
             "domain_overlay_version": overlay_obj.version if overlay_obj else None,
             "domain_overlay_hash": overlay_obj.overlay_hash if overlay_obj else None,
             "tool_registry_hash": self.policy.tool_registry_hash,
@@ -215,9 +216,9 @@ class AKTAGate:
         """Re-gate after SCOPE grant or review decision with expiry enforcement (F14)."""
         from akta.review_decision import (
             apply_review_decision_to_context,
-            apply_scope_grant_to_context,
             enforce_grant_expiry,
         )
+        from akta.review_loop import apply_grant_decision_constraints, prepare_grant_context
 
         ctx_dict: dict[str, Any]
         if isinstance(context, AKTAContext):
@@ -225,19 +226,20 @@ class AKTAGate:
         else:
             ctx_dict = dict(context or {})
 
+        grant_state: Any = None
         if review_decision is not None:
             ctx_dict = apply_review_decision_to_context(ctx_dict, review_decision)
         elif scope_grant is not None:
-            ctx_dict = apply_scope_grant_to_context(
+            grant_state = prepare_grant_context(
                 ctx_dict,
-                scope_grant,
+                scope_grant=scope_grant,
                 record=record,
                 trigger=trigger,
-                validate_grant=True,
             )
+            ctx_dict = grant_state.context
 
         ctx_dict = enforce_grant_expiry(ctx_dict)
-        return self.evaluate(
+        decision = self.evaluate(
             ai_output=ai_output,
             requested_tool=requested_tool,
             requested_action=requested_action,
@@ -246,3 +248,15 @@ class AKTAGate:
             domain_overlay=domain_overlay,
             validate_output=validate_output,
         )
+
+        if grant_state is not None:
+            updated = apply_grant_decision_constraints(
+                decision.to_dict(),
+                grant_state,
+                requested_tool=requested_tool,
+            )
+            decision = AKTADecision(updated)
+            if validate_output:
+                validate_against_schema(decision.to_dict(), "akta_decision.schema.json")
+
+        return decision

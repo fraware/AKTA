@@ -10,7 +10,6 @@ import yaml
 
 from akta.errors import PolicyError, UnsupportedProfileError
 from akta.hash import hash_file_content, hash_object
-from akta.policy_integrity import verify_policy_integrity
 
 
 POLICY_FILES = [
@@ -45,6 +44,7 @@ class PolicyBundle:
     version: str = "akta-core-v0.5"
     policy_hash: str = ""
     tool_registry_hash: str = ""
+    integrity_mode: str = "dev_unsigned"
     policy_file_versions: dict[str, str] = field(default_factory=dict, repr=False)
     _raw_files: dict[str, str] = field(default_factory=dict, repr=False)
 
@@ -102,7 +102,9 @@ class PolicyBundle:
         })
         tool_registry_hash = hash_file_content(registry_content)
 
-        verify_policy_integrity(policy_dir, required=False)
+        from akta.policy_signing import verify_policy_bundle_integrity
+
+        integrity_result = verify_policy_bundle_integrity(policy_dir, required=False)
 
         return cls(
             policy_dir=policy_dir,
@@ -120,6 +122,7 @@ class PolicyBundle:
             version=version,
             policy_hash=policy_hash,
             tool_registry_hash=tool_registry_hash,
+            integrity_mode=integrity_result.integrity_mode,
             policy_file_versions=file_versions,
             _raw_files=raw_files,
         )

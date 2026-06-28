@@ -79,6 +79,34 @@ def test_openai_guardrail_adapter_structure() -> None:
         )
 
 
+def test_openai_guardrail_check_with_grant_blocks_listed_tool() -> None:
+    adapter = OpenAIGuardrailAdapter(
+        policy_dir=str(ROOT / "policy"),
+        overlays_dir=str(ROOT / "overlays"),
+        deployment_profile="P5_review_gated_experimental_planner",
+    )
+    grant = {
+        "grant_id": "SCOPE-GRANT-GUARDRAIL",
+        "authorization": {
+            "approved_scope": "single_run_queue_priority",
+            "blocked_tools": ["lab_scheduler.prioritize"],
+        },
+        "source": {"requested_scope": "single_run_queue_priority"},
+        "expires_at": "2030-01-01T00:00:00Z",
+    }
+    with pytest.raises(PermissionError, match="lab_scheduler.prioritize"):
+        adapter.check_with_grant(
+            "lab_scheduler.prioritize",
+            "prioritize_next_run",
+            scope_grant=grant,
+            ai_output={"summary": "Prioritize after grant."},
+            context={
+                "evidence_state": "E5_internally_replicated_evidence",
+                "validation_status": "V5_independently_replicated",
+            },
+        )
+
+
 def test_pcs_bench_export(tmp_path: Path) -> None:
     out = export_from_jsonl(
         ROOT / "scenarios" / "canonical_5.jsonl",

@@ -1,17 +1,17 @@
 ---
 name: akta-scientific-action-admissibility
 description: >-
-  Evaluates scientific action admissibility using the AKTA protocol (v0.5).
+  Evaluates scientific action admissibility using the AKTA protocol (v0.7.1).
   Classifies AI outputs (A0-A10), assigns responsibility levels, applies evidence
   and deployment profile policy, gates tool calls, emits AKTA Records, and produces
   SCOPE-compatible review triggers with requested_scope. Use when integrating
   AI-for-science agents, gating lab tools, evaluating weak evidence escalation,
   protocol drift, literature-to-action laundering, multi-agent handoffs, SCOPE review
-  routing, or when the user mentions AKTA, scientific action admissibility, or
-  authority transfer.
+  routing, grant re-gating, or when the user mentions AKTA, scientific action admissibility,
+  or authority transfer.
 ---
 
-# AKTA Scientific Action Admissibility (v0.5)
+# AKTA Scientific Action Admissibility (v0.7.1)
 
 ## Quick start
 
@@ -28,8 +28,9 @@ akta gate \
 akta record --decision akta_decision.json --out akta_record.json
 akta review-trigger export --decision akta_decision.json --out review_trigger.json
 
-# v0.5: SCOPE adapter modes, PCS full chain, production policy integrity
+# SCOPE adapter: simulated | python-import (SCOPE_REPO_PATH) | cli (SCOPE_CLI) | akta-review-cli (SCOPE_CLI_MODE=akta-review)
 python scripts/demo_akta_scope_protocol_drift.py
+python scripts/demo_reconstructable_experiment.py
 python evals/run_oracle_independent.py
 python -m adapters.mcp.server
 ```
@@ -51,14 +52,31 @@ Do **not** use AKTA to decide scientific truth — use VSA for evidence groundin
 3. **Gate tool call** — block if `admissibility` is `blocked`, `abstain_insufficient_context`, `review_required`, or `authorization_required`
 4. **Emit record** — `decision.to_record()` for every non-trivial decision
 5. **Export integrations** — PF-Core obligation (`akta export pf`), PCS bundle (`akta export pcs`)
-6. **SCOPE handoff** — when `review_required` or `authorization_required`, export `review_trigger` with `requested_scope` for SCOPE routing (simulated, python-import via `SCOPE_REPO_PATH`, or CLI via `SCOPE_CLI`)
+6. **SCOPE handoff** — when review is required, export `review_trigger` with `requested_scope`; after grant, call `evaluate_with_grant()`
 
-## Review context (v0.5)
+## Grant re-gate (v0.7.1)
+
+After SCOPE authorization:
+
+```python
+decision = gate.evaluate_with_grant(
+    ai_output=...,
+    requested_tool=...,
+    scope_grant=grant,
+    context=...,
+    deployment_profile=...,
+)
+```
+
+Grant tool lists map to `prior_review_allowed_tools` and `prior_review_blocked_tools`. SCOPE grants do not auto-override weak-evidence or profile blocks.
+
+## Review context
 
 Prior review metadata in `context.metadata` is enforced:
 
 - `prior_review_expired` — expired grants require new review (F14)
 - `prior_review_scope` — narrow grants block out-of-scope tools
+- `prior_review_allowed_tools` / `prior_review_blocked_tools` — grant-exact tool lists (v0.7.1)
 - `prior_akta_records` — blocked prior records prevent escalation
 
 Structured classification via `context.structured_action` takes priority over NL regex. Optional LLM classifier requires `AKTA_LLM_CLASSIFIER=1` and `OPENAI_API_KEY`.
@@ -72,7 +90,7 @@ When review or authorization is required, AKTA emits a trigger with:
 - `akta_decision_id` / `akta_record_id` — ID aliases for downstream binding
 - `review_trigger_version` — `"0.3"`
 
-Use `examples/integrated_protocol_drift/` for the canonical AKTA x SCOPE integration demo.
+Use `examples/integrated_protocol_drift/` for AKTA x SCOPE integration; `examples/reconstructable_experiment/` for post-grant re-gate Cases A/B/C.
 
 ## Decision composition
 
@@ -83,6 +101,7 @@ Strictest decision wins across layers:
 - Domain overlay constraints (minimum evidence, hazard triggers, scope overrides)
 - Tool registry permissions
 - Multi-agent handoff escalation
+- Grant constraints after SCOPE authorization
 
 ## Admissibility outcomes
 
@@ -112,11 +131,10 @@ decision = gate.evaluate(
 )
 
 if decision.admissibility in ("blocked", "abstain_insufficient_context"):
-    # Do not call tool; surface decision.next_admissible_steps
-    pass
+    pass  # surface decision.next_admissible_steps
 elif decision.admissibility in ("review_required", "authorization_required"):
     trigger = decision.to_dict()["review_trigger"]
-    scope = trigger["requested_scope"]  # SCOPE machine-enforced scope
+    scope = trigger["requested_scope"]
 else:
     record = decision.to_record()
 ```
@@ -127,6 +145,7 @@ else:
 - Unknown mutating tools must abstain (`abstain_insufficient_context`)
 - P7 fully autonomous profile is not supported
 - Narrow SCOPE grants must not authorize out-of-scope tool calls
+- AKTA is not a safety certification
 
 ## Examples
 
@@ -135,8 +154,8 @@ See [examples/weak_evidence_gate.md](examples/weak_evidence_gate.md) and [exampl
 ## Additional resources
 
 - Protocol overview: [docs/scientific_action_admissibility.md](../../docs/scientific_action_admissibility.md)
-- v0.5 integration: [docs/integration_guide.md](../../docs/integration_guide.md)
-- Threat model: [docs/threat_model.md](../../docs/threat_model.md)
+- Integration guide: [docs/integration_guide.md](../../docs/integration_guide.md)
 - SCOPE bridge: [docs/scope_bridge.md](../../docs/scope_bridge.md)
-- Integration: [docs/integration_guide.md](../../docs/integration_guide.md)
-- Failure taxonomy F1-F15: [evals/graders.py](../../evals/graders.py)
+- Live SCOPE conformance: [docs/scope_live_conformance.md](../../docs/scope_live_conformance.md)
+- Threat model: [docs/threat_model.md](../../docs/threat_model.md)
+- Failure taxonomy F01–F15: [docs/failure_class_taxonomy.md](../../docs/failure_class_taxonomy.md)

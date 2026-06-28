@@ -1,6 +1,58 @@
-# AKTA Integration Guide (v0.5)
+# AKTA Integration Guide (v0.7.1)
 
-AKTA integrates with adjacent systems in the AI-for-science trust stack.
+AKTA integrates with adjacent systems in the AI-for-science trust stack. This guide summarizes reference-implementation integration points by release. AKTA is not a safety certification.
+
+## v0.7.1 integration additions
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| Grant-exact re-gate | `akta/review_context.py`, `akta/review_loop.py` | `prior_review_allowed_tools` / `prior_review_blocked_tools` after SCOPE grant |
+| SCOPE akta-review CLI | `adapters/scope/client.py` | `SCOPE_CLI_MODE=akta-review` → `scope akta review` + `summary.json` validation |
+| Reconstructable demo Cases A/B/C | `scripts/demo_reconstructable_experiment.py` | Post-grant admissibility assertions (grant does not override evidence/profile) |
+| Review summary schema | `schemas/scope_akta_review_summary.schema.json` | Validates SCOPE akta-review CLI output |
+
+```bash
+# Grant-exact re-gate after SCOPE authorization
+from akta import AKTAGate
+gate = AKTAGate.from_policy_dir("policy/")
+decision = gate.evaluate_with_grant(ai_output=..., requested_tool=..., scope_grant=grant, ...)
+
+# SCOPE akta-review CLI mode
+export SCOPE_CLI=scope
+export SCOPE_CLI_MODE=akta-review
+python scripts/verify_scope_live_chain.py --mode akta-review
+
+python scripts/demo_reconstructable_experiment.py
+```
+
+See [scope_live_conformance.md](scope_live_conformance.md) and [limitations.md](limitations.md).
+
+## v0.7 integration additions
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| Live SCOPE verify | `scripts/verify_scope_live_chain.py` | python-import, cli, akta-review modes; fails on simulated fallback |
+| Policy integrity modes | `akta/policy_signing.py` | `dev_unsigned`, `deployment_hmac_attested`, `release_ed25519_signed` |
+| Closed-loop review | `akta/review_loop.py` | Grant allowlist, protocol/evidence invalidation, blocked_tools preservation |
+| Adversarial F01–F15 | `evals/adversarial_transitions.py` | Per-class transition reporting |
+| Holdout governance | `evals/run_holdout_eval.py` | Private holdout slice for release acceptance |
+
+```bash
+export AKTA_REQUIRE_SIGNED_POLICY=1   # Ed25519 release mode
+python evals/adversarial_transitions.py --out evals/reports/adversarial_transitions.json
+make eval-holdout
+```
+
+## v0.6 integration additions
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| Cross-repo CI | `.github/CROSS_REPO_CI.md` | Optional PF/PCS/SCOPE/PCS-Bench jobs |
+| Closed-loop review | `akta/review_decision.py` | Human review packet export/import |
+| Ed25519 signing | `akta/policy_signing.py` | Release authenticity via `policy/release_keys.yaml` |
+| VSA rich report | `adapters/vsa/import_report.py` | PCS `vsa_report.json` artifact |
+| Scientific Memory / PCS-Bench | `adapters/scientific_memory/`, `adapters/pcs_bench/` | Import/export reference contracts |
+| REST auth | `adapters/generic_rest/server.py` | `AKTA_REST_API_KEY`, rate limiting |
 
 ## v0.5 integration additions
 
@@ -8,7 +60,7 @@ AKTA integrates with adjacent systems in the AI-for-science trust stack.
 |-----------|------|---------|
 | SCOPE adapter | `adapters/scope/client.py` | Simulated, python-import (`SCOPE_REPO_PATH`), or CLI (`SCOPE_CLI`) |
 | SCOPE engine protocol | `adapters/scope/engine_protocol.py` | Expected methods for python-import mode |
-| PCS v0.5 full chain | `adapters/pcs/export_artifact.py` | 10 artifacts, `file_hashes`, tamper validation |
+| PCS v0.5 full chain | `adapters/pcs/export_artifact.py` | Per-file `file_hashes`, tamper validation |
 | Production policy integrity | `akta/policy_integrity.py` | Dev vs production HMAC; manifest required in production |
 | Overlay governance | `akta/overlays.py` | Tiers; production refuses experimental overlays |
 | LLM trust boundary | `docs/classifier_trust_boundary.md` | Tool registry overrides LLM; advisory metadata only |
@@ -28,29 +80,15 @@ python scripts/demo_akta_scope_protocol_drift.py
 akta export pcs --record akta_record.json --decision akta_decision.json --out pcs_bundle/ --validate
 ```
 
-## v0.4 integration additions
+## v0.4 integration additions (historical)
 
 | Component | Path | Purpose |
 |-----------|------|---------|
-| SCOPE adapter | `adapters/scope/client.py` | Simulated or subprocess review flow |
 | MCP stdio server | `adapters/mcp/server.py` | `akta_evaluate`, `akta_export` over JSON-RPC |
 | Guardrail adapters | `adapters/guardrails/` | OpenAI / Anthropic tool-call checks |
 | Transition runner | `evals/transition_runner.py` | SCOPE grant → re-gate verification |
 | Oracle-independent eval | `evals/run_oracle_independent.py` | Hand-written expected labels |
-| Domain overlays | `overlays/biology_v0.yaml`, `chemistry_v0.yaml`, `clinical_v0.yaml` | Hazard triggers and scope overrides |
-| Policy integrity | `akta/policy_integrity.py` | HMAC manifest verification |
-| PCS-Bench export | `adapters/pcs_bench/export_suite.py` | Benchmark suite for PCS-Core |
-
-```bash
-# Oracle-independent eval
-python evals/run_oracle_independent.py --out evals/reports/oracle_independent.json
-
-# MCP server (stdio)
-python -m adapters.mcp.server
-
-# REST API v0.5
-akta-rest --host 127.0.0.1 --port 8765
-```
+| Domain overlays | `overlays/biology_v0.yaml`, etc. | Hazard triggers and scope overrides |
 
 Cross-repo contract tests: [tests/contracts/README.md](../tests/contracts/README.md).
 
@@ -66,17 +104,13 @@ Import VSA reports via `adapters/vsa/import_report.py` to populate evidence cont
 - **AKTA decides** scientific admissibility
 - **PF-Core proves** the runtime respected the AKTA decision
 
-Export obligations:
-
 ```bash
 akta export pf --record akta_record.json --decision akta_decision.json --out dist/pf_obligations/ --validate
 ```
 
-See [pf_core_bridge.md](pf_core_bridge.md) for obligation schema and enforcement patterns.
+See [pf_core_bridge.md](pf_core_bridge.md).
 
 ## PCS-Core
-
-AKTA Records export as PCS-compatible artifact bundles:
 
 ```bash
 akta export pcs --record akta_record.json --decision akta_decision.json --out dist/pcs_bundle/ --validate
@@ -93,16 +127,6 @@ akta review-trigger export --decision akta_decision.json --out review_trigger.js
 ```
 
 See [scope_bridge.md](scope_bridge.md) and [review_integration.md](review_integration.md).
-
-## v0.2 policy features
-
-| Feature | Integration point |
-|---------|-------------------|
-| Per-action evidence rules | `policy/evidence_to_action_rules.yaml` |
-| Consequentiality | Decision `consequentiality` / `consequentiality_reason` |
-| Rich classifier | Decision `classification` audit block |
-| PF obligation v0.2 | `enforcement_mode`, `required_runtime_behavior` |
-| PCS bundle v0.5 | `schema_version: akta-record-v0.5` |
 
 ## Python API
 
@@ -133,10 +157,12 @@ akta export pf --record record.json --decision decision.json --out pf_obligation
 akta review-trigger export --decision decision.json --out review_trigger.json
 ```
 
-## Integrated demo
+## Integrated demos
 
 ```bash
-python scripts/demo_integrated_weak_evidence.py
+python scripts/demo_integrated_weak_evidence.py          # AKTA → PF → PCS (no SCOPE)
+python scripts/demo_akta_scope_protocol_drift.py         # AKTA → SCOPE → PF → PCS
+python scripts/demo_reconstructable_experiment.py        # Full reconstructable chain
 ```
 
-Produces blocked weak-evidence artifacts plus a review-trigger companion example in `examples/integrated_weak_evidence/`.
+Public release checklist: [RELEASE.md](RELEASE.md).

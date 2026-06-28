@@ -1,58 +1,78 @@
-# AKTA Threat Model (v0.4)
+# AKTA Threat Model (v0.7.1)
 
-AKTA sits in the agent supply chain between model output and scientific action. This document describes threats, v0.4 controls, residual risk, and out-of-scope items.
+AKTA sits in the agent supply chain between model output and scientific action. This document describes threats, controls by release, residual risk, and out-of-scope items. AKTA is not a safety certification.
 
 ## Trust boundaries
 
 | Boundary | Trusted side | Untrusted side |
 |----------|--------------|----------------|
-| Policy bundle | Maintainer-signed manifest (optional HMAC) | Runtime tampering |
+| Policy bundle | Signed or HMAC-attested manifest | Runtime tampering |
 | Tool registry | Hashed YAML in policy bundle | Ad-hoc tool injection |
 | Domain overlays | Hashed overlay files | Overlay substitution |
 | Review context | SCOPE grant metadata bound to trigger | Stale or laundered review |
-| Classifier | Deterministic path + optional plugins | Model hallucination, NL ambiguity |
+| Classifier | Deterministic path + optional advisory LLM | Model hallucination, NL ambiguity |
+| SCOPE grant | Scoped authorization after human review | Overbroad or expired grants |
 
 ## Threat catalog
 
-| Threat | v0.4 control | Residual risk |
-|--------|--------------|---------------|
-| Policy tampering | `policy_hash` on every decision/record; optional HMAC manifest verification (`AKTA_VERIFY_POLICY=1`) | Dev HMAC key in-repo is not production-grade |
+| Threat | Control | Residual risk |
+|--------|---------|---------------|
+| Policy tampering (F8) | `policy_hash`; three integrity modes; Ed25519 release signing | Misconfigured production env |
 | Fake AKTA Records | Record hash, JSON schema validation | Forged records outside AKTA export path |
 | Domain overlay manipulation | `domain_overlay_hash` in provenance | Wrong overlay selected by integrator |
 | Tool registry poisoning | `tool_registry_hash`; unknown mutating tools → abstain | Custom registry not pinned at deploy time |
-| Review trigger spoofing | Trigger bound to `decision_id` / `record_id`; hash fields | External SCOPE not validating bindings |
-| Stale review reuse (F14) | `review_context.py` blocks expired or narrow grants | Metadata omitted by caller |
+| Review trigger spoofing | Trigger bound to decision/record IDs; hash fields | External SCOPE not validating bindings |
+| Stale review reuse (F14) | `review_loop.py`; expired/narrow grant blocks | Metadata omitted by caller |
+| Grant override after review | `evaluate_with_grant()` re-gates evidence/profile; `prior_review_*` tool lists | Caller skips re-gate |
 | Review laundering (F6/F12) | Disclaimer metadata does not bypass mutating tools | Prompt-only disclaimers without metadata |
-| Unknown tool confusion | D6 abstain; block mutating tools by default | Misclassified non-mutating custom tools |
+| Unknown tool confusion (F13) | Abstain; block mutating tools by default | Misclassified non-mutating custom tools |
 | Downgrade attacks | Strictest-decision composition across layers | Caller ignores blocked decision |
 | Schema version confusion | Explicit version fields on policy, records, PCS manifest | Mixed-version consumers |
 | NL classification bypass | Structured action priority; negation guard; fail-closed low confidence | Adversarial phrasing edge cases |
-| LLM classifier abuse | Opt-in only; requires API key; structured JSON schema; returns None on failure | Compromised API credentials |
+| LLM classifier abuse | Opt-in only; tool registry overrides LLM; fail-closed without key | Compromised API credentials |
 | Handoff escalation (F7) | Handoff chain monotonicity detection | Incomplete handoff metadata |
+| Overbroad SCOPE grant | PCS export rejects; grant validation fixtures | SCOPE misconfiguration upstream |
+| Simulated SCOPE fallback | Live verify fails when real env configured but simulation used | Missing sibling repo in dev |
 
-## v0.4 additions over v0.1
+## v0.7.1 controls
 
-- Operational domain overlays (biology, chemistry, clinical) with hazard triggers
-- Review lifecycle enforcement (`prior_review_expired`, `prior_akta_records`)
-- Per-action evidence rules (legacy rank loophole closed for consequential actions)
-- SCOPE adapter with simulated and subprocess modes
-- MCP stdio server and guardrail adapters for runtime integration
-- Oracle-independent eval scenarios (labels not derived from gate oracle)
-- Transition runner for SCOPE grant → re-gate flows
+- Grant-exact re-gate: `prior_review_allowed_tools` and `prior_review_blocked_tools`
+- SCOPE grants do not auto-override weak-evidence or deployment-profile blocks
+- SCOPE `akta-review-cli` mode with `summary.json` schema validation
+- Reconstructable demo post-grant assertions (Cases A/B/C)
 
-## Out of scope (v0.4)
+## v0.7 controls
 
-- Ed25519 signed policy releases in production (HMAC dev key only in-repo)
-- Live SCOPE/PF/PCS runtime enforcement (delegated to sibling repos)
+- Live SCOPE chain verification (`scripts/verify_scope_live_chain.py`)
+- Three policy integrity modes: `dev_unsigned`, `deployment_hmac_attested`, `release_ed25519_signed`
+- Closed-loop `review_loop` with grant allowlist and blocked_tools preservation
+- Adversarial transition reporting F01–F15
+- PCS grant hard gates (real + simulated fixtures)
+
+## v0.5–v0.6 controls (retained)
+
+- Dev vs production policy integrity (`AKTA_PRODUCTION_MODE=1`, `AKTA_VERIFY_POLICY=1`)
+- PCS per-file `file_hashes` with tamper detection
+- Overlay governance tiers; production refuses experimental overlays
+- LLM classifier advisory-only; tool registry overrides LLM
+- Review context enforcement (F14 stale review, F12 disclaimer boundary)
+- REST optional API key auth and rate limiting (v0.6)
+- Ed25519 signed policy releases (v0.6+)
+
+## Out of scope
+
+- Live SCOPE/PF/PCS runtime enforcement in default CI (delegated to sibling repos; AKTA adapters bridge or simulate)
 - Model prompt injection defense and truthfulness guarantees
 - Log integrity and audit trail storage
-- Physical lab safety certification
+- Physical lab safety certification or regulatory approval
+- P7 fully autonomous scientific operator runtime (permanently unsupported)
 
 ## Verification
 
-- `pytest tests/test_policy_integrity_v04.py` — manifest tampering detection
+- `make ci` — full regression including scenario eval, adversarial transitions, and integration demos
+- `python scripts/verify_scope_live_chain.py` — live SCOPE conformance (optional sibling repo)
+- `pytest tests/test_policy_signing_modes.py` — integrity mode enforcement
 - `pytest tests/test_invalid_cases.py` — F8 policy tampering fixtures
-- `pytest tests/test_oracle_independent.py` — hand-written expected labels
-- `make ci` — full regression including scenario eval and integration demos
+- `pytest tests/test_evaluate_with_grant.py` — grant re-gate semantics
 
-See [SECURITY.md](../SECURITY.md) for vulnerability reporting and [policy_integrity.md](policy_integrity.md) for hash verification setup.
+See [SECURITY.md](../SECURITY.md), [policy_integrity.md](policy_integrity.md), and [RELEASE.md](RELEASE.md).

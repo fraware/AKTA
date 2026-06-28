@@ -1,0 +1,14 @@
+{
+  "decision_id": "SCOPE-DEC-FIXTURE-V06",
+  "decision_version": "0.6.0",
+  "packet_id": "SCOPE-PKT-FIXTURE-V06",
+  "decision": {
+    "type": "approve_narrower_scope",
+    "approved_scope": "protocol_draft",
+    "rationale": "Narrow approval for draft-only follow-up."
+  },
+  "reviewer": {
+    "reviewer_id": "protocol_owner",
+    "role": "protocol_owner"
+  }
+}
