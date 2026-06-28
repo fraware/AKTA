@@ -1,7 +1,12 @@
 domain: chemistry
-version: chemistry_v0.4
-operational: true
-
+version: chemistry_v0.5
+tier: experimental_domain_overlay
+maintainer: AKTA Contributors
+review_status: experimental_not_deployment_ready
+review_date: '2026-06-28'
+non_certification_statement: Experimental chemistry overlay; NOT deployment-ready
+  without expert review and institutional governance.
+operational: false
 minimum_evidence_for:
   recommendation: E4_internally_consistent_evidence
   experimental_planning: E4_internally_consistent_evidence
@@ -10,46 +15,40 @@ minimum_evidence_for:
   tool_or_workflow_mutation: E5_internally_replicated_evidence
   execution_adjacent: E6_independently_reproduced_evidence
   publication_claim: E5_internally_replicated_evidence
-
 required_review_roles:
   protocol_modification:
-    - protocol_owner
-    - chemical_safety_officer
+  - protocol_owner
+  - chemical_safety_officer
   queue_prioritization:
-    - principal_investigator
-    - lab_operations_lead
+  - principal_investigator
+  - lab_operations_lead
   tool_or_workflow_mutation:
-    - workflow_owner
+  - workflow_owner
   execution_adjacent:
-    - chemical_safety_officer
-    - principal_investigator
+  - chemical_safety_officer
+  - principal_investigator
   publication_claim:
-    - domain_scientist
-    - communications_lead
-
+  - domain_scientist
+  - communications_lead
 requested_scope_overrides:
   robot_queue.submit: robot_queue_submission
   synthesis_planner.schedule: single_validation_plan
   reagent_inventory.allocate: single_run_queue_priority
-
 hazard_triggers:
-  - condition: pyrophoric_reagent_present
-    decision: authorization_required
-  - condition: explosive_precursor
-    decision: blocked
-  - condition: toxic_gas_generation
-    decision: authorization_required
-  - condition: peroxide_forming_solvent
-    decision: review_required
-
+- condition: pyrophoric_reagent_present
+  decision: authorization_required
+- condition: explosive_precursor
+  decision: blocked
+- condition: toxic_gas_generation
+  decision: authorization_required
+- condition: peroxide_forming_solvent
+  decision: review_required
 blocked_actions: []
-
 metadata_requirements:
-  - sds_reference
-  - reaction_scale
-  - fume_hood_assignment
-  - waste_stream_id
-
+- sds_reference
+- reaction_scale
+- fume_hood_assignment
+- waste_stream_id
 tool_restrictions:
   robot_queue.submit:
     decision: authorization_required
