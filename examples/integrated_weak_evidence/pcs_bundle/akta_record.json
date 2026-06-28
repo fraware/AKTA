@@ -27,7 +27,7 @@
     "scientific_action_type": "A7_resource_or_queue_prioritization",
     "responsibility_level": "R6_resource_allocation",
     "evidence_state": "E2_preliminary_signal",
-    "validation_status": "V0_unvalidated",
+    "validation_status": "V3_preliminary_experimental_support",
     "verification_status": "Q0_unchecked",
     "classifier_confidence": 0.98,
     "classification_detail": {
@@ -43,10 +43,13 @@
     "admissibility": "blocked",
     "decision_reason": "Profile P2_analysis_assistant matrix decision for A7_resource_or_queue_prioritization is blocked. Evidence rule E2_preliminary_signal+A7_resource_or_queue_prioritization constrains to blocked (resolved from blocked).",
     "blocked_tools": [
+      "freezer_inventory.release",
+      "freezer_inventory.reserve",
       "lab_scheduler.defer",
       "lab_scheduler.prioritize",
       "reagent_inventory.allocate",
-      "robot_queue.submit"
+      "robot_queue.submit",
+      "sample_tracker.transfer"
     ],
     "allowed_tools": [],
     "required_review_role": null,
@@ -64,7 +67,7 @@
     "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
     "domain_overlay_version": "generic_lab_v0.2",
     "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
-    "tool_registry_hash": "sha256:90746b4b61b236802bf9762b6755e966a676c6294e83fd3606ce0826f1aff50a"
+    "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8"
   },
   "integrations": {
     "vsa_report_ref": "VSA-REPORT-INTEGRATED-001",
@@ -72,5 +75,5 @@
     "pcs_artifact_ref": null,
     "prior_akta_records": []
   },
-  "record_hash": "sha256:af72014eeffef8190c9ca548facb7143e37d2555abed52655aabd818c35b65e8"
+  "record_hash": "sha256:570f035e21a3773ce239f004779fed9593d94c8bb35112ab8520665c36def3a2"
 }
