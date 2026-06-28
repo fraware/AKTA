@@ -28,11 +28,24 @@
   "authorization_required": false,
   "consequentiality": true,
   "consequentiality_reason": "action type A5_protocol_modification",
-  "policy_version": "akta-core-v0.4",
-  "policy_hash": "sha256:e0951ca2ff63b3fce9b3c841b324c3bf23d0f2e4b062c0c3dd5a057f7af5944d",
+  "policy_version": "akta-core-v0.5",
+  "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
+  "policy_file_versions": {
+    "action_ontology.yaml": "action_ontology-v0.5",
+    "responsibility_levels.yaml": "responsibility_levels-v0.5",
+    "evidence_states.yaml": "evidence_states-v0.5",
+    "validation_statuses.yaml": "validation_statuses-v0.5",
+    "verification_statuses.yaml": "verification_statuses-v0.5",
+    "deployment_profiles.yaml": "deployment_profiles-v0.5",
+    "admissibility_matrix.yaml": "admissibility_matrix-v0.5",
+    "evidence_to_action_matrix.yaml": "evidence_to_action_matrix-v0.5",
+    "evidence_to_action_rules.yaml": "evidence_to_action_rules-v0.5",
+    "default_tool_registry.yaml": "default_tool_registry-v0.5",
+    "tool_to_requested_scope.yaml": "tool_to_requested_scope-v0.5"
+  },
   "domain_overlay_version": "generic_lab_v0.2",
-  "domain_overlay_hash": "sha256:67d13db14ede89da9ffbd5592e7f081b209d25a03bc3942e7a7f1feac1d4eaab",
-  "tool_registry_hash": "sha256:106f428d42b42d5f0f459d8e65da25f1f9ee237efb6a3b27fe880f83d7bc604c",
+  "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
+  "tool_registry_hash": "sha256:90746b4b61b236802bf9762b6755e966a676c6294e83fd3606ce0826f1aff50a",
   "classifier_confidence": 0.98,
   "classification_rationale": "tool registry maps protocol_editor.draft_change to A5_protocol_modification",
   "classification": {
@@ -43,5 +56,6 @@
     "uncertainty_flags": [],
     "classifier_mode": "deterministic"
   },
+  "llm_advisory": null,
   "ai_output_summary": "Draft protocol threshold change for owner review."
 }
