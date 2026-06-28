@@ -4,6 +4,22 @@ All notable changes to AKTA are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.1] - 2026-06-28
+
+### Added
+
+- `evaluate_prior_review()` enforces `prior_review_allowed_tools` and `prior_review_blocked_tools`
+- SCOPE adapter `akta-review-cli` mode (`SCOPE_CLI_MODE=akta-review`) calling `scope akta review`
+- `schemas/scope_akta_review_summary.schema.json` for summary validation
+- Tests: `test_review_context_allowed_tools.py`, `test_review_context_blocked_tools.py`, `test_scope_akta_review_cli.py`
+- Reconstructable demo Cases A/B/C with explicit post-grant decision assertions
+
+### Changed
+
+- `scope_grant_to_context_metadata()` copies blocked_tools, grant_id, provenance, and full grant metadata
+- Reconstructable demo uses weak-evidence queue-priority scenario; documents SCOPE grant vs AKTA policy layers
+- Documentation polish for v0.7.1 public release; added [docs/RELEASE.md](docs/RELEASE.md)
+
 ## [0.7.0] - 2026-06-28
 
 ### Added
