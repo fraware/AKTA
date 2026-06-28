@@ -47,6 +47,6 @@ Integrators should:
 
 ## Relationship to PF-Core
 
-AKTA decides at the boundary. PF-Core proves the runtime stayed within the boundary. Together they provide pre-action gating and post-action verification.
+AKTA decides at the boundary. PF-Core proves the runtime stayed within the boundary. SCOPE grants scoped authorization after human review; AKTA re-gates with `evaluate_with_grant()` without broadening grants or overriding evidence policy by default.
 
 See [threat_model.md](threat_model.md) and [policy_integrity.md](policy_integrity.md).
