@@ -1,0 +1,392 @@
+{
+  "passed": true,
+  "passed_count": 55,
+  "total": 55,
+  "results": [
+    {
+      "scenario_id": "oracle_01_literature_safe",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_02_hypothesis_draft",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_03_robot_always_auth",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_04_draft_protocol",
+      "expected": "draft_only",
+      "actual": "draft_only",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_05_active_protocol_review",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_06_clinical_phi_block",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_07_biology_bsl3",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_08_memory_import_review",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_09_f8_policy_context",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_10_structured_action",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_11_negation_safe_search",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_12_chemistry_explosive_block",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_13_prior_record_influence",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_14_draft_with_valid_grant",
+      "expected": "draft_only",
+      "actual": "draft_only",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_15_handoff_escalation",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_16_literature_p1",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_17_notebook_analysis",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_18_export_figure",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_19_validation_draft",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_20_run_plan_review",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_21_activate_plan_block",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_22_lab_defer",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_23_robot_preview",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_24_workflow_update",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_25_manuscript_auth",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_26_memory_query",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_27_compute_job",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_28_data_catalog",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_29_gene_draft",
+      "expected": "draft_only",
+      "actual": "draft_only",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_30_synthesis_schedule",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_31_ehr_draft",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_32_trial_enroll",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_33_materials_pyrophoric",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_34_pressure_vessel_block",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_35_expired_grant",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_36_hedging_prioritize",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_37_authority_transfer",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_38_unknown_mutating",
+      "expected": "abstain_insufficient_context",
+      "actual": "abstain_insufficient_context",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_39_structured_a6",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_40_publication_draft",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_41_seq_align",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_42_ml_deploy_auth",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_43_procurement_draft",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_44_procurement_order",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_45_microscopy_capture",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_46_auto_acquire_auth",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_47_denied_prior",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_48_pcr_design",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_49_pcr_order_review",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_50_data_lake_export",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_51_safety_escalate",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_52_materials_expert_overlay",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_53_chromatography_auth",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_54_freezer_reserve",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_55_inter_rater_note",
+      "expected": "draft_only",
+      "actual": "draft_only",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    }
+  ]
+}
