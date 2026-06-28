@@ -4,6 +4,45 @@ All notable changes to AKTA are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.0] - 2026-06-28
+
+### Added
+
+- Cross-repo CI jobs for optional sibling repos (`PF_CORE_REPO_PATH`, `PCS_CORE_REPO_PATH`, `SCOPE_REPO_PATH`)
+- Closed-loop review: `evaluate_with_grant()`, full `review_decision.py`, human review packet export/import
+- Ed25519 policy signing (`AKTA_REQUIRE_SIGNED_POLICY`, key rotation via `public_keys`); HMAC retained for deployment attestation
+- VSA rich ScientificReport import (claims, evidence_links, validation_results) + PCS bundle `vsa_report.json`
+- Adapters: Scientific Memory, LabTrust-Gym scenario import, PF trace certificate import, PCS-Bench runner
+- Inter-rater eval metadata (`reviewer_ids`, `inter_rater_agreement`, `label_source`) in `expected_decisions.jsonl` with stats in eval reports
+- Adversarial transition eval module (`evals/adversarial_transitions.py`) for grant expiry, scope narrowing, and re-gate tool allow/block
+- External PCS-Bench checkout via `PCS_BENCH_REPO_PATH` with in-repo fallback
+- `.github/CROSS_REPO_CI.md` documenting cross-repo CI variables and secrets
+- `scripts/demo_reconstructable_experiment.py` — full VSA → AKTA → SCOPE → PF → PCS → Memory → PCS-Bench chain
+- AKTA-Bench: 55 oracle-independent scenarios, `holdout_private.jsonl`, behavioral eval runner
+- Tool registry expanded to 50+ lab/compute tools; mandatory tool declaration fail-closed (A8)
+- Hybrid classifier: negation, hedging, prose authority-transfer detection
+- REST optional API key auth (`AKTA_REST_API_KEY`) and rate limiting; LangGraph SCOPE grant scoped retry
+- Expert-reviewed overlay: `materials_expert_v0` with maintainer sign-off metadata
+
+### Changed
+
+- Package version `0.6.0`; policy manifest `akta-policy-manifest-v0.6`
+- PCS export includes VSA report as first-class artifact when present
+
+## [0.5.1] - 2026-06-28
+
+### Fixed
+
+- SCOPE python-import adapter: uses `ScopeEngine.from_policy_dir(policy/)` and v0.5 `create_packet(akta_record=, akta_trigger=)`, `submit_decision(reviewer=, decision=)`, `issue_grant(packet, decision)` — no no-arg constructor or simulated fallback when `SCOPE_REPO_PATH` is set
+- SCOPE CLI adapter: real v0.5 command shapes (`--akta-trigger`, `--akta-record`, `--reviewer`, `--decision` file args)
+- PCS grant validation: accepts real SCOPE v0.5 grants via `authorization.approved_scope` and `source.requested_scope`; rejects overbroad grants; includes real grant unchanged in bundle
+- Contract tests: `test_scope_python_import_live_shape.py`, `test_scope_cli_command_shape.py`, `test_pcs_real_scope_grant_shape.py`, `test_demo_protocol_drift_live_mode.py`
+
+### Changed
+
+- Package version `0.5.1`; `adapters/scope/engine_protocol.py` updated to SCOPE v0.5 API
+- `docs/limitations.md`: v0.5 and v0.4 sections distinguishing simulated/python-import/CLI modes
+
 ## [0.5.0] - 2026-06-28
 
 ### Added

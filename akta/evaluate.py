@@ -303,6 +303,30 @@ def tool_registry_decision(tool_spec: ToolSpec, requested_tool: str) -> Evaluati
     )
 
 
+def mandatory_tool_declaration_decision(
+    tool_spec: ToolSpec,
+    requested_tool: str,
+    context: AKTAContext,
+    requested_action: str,
+) -> EvaluationLayer | None:
+    """A8 fail-closed: mutating tools require registry entry when NL-only classification."""
+    if tool_spec.known:
+        return None
+    if not (tool_spec.mutates_state or tool_spec.external_effect):
+        return None
+    if context.structured_action or context.tool_payload:
+        return None
+    return EvaluationLayer(
+        source="mandatory_tool_declaration",
+        decision="abstain_insufficient_context",
+        reason=(
+            f"Mutating tool {requested_tool} is not in the registry and no structured "
+            f"action declaration was provided; declare tool in registry or supply "
+            f"structured_action before retry."
+        ),
+    )
+
+
 def handoff_escalation_decision(context: AKTAContext) -> EvaluationLayer | None:
     chain = context.handoff_chain or []
     if len(chain) < 2:
@@ -538,6 +562,12 @@ def evaluate_admissibility(
     tool_layer = tool_registry_decision(tool_spec, requested_tool)
     if tool_layer:
         layers.append(tool_layer)
+
+    mandatory_layer = mandatory_tool_declaration_decision(
+        tool_spec, requested_tool, context, requested_action
+    )
+    if mandatory_layer:
+        layers.append(mandatory_layer)
 
     handoff_layer = handoff_escalation_decision(context)
     if handoff_layer:

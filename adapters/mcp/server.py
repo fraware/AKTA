@@ -29,6 +29,23 @@ TOOLS = {
             },
         },
     },
+    "akta_evaluate_with_grant": {
+        "description": "Re-gate with SCOPE grant or review decision (v0.6 closed-loop)",
+        "inputSchema": {
+            "type": "object",
+            "required": ["requested_tool"],
+            "properties": {
+                "requested_tool": {"type": "string"},
+                "requested_action": {"type": "string"},
+                "ai_output": {},
+                "context": {"type": "object"},
+                "deployment_profile": {"type": "string"},
+                "domain_overlay": {"type": "string"},
+                "scope_grant": {"type": "object"},
+                "review_decision": {"type": "object"},
+            },
+        },
+    },
     "akta_export": {
         "description": "Export PF obligation and PCS bundle from AKTA decision/record",
         "inputSchema": {
@@ -62,25 +79,57 @@ class AKTAMCPServer:
             return self._call_tool(req_id, message.get("params", {}))
         return self._error(req_id, -32601, f"Method not found: {method}")
 
+    def _tool_error(self, req_id: Any, code: str, message: str, *, detail: dict[str, Any] | None = None) -> dict[str, Any]:
+        payload: dict[str, Any] = {"code": code, "message": message}
+        if detail:
+            payload["detail"] = detail
+        return self._error(req_id, -32000, json.dumps(payload))
+
     def _call_tool(self, req_id: Any, params: dict[str, Any]) -> dict[str, Any]:
         name = params.get("name", "")
         args = params.get("arguments", {})
-        if name == "akta_evaluate":
-            decision = self.gate.evaluate(
-                ai_output=args.get("ai_output", ""),
-                requested_tool=args["requested_tool"],
-                requested_action=args.get("requested_action", args["requested_tool"]),
-                context=AKTAContext.from_dict(args.get("context", {})),
-                deployment_profile=args.get("deployment_profile", "P2_analysis_assistant"),
-                domain_overlay=args.get("domain_overlay"),
-            )
-            return self._reply(req_id, {"content": [{"type": "text", "text": json.dumps(decision.to_dict())}]})
-        if name == "akta_export":
-            decision = args["decision"]
-            record = args.get("record") or decision
-            pf = build_pf_obligation(record if "decision" in record else {"decision": decision, "record_id": decision.get("decision_id")})
-            return self._reply(req_id, {"content": [{"type": "text", "text": json.dumps({"pf_obligation": pf})}]})
-        return self._error(req_id, -32602, f"Unknown tool: {name}")
+        try:
+            if name == "akta_evaluate":
+                if "requested_tool" not in args:
+                    return self._tool_error(req_id, "missing_field", "requested_tool is required")
+                decision = self.gate.evaluate(
+                    ai_output=args.get("ai_output", ""),
+                    requested_tool=args["requested_tool"],
+                    requested_action=args.get("requested_action", args["requested_tool"]),
+                    context=AKTAContext.from_dict(args.get("context", {})),
+                    deployment_profile=args.get("deployment_profile", "P2_analysis_assistant"),
+                    domain_overlay=args.get("domain_overlay"),
+                )
+                return self._reply(req_id, {"content": [{"type": "text", "text": json.dumps(decision.to_dict())}]})
+            if name == "akta_evaluate_with_grant":
+                if "requested_tool" not in args:
+                    return self._tool_error(req_id, "missing_field", "requested_tool is required")
+                decision = self.gate.evaluate_with_grant(
+                    ai_output=args.get("ai_output", ""),
+                    requested_tool=args["requested_tool"],
+                    requested_action=args.get("requested_action", args["requested_tool"]),
+                    context=AKTAContext.from_dict(args.get("context", {})),
+                    deployment_profile=args.get("deployment_profile", "P2_analysis_assistant"),
+                    domain_overlay=args.get("domain_overlay"),
+                    scope_grant=args.get("scope_grant"),
+                    review_decision=args.get("review_decision"),
+                )
+                return self._reply(req_id, {"content": [{"type": "text", "text": json.dumps(decision.to_dict())}]})
+            if name == "akta_export":
+                decision = args["decision"]
+                record = args.get("record") or decision
+                pf = build_pf_obligation(
+                    record if "decision" in record else {
+                        "decision": decision,
+                        "record_id": decision.get("decision_id"),
+                    }
+                )
+                return self._reply(req_id, {"content": [{"type": "text", "text": json.dumps({"pf_obligation": pf})}]})
+            return self._tool_error(req_id, "unknown_tool", f"Unknown tool: {name}")
+        except KeyError as exc:
+            return self._tool_error(req_id, "missing_field", str(exc))
+        except Exception as exc:
+            return self._tool_error(req_id, "akta_error", str(exc), detail={"tool": name})
 
     def _reply(self, req_id: Any, result: dict[str, Any]) -> dict[str, Any]:
         return {"jsonrpc": "2.0", "id": req_id, "result": result}

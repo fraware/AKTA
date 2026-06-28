@@ -140,6 +140,15 @@ akta-rest --host 127.0.0.1 --port 8765
 # GET  /v0/policy, /v0/health
 ```
 
+## v0.5.1 acceptance status
+
+| Criterion | Status |
+|-----------|--------|
+| SCOPE python-import (`ScopeEngine.from_policy_dir`, v0.5 kwargs) | Pass |
+| SCOPE CLI v0.5 flags (`--akta-trigger`, `--akta-record`, `--reviewer`, `--decision`) | Pass |
+| PCS grant validation (`authorization.approved_scope`, narrow draft grant) | Pass |
+| 235+ tests; `make ci` green | Pass |
+
 ## v0.5 acceptance status
 
 | Criterion | Status |
@@ -150,7 +159,7 @@ akta-rest --host 127.0.0.1 --port 8765
 | LLM classifier trust boundary (registry overrides LLM) | Pass |
 | Overlay governance tiers + production refusal | Pass |
 | Policy file versioning in decision provenance | Pass |
-| 210+ tests; `make ci` green | Pass |
+| 210+ tests; `make ci` green | Pass (see v0.5.1 for SCOPE adapter patch) |
 
 ## v0.4 acceptance status
 
@@ -218,4 +227,24 @@ akta-rest --host 127.0.0.1 --port 8765
 
 ## Status
 
-AKTA v0.5 is a reference implementation. It is not a safety certification. Biology, chemistry, and clinical overlays are experimental and not deployment-ready without institutional governance. Deployment profile P7 (fully autonomous scientific operator) is defined for taxonomy only and is not supported.
+AKTA v0.6.0 is a reference implementation. It is not a safety certification. Biology, chemistry, and clinical overlays are experimental and not deployment-ready without institutional governance. Deployment profile P7 (fully autonomous scientific operator) is defined for taxonomy only and is not supported.
+
+## v0.6 acceptance status
+
+| Criterion | Status |
+|-----------|--------|
+| Cross-repo CI jobs (optional PF/PCS/SCOPE) | Pass |
+| Closed-loop review (`evaluate_with_grant`, expiry F14) | Pass |
+| Ed25519 policy signing + `AKTA_REQUIRE_SIGNED_POLICY` | Pass |
+| VSA rich report + PCS `vsa_report.json` artifact | Pass |
+| Scientific Memory + LabTrust-Gym + PCS-Bench adapters | Pass |
+| Reconstructable experiment demo (full chain) | Pass |
+| Oracle-independent 55 scenarios + holdout eval | Pass |
+| Tool registry 50+ tools + mandatory declaration A8 | Pass |
+| Expert-reviewed overlay (`materials_expert_v0`) | Pass |
+| REST API key auth + rate limiting | Pass |
+| Inter-rater eval metadata + stats in `akta eval` | Pass |
+| Adversarial transition evals (grant expiry, scope narrowing) | Pass |
+| External PCS-Bench checkout integration (`PCS_BENCH_REPO_PATH`) | Pass |
+
+Cross-repo CI variables: see [.github/CROSS_REPO_CI.md](.github/CROSS_REPO_CI.md).

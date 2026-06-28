@@ -15,7 +15,7 @@ def test_vsa_import_maps_evidence() -> None:
     report = json.loads((ROOT / "examples" / "weak_evidence" / "vsa_report.json").read_text())
     ctx = import_vsa_report(report)
     assert ctx["evidence_state"] == "E2_preliminary_signal"
-    assert ctx["validation_status"] == "V0_unvalidated"
+    assert ctx["validation_status"] == "V3_preliminary_experimental_support"
 
 
 def test_pf_export(tmp_path: Path) -> None:

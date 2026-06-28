@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "akta-protocol"
-version = "0.5.0"
+version = "0.6.0"
 description = "Open Scientific Action Protocol — reference kernel for scientific action admissibility"
 readme = "README.md"
 license = { text = "MIT" }
@@ -32,6 +32,9 @@ dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
 ]
+security = [
+    "cryptography>=41.0",
+]
 # REST server uses stdlib http.server; no extra deps required in v0.1.
 rest = []
 
@@ -47,3 +50,6 @@ include = ["akta*", "adapters*", "evals*"]
 [tool.pytest.ini_options]
 testpaths = ["tests", "skills/akta-scientific-action-admissibility/tests"]
 pythonpath = ["."]
+markers = [
+    "integration: live cross-repo tests requiring sibling SCOPE checkout",
+]

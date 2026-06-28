@@ -1,0 +1,56 @@
+domain: materials
+version: materials_expert_v0.1
+tier: expert_reviewed_domain_overlay
+maintainer: AKTA Materials Working Group
+review_status: expert_reviewed
+review_date: '2026-06-28'
+expert_signoff:
+  reviewers:
+    - id: materials_wg_chair
+      role: domain_lead
+      institution: reference
+    - id: protocol_reviewer_01
+      role: protocol_owner
+      institution: reference
+  agreement_notes: Reference expert-reviewed overlay for AKTA v0.6 governance demo.
+  signoff_date: '2026-06-28'
+non_certification_statement: Expert-reviewed reference overlay; not a safety certification.
+operational: true
+minimum_evidence_for:
+  recommendation: E4_internally_consistent_evidence
+  experimental_planning: E4_internally_consistent_evidence
+  queue_prioritization: E5_internally_replicated_evidence
+  protocol_modification: E4_internally_consistent_evidence
+  tool_or_workflow_mutation: E5_internally_replicated_evidence
+  execution_adjacent: E6_independently_reproduced_evidence
+  publication_claim: E5_internally_replicated_evidence
+required_review_roles:
+  protocol_modification:
+  - protocol_owner
+  queue_prioritization:
+  - principal_investigator
+  - lab_operations_lead
+  tool_or_workflow_mutation:
+  - workflow_owner
+  execution_adjacent:
+  - lab_safety_officer
+  - principal_investigator
+  publication_claim:
+  - domain_scientist
+requested_scope_overrides:
+  robot_queue.submit: robot_queue_submission
+hazard_triggers:
+- condition: pyrophoric_reagent_present
+  decision: authorization_required
+- condition: reactive_metal_batch
+  decision: authorization_required
+- condition: uncapped_pressure_vessel
+  decision: blocked
+metadata_requirements:
+- instrument_calibration_status
+- sample_batch_id
+- protocol_version
+- uncertainty_estimate
+tool_restrictions:
+  robot_queue.submit:
+    decision: authorization_required

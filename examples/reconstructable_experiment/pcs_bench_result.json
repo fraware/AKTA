@@ -1,0 +1,24 @@
+{
+  "suite_id": "akta-pcs-bench-v0.6",
+  "total": 1,
+  "passed_count": 1,
+  "passed": true,
+  "results": [
+    {
+      "scenario_id": "ltg_recon_demo_01",
+      "admissibility": "blocked",
+      "scientific_action_type": "A7_resource_or_queue_prioritization",
+      "blocked_tools": [
+        "freezer_inventory.release",
+        "freezer_inventory.reserve",
+        "lab_scheduler.defer",
+        "lab_scheduler.prioritize",
+        "reagent_inventory.allocate",
+        "robot_queue.submit",
+        "sample_tracker.transfer"
+      ],
+      "allowed_tools": [],
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    }
+  ]
+}

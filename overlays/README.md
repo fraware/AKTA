@@ -33,4 +33,18 @@ Each overlay includes:
 | `chemistry_v0.yaml` | Chemistry / chemical safety | experimental_domain_overlay |
 | `clinical_v0.yaml` | Clinical / IRB-governed research | experimental_domain_overlay |
 
+| `materials_expert_v0.yaml` | Materials science (expert-reviewed) | expert_reviewed_domain_overlay |
+
 Legacy aliases `biology_placeholder`, `chemistry_placeholder`, and `clinical_placeholder` resolve to the experimental overlay files for scenario compatibility.
+
+## Expert-reviewed overlay governance (v0.6)
+
+To promote an overlay to `expert_reviewed_domain_overlay`:
+
+1. Domain working group reviews hazard triggers, minimum evidence, and tool restrictions
+2. Add `expert_signoff` block with reviewer IDs, roles, agreement notes, and signoff date
+3. Set `tier: expert_reviewed_domain_overlay` and `review_status: expert_reviewed`
+4. Include `non_certification_statement` (expert review is not safety certification)
+5. Open PR with overlay diff; maintainers verify production mode accepts the tier
+
+Reference example: `materials_expert_v0.yaml`.

@@ -89,12 +89,26 @@ akta review-trigger export --decision decision.json --out review_trigger.json
 
 Priority: `SCOPE_REPO_PATH` → python-import; else `SCOPE_CLI` → cli; else simulated.
 
-### CLI setup
+### CLI setup (v0.5.1 command shapes)
+
+Temp files written per invocation: `review_trigger.json`, `akta_record.json` (when record present), `reviewer.json`, `decision_input.json`.
 
 ```powershell
 $env:SCOPE_CLI = "scope"
 python scripts/demo_akta_scope_protocol_drift.py
 ```
+
+Commands invoked:
+
+```text
+scope packet create --akta-trigger <review_trigger.json> [--akta-record <akta_record.json>] --out <scope_review_packet.json>
+scope decision submit --packet <scope_review_packet.json> --reviewer <reviewer.json> --decision <decision_input.json> --out <scope_decision.json>
+scope grant issue --packet <scope_review_packet.json> --decision <scope_decision.json> --out <scope_grant.json>
+```
+
+`decision_input.json` uses `type: approve_narrower_scope` when narrowing `active_protocol_update` to `protocol_draft`.
+
+AKTA prepends the SCOPE install root to `PYTHONPATH` and runs CLI subprocesses with `cwd` set to the SCOPE repo so `policy/` resolves when both repos are editable-installed.
 
 ### Python import setup
 

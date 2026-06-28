@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
-from types import ModuleType
 from typing import Any
 from unittest.mock import patch
 
@@ -16,35 +14,55 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 class MockScopeEngine:
-    """Minimal ScopeEngine stand-in for contract tests."""
+    """Minimal ScopeEngine v0.5 stand-in for contract tests."""
 
-    def create_packet(self, trigger: dict[str, Any], record: dict[str, Any] | None = None) -> dict[str, Any]:
-        from akta.scope_contract import assemble_review_packet
+    @classmethod
+    def from_policy_dir(
+        cls,
+        policy_dir: str | Path | None = None,
+        **kwargs: Any,
+    ) -> MockScopeEngine:
+        return cls()
 
-        return assemble_review_packet(trigger, record)
+    def create_packet(
+        self,
+        akta_record: str | Path | dict[str, Any] | None = None,
+        akta_trigger: str | Path | dict[str, Any] | None = None,
+        *,
+        vsa_report: str | Path | dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        trigger = akta_trigger if isinstance(akta_trigger, dict) else {}
+        return {
+            "packet_id": "SCOPE-PKT-IMPORT01",
+            "review_request": {"requested_scope": trigger.get("requested_scope")},
+        }
 
     def submit_decision(
         self,
         packet: dict[str, Any],
-        *,
-        granted_scope: str,
-        reviewer_id: str,
+        reviewer: str | Path | dict[str, Any],
+        decision: dict[str, Any],
     ) -> dict[str, Any]:
+        reviewer_data = reviewer if isinstance(reviewer, dict) else {}
         return {
-            "status": "granted",
-            "granted_scope": granted_scope,
-            "reviewer_id": reviewer_id,
-            "packet_id": packet.get("trigger", {}).get("review_trigger_id"),
+            "decision_id": "SCOPE-DEC-IMPORT01",
+            "decision": decision,
+            "reviewer": reviewer_data,
         }
 
-    def issue_grant(self, decision: dict[str, Any], trigger: dict[str, Any] | None = None) -> dict[str, Any]:
-        trigger = trigger or {}
+    def issue_grant(
+        self,
+        packet: dict[str, Any],
+        decision: dict[str, Any],
+        *,
+        constraints: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        approved = decision["decision"]["approved_scope"]
         return {
-            "grant_id": f"SCOPE-GRANT-{trigger.get('review_trigger_id', 'TEST')}",
-            "granted_scope": decision["granted_scope"],
-            "requested_scope": trigger.get("requested_scope"),
-            "reviewer_id": decision.get("reviewer_id"),
-            "review_trigger_id": trigger.get("review_trigger_id"),
+            "grant_id": "SCOPE-GRANT-IMPORT01",
+            "granted_scope": approved,
+            "requested_scope": packet["review_request"]["requested_scope"],
+            "reviewer_id": decision["reviewer"].get("reviewer_id"),
         }
 
 
@@ -52,6 +70,7 @@ class MockScopeEngine:
 def scope_repo_path(tmp_path: Path) -> Path:
     repo = tmp_path / "scope_repo"
     repo.mkdir()
+    (repo / "policy").mkdir()
     (repo / "scope.py").write_text("class ScopeEngine: pass\n", encoding="utf-8")
     return repo
 
@@ -65,9 +84,8 @@ def test_scope_import_mode_full_chain(monkeypatch: pytest.MonkeyPatch, scope_rep
     monkeypatch.setenv("SCOPE_REPO_PATH", str(scope_repo_path))
     monkeypatch.delenv("SCOPE_CLI", raising=False)
 
-    fake_scope = ModuleType("scope")
-    fake_scope.ScopeEngine = MockScopeEngine
-    with patch.dict(sys.modules, {"scope": fake_scope}):
+    engine = MockScopeEngine()
+    with patch("adapters.scope.client._load_scope_engine", return_value=engine):
         result = submit_review_trigger(trigger, grant_scope="protocol_draft", reviewer_id="protocol_owner")
 
     assert result.adapter_mode == ADAPTER_MODE_PYTHON_IMPORT
@@ -86,9 +104,8 @@ def test_scope_import_invalid_grant_fails(monkeypatch: pytest.MonkeyPatch, scope
     monkeypatch.setenv("SCOPE_REPO_PATH", str(scope_repo_path))
     monkeypatch.delenv("SCOPE_CLI", raising=False)
 
-    fake_scope = ModuleType("scope")
-    fake_scope.ScopeEngine = MockScopeEngine
-    with patch.dict(sys.modules, {"scope": fake_scope}):
+    engine = MockScopeEngine()
+    with patch("adapters.scope.client._load_scope_engine", return_value=engine):
         result = submit_review_trigger(trigger, grant_scope="robot_queue_submission")
 
     assert result.adapter_mode == ADAPTER_MODE_PYTHON_IMPORT
@@ -100,7 +117,6 @@ def test_scope_import_missing_module_returns_error(monkeypatch: pytest.MonkeyPat
     repo.mkdir()
     monkeypatch.setenv("SCOPE_REPO_PATH", str(repo))
     monkeypatch.delenv("SCOPE_CLI", raising=False)
-    sys.modules.pop("scope", None)
 
     result = submit_review_trigger({
         "review_trigger_id": "AKTA-REVTRIG-IMPORT03",

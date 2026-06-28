@@ -73,6 +73,15 @@ def stabilize_record(record: dict[str, Any], *, record_id: str, timestamp: str =
     return _rehash_record(record)
 
 
+def _format_scope_grant(scope_grant: dict[str, Any]) -> str:
+    approved = scope_grant.get("granted_scope") or scope_grant.get("authorization", {}).get(
+        "approved_scope"
+    )
+    if approved:
+        return str(approved)
+    return json.dumps(scope_grant)
+
+
 def run_demo() -> int:
     from akta import AKTAGate, AKTAContext
     from akta.records import AKTARecord, AKTADecision
@@ -198,7 +207,7 @@ def run_demo() -> int:
     print(f"Active update:  {active_d['admissibility']} scope={active_d['review_trigger']['requested_scope']}")
     print(f"Draft follow-up: {draft_d['admissibility']} (draft_change allowed)")
     print(f"Robot submit:   {robot_decision.admissibility} (still blocked/authorization)")
-    print(f"SCOPE grant:    {scope_grant.get('granted_scope', scope_grant)}")
+    print(f"SCOPE grant:    {_format_scope_grant(scope_grant)}")
     print(f"SCOPE decision: {scope_decision.get('status', scope_decision)}")
     print(f"PF obligation:  {pf_obligation['obligation_type']}")
     print(f"PCS bundle:     {pcs_dir / 'manifest.json'}")
