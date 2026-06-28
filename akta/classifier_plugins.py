@@ -1,11 +1,13 @@
 """Optional classifier plugins for AKTA (disabled by default).
 
 Deterministic classification is the default path. Plugins extend classification when
-deterministic rules cannot resolve an action type.
+deterministic rules cannot resolve an action type. LLM output is advisory only and
+never overrides known tool-registry mappings.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import urllib.error
@@ -29,6 +31,7 @@ class PluginClassification:
     alternates: list[str] = field(default_factory=list)
     source: str = "plugin"
     uncertainty_flags: list[str] = field(default_factory=list)
+    llm_metadata: dict[str, Any] | None = None
 
 
 class ClassifierPlugin(ABC):
@@ -116,12 +119,20 @@ LLM_CLASSIFICATION_SCHEMA = {
     "additionalProperties": False,
 }
 
+LLM_LOW_CONFIDENCE_THRESHOLD = 0.7
+
+
+def _prompt_hash(system_prompt: str, user_text: str) -> str:
+    payload = json.dumps({"system": system_prompt, "user": user_text[:4000]}, sort_keys=True)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
 
 class OptionalLLMClassifierPlugin(ClassifierPlugin):
     """Optional OpenAI-compatible LLM classifier with strict JSON schema output.
 
     Enabled only when ``AKTA_LLM_CLASSIFIER`` is set AND ``OPENAI_API_KEY`` is present.
     Fails closed (returns None) without API key even if env flag is set.
+    Advisory only — known tool-registry mappings override LLM output in ``classify()``.
     """
 
     ENV_VAR = "AKTA_LLM_CLASSIFIER"
@@ -148,6 +159,8 @@ class OptionalLLMClassifierPlugin(ClassifierPlugin):
     ) -> PluginClassification | None:
         if not self.is_enabled():
             return None
+        if tool_spec.known:
+            return None
 
         action_types = list(
             policy.action_ontology.get("action_types", {}).keys()
@@ -160,9 +173,11 @@ class OptionalLLMClassifierPlugin(ClassifierPlugin):
             "rationale, optional alternate_action_types."
         )
         text = ai_output if isinstance(ai_output, str) else str(ai_output or requested_action)
+        model = os.environ.get(self.MODEL_ENV, self.DEFAULT_MODEL)
+        phash = _prompt_hash(prompt, text)
 
         try:
-            result = self._call_openai(prompt, text)
+            result = self._call_openai(prompt, text, model)
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError, ValueError):
             return None
 
@@ -170,18 +185,26 @@ class OptionalLLMClassifierPlugin(ClassifierPlugin):
         if action_type not in action_types:
             return None
 
+        confidence = float(result.get("confidence", 0.65))
+        llm_meta = {
+            "model": model,
+            "prompt_hash": phash,
+            "schema": "akta_classification_v0.5",
+            "confidence": confidence,
+        }
+
         return PluginClassification(
             action_type=action_type,
-            confidence=float(result.get("confidence", 0.65)),
+            confidence=confidence,
             rationale=str(result.get("rationale", "LLM classification")),
             alternates=list(result.get("alternate_action_types") or []),
             source="llm_classifier",
-            uncertainty_flags=["llm_assisted"],
+            uncertainty_flags=["llm_advisory"],
+            llm_metadata=llm_meta,
         )
 
-    def _call_openai(self, system_prompt: str, user_text: str) -> dict[str, Any]:
+    def _call_openai(self, system_prompt: str, user_text: str, model: str) -> dict[str, Any]:
         api_key = os.environ[self.API_KEY_ENV]
-        model = os.environ.get(self.MODEL_ENV, self.DEFAULT_MODEL)
         payload = {
             "model": model,
             "messages": [
