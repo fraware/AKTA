@@ -15,6 +15,7 @@
   "decision_reason": "Evidence rule E4_internally_consistent_evidence+A5_protocol_modification constrains to review_required (resolved from draft_only_or_review_required). Tool registry default permission for protocol_editor.update_active_protocol is review_required.",
   "required_review_role": "protocol_owner",
   "blocked_tools": [
+    "collaboration.share_protocol",
     "protocol_editor.update_active_protocol"
   ],
   "allowed_tools": [],
@@ -36,12 +37,12 @@
     "admissibility_matrix.yaml": "admissibility_matrix-v0.5",
     "evidence_to_action_matrix.yaml": "evidence_to_action_matrix-v0.5",
     "evidence_to_action_rules.yaml": "evidence_to_action_rules-v0.5",
-    "default_tool_registry.yaml": "default_tool_registry-v0.5",
+    "default_tool_registry.yaml": "default_tool_registry-v0.6",
     "tool_to_requested_scope.yaml": "tool_to_requested_scope-v0.5"
   },
   "domain_overlay_version": "generic_lab_v0.2",
   "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
-  "tool_registry_hash": "sha256:90746b4b61b236802bf9762b6755e966a676c6294e83fd3606ce0826f1aff50a",
+  "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8",
   "classifier_confidence": 0.98,
   "classification_rationale": "tool registry maps protocol_editor.update_active_protocol to A5_protocol_modification",
   "classification": {
@@ -83,14 +84,15 @@
       "next_admissible_steps"
     ],
     "blocked_tools": [
+      "collaboration.share_protocol",
       "protocol_editor.update_active_protocol"
     ],
     "allowed_next_steps": [],
     "approval_effect": "Allows scoped next step only; not global permission.",
     "default_expiration": "single_run",
-    "expires_at": "2026-06-28T13:24:48Z",
+    "expires_at": "2026-06-28T15:25:19Z",
     "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
-    "tool_registry_hash": "sha256:90746b4b61b236802bf9762b6755e966a676c6294e83fd3606ce0826f1aff50a",
+    "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8",
     "classifier_confidence": 0.98,
     "classification_rationale": "tool registry maps protocol_editor.update_active_protocol to A5_protocol_modification",
     "consequentiality": true,
@@ -102,6 +104,6 @@
     },
     "review_route": "active_protocol_review",
     "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
-    "review_trigger_hash": "sha256:3826696bfbff31c2d34eaf28011b5b9d88f2ef7c6e4efe2aab45382694e550e0"
+    "review_trigger_hash": "sha256:b0030bc13f248430a5ac5e76bfe2063c51f3efde78e30a9010fe144f182611b2"
   }
 }

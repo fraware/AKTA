@@ -19,6 +19,7 @@
     "ehr.draft_note",
     "experiment_planner.create_validation_draft",
     "gene_editor.draft_change",
+    "procurement.draft_requisition",
     "protocol_editor.draft_change",
     "robot_queue.preview"
   ],
@@ -40,12 +41,12 @@
     "admissibility_matrix.yaml": "admissibility_matrix-v0.5",
     "evidence_to_action_matrix.yaml": "evidence_to_action_matrix-v0.5",
     "evidence_to_action_rules.yaml": "evidence_to_action_rules-v0.5",
-    "default_tool_registry.yaml": "default_tool_registry-v0.5",
+    "default_tool_registry.yaml": "default_tool_registry-v0.6",
     "tool_to_requested_scope.yaml": "tool_to_requested_scope-v0.5"
   },
   "domain_overlay_version": "generic_lab_v0.2",
   "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
-  "tool_registry_hash": "sha256:90746b4b61b236802bf9762b6755e966a676c6294e83fd3606ce0826f1aff50a",
+  "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8",
   "classifier_confidence": 0.98,
   "classification_rationale": "tool registry maps protocol_editor.draft_change to A5_protocol_modification",
   "classification": {
