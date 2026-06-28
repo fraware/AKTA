@@ -4,6 +4,7 @@
 
 | Version | Supported |
 |---------|-----------|
+| 0.7.x   | Yes       |
 | 0.6.x   | Yes       |
 | 0.5.x   | Yes       |
 | 0.4.x   | Yes       |
@@ -30,6 +31,15 @@ AKTA is part of the agent supply chain. Threats include policy tampering, fake A
 Regenerate manifest after policy edits: `python scripts/regenerate_policy_manifest.py`
 
 See [docs/policy_integrity.md](docs/policy_integrity.md).
+
+### v0.7 controls
+
+- Three policy integrity modes: `dev_unsigned` (non-production only), `deployment_hmac_attested`, `release_ed25519_signed`
+- `AKTA_PRODUCTION_MODE=1` refuses unsigned policy; `AKTA_REQUIRE_SIGNED_POLICY=1` refuses HMAC-only manifests
+- `AKTA_VERIFY_POLICY=1` accepts HMAC when deployment attestation is configured
+- Ed25519 release authenticity verified against `policy/release_keys.yaml`
+- Live SCOPE chain verification (`scripts/verify_scope_live_chain.py`) fails on simulated fallback
+- PCS export rejects overbroad SCOPE grants; closed-loop grant re-gate via `akta/review_loop.py`
 
 ### v0.6 controls
 
