@@ -16,9 +16,13 @@ OVERLAY_ALIASES = {
     "generic_lab_v0": "generic_lab_v0.yaml",
     "materials_v0": "materials_v0.yaml",
     "computational_science_v0": "computational_science_v0.yaml",
-    "biology_placeholder": "biology_placeholder.yaml",
-    "chemistry_placeholder": "chemistry_placeholder.yaml",
-    "clinical_placeholder": "clinical_placeholder.yaml",
+    "biology_v0": "biology_v0.yaml",
+    "chemistry_v0": "chemistry_v0.yaml",
+    "clinical_v0": "clinical_v0.yaml",
+    # Deprecated aliases retained for scenario compatibility.
+    "biology_placeholder": "biology_v0.yaml",
+    "chemistry_placeholder": "chemistry_v0.yaml",
+    "clinical_placeholder": "clinical_v0.yaml",
 }
 
 
