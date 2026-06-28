@@ -22,6 +22,7 @@ Every AKTA Decision and Record includes:
 ```json
 {
   "policy_version": "akta-core-v0.5",
+  "policy_integrity_mode": "deployment_hmac_attested",
   "policy_file_versions": { "action_ontology.yaml": "action_ontology-v0.5", "...": "..." },
   "policy_hash": "sha256:...",
   "tool_registry_hash": "sha256:..."
