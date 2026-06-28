@@ -88,25 +88,18 @@ def test_pcs_bench_export(tmp_path: Path) -> None:
     assert len(lines) == 5
     first = json.loads(lines[0])
     assert "inputs" in first
-    assert first["suite_id"] == "akta-pcs-bench-v0.4"
+    assert first["suite_id"] == "akta-pcs-bench-v0.5"
 
 
-def test_scope_adapter_subprocess_mode_mock(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_scope_adapter_cli_mode_mock(monkeypatch: pytest.MonkeyPatch) -> None:
     trigger = {
         "review_trigger_id": "AKTA-REVTRIG-SUBPROC01",
         "requested_scope": "active_protocol_update",
         "required_review_role": "protocol_owner",
     }
     scope_output = json.dumps({
-        "review_packet": {"trigger": trigger},
-        "grant": {
-            "grant_id": "SCOPE-GRANT-SUBPROC01",
-            "granted_scope": "protocol_draft",
-            "requested_scope": "active_protocol_update",
-            "reviewer_id": "scope_reviewer",
-            "review_trigger_id": "AKTA-REVTRIG-SUBPROC01",
-        },
-        "decision": {"status": "granted", "granted_scope": "protocol_draft"},
+        "packet_type": "scope_review_packet",
+        "trigger": trigger,
     })
 
     class FakeProc:
@@ -114,19 +107,39 @@ def test_scope_adapter_subprocess_mode_mock(monkeypatch: pytest.MonkeyPatch) -> 
         stdout = scope_output
         stderr = ""
 
+    def fake_run(cmd, **kwargs):
+        proc = FakeProc()
+        if cmd[1:3] == ["packet", "create"]:
+            out = Path(cmd[cmd.index("--out") + 1])
+            out.write_text(scope_output, encoding="utf-8")
+        elif cmd[1:3] == ["decision", "submit"]:
+            granted = cmd[cmd.index("--grant-scope") + 1]
+            out = Path(cmd[cmd.index("--out") + 1])
+            out.write_text(json.dumps({"status": "granted", "granted_scope": granted}), encoding="utf-8")
+        elif cmd[1:3] == ["grant", "issue"]:
+            out = Path(cmd[cmd.index("--out") + 1])
+            out.write_text(json.dumps({
+                "grant_id": "SCOPE-GRANT-SUBPROC01",
+                "granted_scope": "protocol_draft",
+                "requested_scope": "active_protocol_update",
+                "reviewer_id": "scope_reviewer",
+                "review_trigger_id": "AKTA-REVTRIG-SUBPROC01",
+            }), encoding="utf-8")
+        return proc
+
     monkeypatch.setenv("SCOPE_CLI", "scope-mock")
     monkeypatch.delenv("SCOPE_REPO_PATH", raising=False)
 
-    with patch("adapters.scope.client.subprocess.run", return_value=FakeProc()):
+    with patch("adapters.scope.client.subprocess.run", side_effect=fake_run):
         result = submit_review_trigger(trigger, grant_scope="protocol_draft")
 
-    assert result.adapter_mode == "subprocess"
+    assert result.adapter_mode == "cli"
     assert result.error is None
     assert result.grant is not None
     assert result.grant["granted_scope"] == "protocol_draft"
 
 
-def test_scope_adapter_subprocess_cli_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_scope_adapter_cli_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     trigger = {
         "review_trigger_id": "AKTA-REVTRIG-MISSING01",
         "requested_scope": "protocol_draft",
@@ -139,5 +152,5 @@ def test_scope_adapter_subprocess_cli_missing(monkeypatch: pytest.MonkeyPatch) -
     ):
         result = submit_review_trigger(trigger)
 
-    assert result.adapter_mode == "subprocess"
+    assert result.adapter_mode == "cli"
     assert result.error is not None
