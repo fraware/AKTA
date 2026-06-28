@@ -1,5 +1,4 @@
-version: akta-core-v0.1
-# Evidence-to-action constraints. Stricter decision wins when combined with profile matrix.
+version: akta-core-v0.5
 constraints:
   E0_no_evidence:
     max_action: A2_hypothesis_generation
@@ -31,3 +30,4 @@ constraints:
     max_action: A9_execution_adjacent_or_external_action
     max_action_mode: authorization_required
     violation_decision: authorization_required
+policy_file_version: evidence_to_action_matrix-v0.5
