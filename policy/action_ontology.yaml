@@ -1,14 +1,16 @@
-version: akta-core-v0.4
+version: akta-core-v0.5
 action_types:
   A0_explanation:
     id: A0
     name: explanation
-    description: AI explains a concept, method, term, paper, dataset, or background fact.
+    description: AI explains a concept, method, term, paper, dataset, or background
+      fact.
     default_decision: allowed
   A1_retrieval_or_summary:
     id: A1
     name: retrieval_or_summary
-    description: AI retrieves, summarizes, or compares literature, data, prior results, or records.
+    description: AI retrieves, summarizes, or compares literature, data, prior results,
+      or records.
     default_decision: allowed_with_logging
   A2_hypothesis_generation:
     id: A2
@@ -18,7 +20,8 @@ action_types:
   A3_evidence_interpretation:
     id: A3
     name: evidence_interpretation
-    description: AI interprets data, measurements, experimental results, or scientific evidence.
+    description: AI interprets data, measurements, experimental results, or scientific
+      evidence.
     default_decision: allowed_with_logging
   A4_recommendation:
     id: A4
@@ -28,7 +31,8 @@ action_types:
   A5_protocol_modification:
     id: A5
     name: protocol_modification
-    description: AI edits, changes, or mutates a protocol, threshold, parameter, or method.
+    description: AI edits, changes, or mutates a protocol, threshold, parameter, or
+      method.
     default_decision: draft_only
   A6_experimental_planning:
     id: A6
@@ -38,7 +42,8 @@ action_types:
   A7_resource_or_queue_prioritization:
     id: A7
     name: resource_or_queue_prioritization
-    description: AI allocates lab resources, prioritizes experiments, or changes a queue.
+    description: AI allocates lab resources, prioritizes experiments, or changes a
+      queue.
     default_decision: review_required
   A8_tool_or_workflow_mutation:
     id: A8
@@ -53,5 +58,8 @@ action_types:
   A10_publication_or_claim_escalation:
     id: A10
     name: publication_or_claim_escalation
-    description: AI inserts or strengthens a claim for publication or institutional memory.
+    description: AI inserts or strengthens a claim for publication or institutional
+      memory.
     default_decision: review_required
+policy_file_version: action_ontology-v0.5
+policy_bundle_version: akta-core-v0.5
