@@ -1,10 +1,14 @@
-"""AKTA generic REST API server (v0.1)."""
+"""AKTA generic REST API server (v0.6)."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import logging
+import os
 import tempfile
+import time
+from collections import defaultdict
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -21,6 +25,28 @@ from akta.records import AKTADecision, AKTARecord
 from adapters.pcs.export_artifact import export_pcs_bundle
 from adapters.pf_core.export_obligation import export_pf_obligation
 
+logger = logging.getLogger(__name__)
+
+_RATE_WINDOW_SEC = 60.0
+_RATE_LIMIT_DEFAULT = 120
+
+
+class _RateLimiter:
+    def __init__(self, limit: int) -> None:
+        self.limit = limit
+        self._hits: dict[str, list[float]] = defaultdict(list)
+
+    def allow(self, client_key: str) -> bool:
+        now = time.monotonic()
+        window_start = now - _RATE_WINDOW_SEC
+        hits = [t for t in self._hits[client_key] if t >= window_start]
+        if len(hits) >= self.limit:
+            self._hits[client_key] = hits
+            return False
+        hits.append(now)
+        self._hits[client_key] = hits
+        return True
+
 
 class AKTARESTHandler(BaseHTTPRequestHandler):
     """HTTP handler for AKTA v0 REST endpoints."""
@@ -28,9 +54,25 @@ class AKTARESTHandler(BaseHTTPRequestHandler):
     gate: AKTAGate | None = None
     policy_dir: Path = Path("policy")
     overlays_dir: Path = Path("overlays")
+    api_key: str | None = None
+    rate_limiter: _RateLimiter | None = None
 
     def log_message(self, format: str, *args: Any) -> None:
-        return
+        logger.info("%s - %s", self.address_string(), format % args)
+
+    def _client_key(self) -> str:
+        return self.headers.get("X-Forwarded-For") or self.client_address[0]
+
+    def _check_auth_and_rate(self) -> bool:
+        if self.api_key:
+            provided = self.headers.get("X-API-Key") or self.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+            if provided != self.api_key:
+                self._send_error_json(HTTPStatus.UNAUTHORIZED, "unauthorized", "Invalid or missing API key")
+                return False
+        if self.rate_limiter and not self.rate_limiter.allow(self._client_key()):
+            self._send_error_json(HTTPStatus.TOO_MANY_REQUESTS, "rate_limited", "Rate limit exceeded")
+            return False
+        return True
 
     def _read_json_body(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length", 0))
@@ -63,17 +105,19 @@ class AKTARESTHandler(BaseHTTPRequestHandler):
         return self.gate
 
     def do_GET(self) -> None:
+        if not self._check_auth_and_rate():
+            return
         path = urlparse(self.path).path
         try:
             if path == "/v0/health":
                 self._send_json(HTTPStatus.OK, {
                     "status": "ok",
                     "version": pkg_version("akta-protocol"),
-                    "api_version": "v0.5",
+                    "api_version": "v0.6",
                 })
             elif path == "/v0/openapi":
                 spec_path = Path(__file__).resolve().parent / "openapi.yaml"
-                self._send_json(HTTPStatus.OK, {"openapi_path": str(spec_path), "api_version": "v0.5"})
+                self._send_json(HTTPStatus.OK, {"openapi_path": str(spec_path), "api_version": "v0.6"})
             elif path == "/v0/policy":
                 gate = self._gate()
                 self._send_json(
@@ -94,6 +138,8 @@ class AKTARESTHandler(BaseHTTPRequestHandler):
             self._send_error_json(HTTPStatus.INTERNAL_SERVER_ERROR, "internal_error", str(exc))
 
     def do_POST(self) -> None:
+        if not self._check_auth_and_rate():
+            return
         path = urlparse(self.path).path
         try:
             body = self._read_json_body()
@@ -194,16 +240,23 @@ def create_server(
     port: int = 8765,
     policy_dir: str | Path = "policy",
     overlays_dir: str | Path = "overlays",
+    *,
+    api_key: str | None = None,
+    rate_limit: int | None = None,
 ) -> ThreadingHTTPServer:
     """Create configured AKTA REST server."""
     policy_dir = Path(policy_dir)
     overlays_dir = Path(overlays_dir)
+    resolved_api_key = api_key or os.environ.get("AKTA_REST_API_KEY") or None
+    limit = rate_limit if rate_limit is not None else int(os.environ.get("AKTA_REST_RATE_LIMIT", _RATE_LIMIT_DEFAULT))
 
     class Handler(AKTARESTHandler):
         pass
 
     Handler.policy_dir = policy_dir
     Handler.overlays_dir = overlays_dir
+    Handler.api_key = resolved_api_key
+    Handler.rate_limiter = _RateLimiter(limit) if limit > 0 else None
     Handler.gate = AKTAGate.from_policy_dir(policy_dir, overlays_dir=overlays_dir)
     return ThreadingHTTPServer((host, port), Handler)
 
