@@ -1,4 +1,4 @@
-version: akta-core-v0.2
+version: akta-core-v0.4
 action_types:
   A0_explanation:
     id: A0
