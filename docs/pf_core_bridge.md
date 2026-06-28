@@ -1,4 +1,4 @@
-# PF-Core Bridge (v0.2)
+# PF-Core Bridge (v0.7.1)
 
 PF-Core proves that runtime execution respected AKTA admissibility decisions. AKTA exports machine-readable obligations for PF-Core consumption.
 
@@ -84,7 +84,7 @@ Obligations include `policy_hash`, `tool_registry_hash`, `obligation_hash`, and 
 
 ## Review triggers and PF-Core
 
-When admissibility is `review_required`, PF-Core should gate tool calls until SCOPE (or equivalent) supplies a scoped approval matching `allowed_next_steps`. See [scope_bridge.md](scope_bridge.md).
+When admissibility is `review_required`, PF-Core should gate tool calls until SCOPE supplies a scoped approval matching `allowed_next_steps`. After grant, runtime should call AKTA `evaluate_with_grant()` before tool dispatch. See [scope_bridge.md](scope_bridge.md) and [review_integration.md](review_integration.md).
 
 ## Demo integration
 
