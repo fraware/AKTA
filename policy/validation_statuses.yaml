@@ -1,4 +1,4 @@
-version: akta-core-v0.1
+version: akta-core-v0.5
 validation_statuses:
   V0_unvalidated:
     id: V0
@@ -21,3 +21,4 @@ validation_statuses:
   V6_operationally_validated:
     id: V6
     name: operationally_validated
+policy_file_version: validation_statuses-v0.5
