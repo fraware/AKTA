@@ -197,3 +197,52 @@ class AKTAGate:
         if validate_output:
             validate_against_schema(decision.to_dict(), "akta_decision.schema.json")
         return decision
+
+    def evaluate_with_grant(
+        self,
+        ai_output: Any,
+        requested_tool: str,
+        requested_action: str,
+        context: AKTAContext | dict[str, Any] | None = None,
+        deployment_profile: str = "P2_analysis_assistant",
+        domain_overlay: str | None = None,
+        scope_grant: dict[str, Any] | None = None,
+        review_decision: dict[str, Any] | None = None,
+        record: dict[str, Any] | None = None,
+        trigger: dict[str, Any] | None = None,
+        validate_output: bool = True,
+    ) -> AKTADecision:
+        """Re-gate after SCOPE grant or review decision with expiry enforcement (F14)."""
+        from akta.review_decision import (
+            apply_review_decision_to_context,
+            apply_scope_grant_to_context,
+            enforce_grant_expiry,
+        )
+
+        ctx_dict: dict[str, Any]
+        if isinstance(context, AKTAContext):
+            ctx_dict = context.to_dict()
+        else:
+            ctx_dict = dict(context or {})
+
+        if review_decision is not None:
+            ctx_dict = apply_review_decision_to_context(ctx_dict, review_decision)
+        elif scope_grant is not None:
+            ctx_dict = apply_scope_grant_to_context(
+                ctx_dict,
+                scope_grant,
+                record=record,
+                trigger=trigger,
+                validate_grant=True,
+            )
+
+        ctx_dict = enforce_grant_expiry(ctx_dict)
+        return self.evaluate(
+            ai_output=ai_output,
+            requested_tool=requested_tool,
+            requested_action=requested_action,
+            context=AKTAContext.from_dict(ctx_dict),
+            deployment_profile=deployment_profile,
+            domain_overlay=domain_overlay,
+            validate_output=validate_output,
+        )
