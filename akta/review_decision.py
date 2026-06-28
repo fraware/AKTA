@@ -78,8 +78,10 @@ def scope_grant_to_context_metadata(
         scope_grant.get("expires_at")
         or (scope_grant.get("authorization") or {}).get("expires_at")
     )
+    grant_id = scope_grant.get("grant_id") or scope_grant.get("scope_grant_id")
     metadata: dict[str, Any] = {
-        "prior_review_id": scope_grant.get("grant_id") or scope_grant.get("scope_grant_id"),
+        "prior_review_id": grant_id,
+        "prior_review_grant_id": grant_id,
         "prior_review_scope": granted,
         "prior_review_decision": "approved",
         "prior_review_expired": is_review_expired(expires_at),
@@ -92,6 +94,14 @@ def scope_grant_to_context_metadata(
     )
     if allowed:
         metadata["prior_review_allowed_tools"] = list(allowed)
+    blocked = scope_grant.get("blocked_tools") or (
+        (scope_grant.get("authorization") or {}).get("blocked_tools")
+    )
+    if blocked:
+        metadata["prior_review_blocked_tools"] = list(blocked)
+    provenance = scope_grant.get("provenance")
+    if provenance:
+        metadata["prior_review_provenance"] = dict(provenance)
     return metadata
 
 
