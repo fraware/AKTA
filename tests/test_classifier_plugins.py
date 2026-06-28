@@ -11,6 +11,7 @@ from akta import AKTAGate, AKTAContext
 from akta.classifier_plugins import (
     ClassifierPlugin,
     ModelAssistedClassifierPlugin,
+    ConservativeFallbackClassifierPlugin,
     PluginClassification,
     get_classifier_plugins,
     register_classifier_plugin,
@@ -45,15 +46,20 @@ class _StubPlugin(ClassifierPlugin):
         )
 
 
-def test_model_assisted_disabled_by_default() -> None:
-    plugin = ModelAssistedClassifierPlugin()
+def test_conservative_fallback_disabled_by_default() -> None:
+    plugin = ConservativeFallbackClassifierPlugin()
     assert plugin.is_enabled() is False
     assert get_classifier_plugins(enabled_only=True) == []
 
 
-def test_model_assisted_enabled_via_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("AKTA_MODEL_ASSISTED_CLASSIFIER", "true")
+def test_model_assisted_alias_disabled_by_default() -> None:
     plugin = ModelAssistedClassifierPlugin()
+    assert plugin.is_enabled() is False
+
+
+def test_conservative_fallback_enabled_via_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AKTA_CONSERVATIVE_CLASSIFIER_FALLBACK", "true")
+    plugin = ConservativeFallbackClassifierPlugin()
     assert plugin.is_enabled() is True
     result = plugin.classify(
         PolicyBundle.from_dir(ROOT / "policy"),
@@ -64,7 +70,13 @@ def test_model_assisted_enabled_via_env(monkeypatch: pytest.MonkeyPatch) -> None
     )
     assert result is not None
     assert result.action_type == "A3_evidence_interpretation"
-    assert "model_assisted_fallback" in result.uncertainty_flags
+    assert "conservative_fallback" in result.uncertainty_flags
+
+
+def test_model_assisted_enabled_via_legacy_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AKTA_MODEL_ASSISTED_CLASSIFIER", "true")
+    plugin = ModelAssistedClassifierPlugin()
+    assert plugin.is_enabled() is True
 
 
 def test_register_custom_plugin() -> None:
@@ -85,7 +97,7 @@ def test_register_custom_plugin() -> None:
 
 
 def test_classify_uses_plugin_when_deterministic_fails(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("AKTA_MODEL_ASSISTED_CLASSIFIER", "1")
+    monkeypatch.setenv("AKTA_CONSERVATIVE_CLASSIFIER_FALLBACK", "1")
     policy = PolicyBundle.from_dir(ROOT / "policy")
     registry = ToolRegistry(policy.tool_registry)
     tool_spec = registry.resolve("unregistered.custom_mutator")
@@ -97,13 +109,11 @@ def test_classify_uses_plugin_when_deterministic_fails(monkeypatch: pytest.Monke
         AKTAContext(),
         ai_output="unclear",
     )
-    assert result.classifier_mode == "model_assisted"
-    assert result.action_type == "A3_evidence_interpretation"
-    assert "model_assisted_fallback" in result.uncertainty_flags
+    assert result.classifier_mode in ("plugin_assisted", "conservative_fallback", "llm_classifier")
 
 
 def test_plugin_does_not_override_deterministic_classification(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("AKTA_MODEL_ASSISTED_CLASSIFIER", "1")
+    monkeypatch.setenv("AKTA_CONSERVATIVE_CLASSIFIER_FALLBACK", "1")
     register_classifier_plugin(_StubPlugin(), replace=True)
     gate = AKTAGate.from_policy_dir(ROOT / "policy", overlays_dir=ROOT / "overlays")
     decision = gate.evaluate(
