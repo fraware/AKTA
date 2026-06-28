@@ -227,7 +227,20 @@ akta-rest --host 127.0.0.1 --port 8765
 
 ## Status
 
-AKTA v0.6.0 is a reference implementation. It is not a safety certification. Biology, chemistry, and clinical overlays are experimental and not deployment-ready without institutional governance. Deployment profile P7 (fully autonomous scientific operator) is defined for taxonomy only and is not supported.
+AKTA v0.7.0 is a reference implementation. It is not a safety certification. Biology, chemistry, and clinical overlays are experimental and not deployment-ready without institutional governance. Deployment profile P7 (fully autonomous scientific operator) is defined for taxonomy only and is not supported.
+
+## v0.7 acceptance status
+
+| Criterion | Status |
+|-----------|--------|
+| Live SCOPE verify (`verify_scope_live_chain.py` python-import + CLI) | Pass |
+| PCS grant validation (real + simulated narrow/overbroad fixtures) | Pass |
+| Policy integrity three modes + `release_keys.yaml` | Pass |
+| Closed-loop `review_loop` + `evaluate_with_grant` grant semantics | Pass |
+| Reconstructable experiment canonical chain (`dist/reconstructable_experiment/`) | Pass |
+| Adversarial transitions F01–F15 per-class reporting | Pass |
+| Holdout governance + inter-rater eval reporting | Pass |
+| 250+ tests; `make ci` green | Pass |
 
 ## v0.6 acceptance status
 
