@@ -1,61 +1,190 @@
-version: akta-tool-registry-v0.1
+version: akta-tool-registry-v0.4
 tools:
   literature_search.query:
     action_type: A1_retrieval_or_summary
     mutates_state: false
     external_effect: false
     default_permission: allowed_with_logging
+    action_family: retrieval
 
   notebook.run_analysis:
     action_type: A3_evidence_interpretation
     mutates_state: false
     external_effect: false
     default_permission: allowed_with_logging
+    action_family: analysis
+
+  notebook.export_figure:
+    action_type: A3_evidence_interpretation
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: analysis
 
   protocol_editor.draft_change:
     action_type: A5_protocol_modification
     mutates_state: false
     external_effect: false
     default_permission: draft_only
+    action_family: protocol
 
   protocol_editor.update_active_protocol:
     action_type: A5_protocol_modification
     mutates_state: true
     external_effect: true
     default_permission: review_required
+    action_family: protocol
 
   experiment_planner.create_run_plan:
     action_type: A6_experimental_planning
     mutates_state: false
     external_effect: false
     default_permission: review_required
+    action_family: planning
 
   experiment_planner.create_validation_draft:
     action_type: A6_experimental_planning
     mutates_state: false
     external_effect: false
     default_permission: draft_only
+    action_family: planning
+
+  experiment_planner.activate_plan:
+    action_type: A6_experimental_planning
+    mutates_state: true
+    external_effect: true
+    default_permission: review_required
+    action_family: planning
 
   lab_scheduler.prioritize:
     action_type: A7_resource_or_queue_prioritization
     mutates_state: true
     external_effect: true
     default_permission: review_required
+    action_family: queue
+
+  lab_scheduler.defer:
+    action_type: A7_resource_or_queue_prioritization
+    mutates_state: true
+    external_effect: false
+    default_permission: review_required
+    action_family: queue
 
   robot_queue.submit:
     action_type: A9_execution_adjacent_or_external_action
     mutates_state: true
     external_effect: true
     default_permission: authorization_required
+    action_family: execution
+
+  robot_queue.preview:
+    action_type: A9_execution_adjacent_or_external_action
+    mutates_state: false
+    external_effect: false
+    default_permission: draft_only
+    action_family: execution
 
   workflow.update_state:
     action_type: A8_tool_or_workflow_mutation
     mutates_state: true
     external_effect: false
     default_permission: authorization_required
+    action_family: workflow
+
+  workflow.rollback:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: true
+    external_effect: false
+    default_permission: authorization_required
+    action_family: workflow
 
   publication.draft_claim:
     action_type: A10_publication_or_claim_escalation
     mutates_state: false
     external_effect: false
     default_permission: review_required
+    action_family: publication
+
+  publication.submit_manuscript:
+    action_type: A10_publication_or_claim_escalation
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: publication
+
+  scientific_memory.import:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: true
+    external_effect: false
+    default_permission: review_required
+    action_family: memory
+
+  scientific_memory.query:
+    action_type: A1_retrieval_or_summary
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: memory
+
+  cell_culture.schedule:
+    action_type: A6_experimental_planning
+    mutates_state: true
+    external_effect: true
+    default_permission: review_required
+    action_family: biology
+
+  gene_editor.draft_change:
+    action_type: A5_protocol_modification
+    mutates_state: false
+    external_effect: false
+    default_permission: draft_only
+    action_family: biology
+
+  synthesis_planner.schedule:
+    action_type: A6_experimental_planning
+    mutates_state: true
+    external_effect: true
+    default_permission: review_required
+    action_family: chemistry
+
+  reagent_inventory.allocate:
+    action_type: A7_resource_or_queue_prioritization
+    mutates_state: true
+    external_effect: true
+    default_permission: review_required
+    action_family: chemistry
+
+  ehr.draft_note:
+    action_type: A5_protocol_modification
+    mutates_state: false
+    external_effect: false
+    default_permission: draft_only
+    action_family: clinical
+
+  trial_scheduler.enroll:
+    action_type: A9_execution_adjacent_or_external_action
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: clinical
+
+  patient_data.export:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: clinical
+
+  compute_cluster.submit_job:
+    action_type: A6_experimental_planning
+    mutates_state: true
+    external_effect: false
+    default_permission: review_required
+    action_family: compute
+
+  data_catalog.register:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: true
+    external_effect: false
+    default_permission: review_required
+    action_family: workflow

@@ -2,18 +2,23 @@
 
 Domain overlays modify AKTA-Core rules for specific scientific domains.
 
-## Operational overlays (v0.1)
+## Operational overlays (v0.4)
 
-- `materials_v0.yaml` — materials science labs
-- `computational_science_v0.yaml` — computational science workflows
-- `generic_lab_v0.yaml` — generic lab default
+| Overlay | Domain |
+|---------|--------|
+| `generic_lab_v0.yaml` | Generic lab default |
+| `materials_v0.yaml` | Materials science labs |
+| `computational_science_v0.yaml` | Computational science workflows |
+| `biology_v0.yaml` | Biology / biosafety |
+| `chemistry_v0.yaml` | Chemistry / chemical safety |
+| `clinical_v0.yaml` | Clinical / IRB-governed research |
 
-## Non-operational placeholders
+Each operational overlay includes:
 
-The following overlays are illustrative only and must not be used for deployment:
+- `minimum_evidence_for` (A5–A10 action families)
+- `hazard_triggers` with decision escalation
+- `requested_scope_overrides` for SCOPE mapping
+- `required_review_roles` per action family
+- `tool_restrictions` for domain-specific tools
 
-- `biology_placeholder.yaml`
-- `chemistry_placeholder.yaml`
-- `clinical_placeholder.yaml`
-
-Each placeholder includes an explicit non-operational disclaimer per AKTA v0.1 policy.
+Legacy aliases `biology_placeholder`, `chemistry_placeholder`, and `clinical_placeholder` resolve to the v0.4 operational files for scenario compatibility.
