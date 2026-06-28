@@ -74,6 +74,41 @@ def validate_requested_scope(trigger: dict[str, Any]) -> None:
         raise ValueError("review trigger missing required requested_scope")
 
 
+def _scope_grant_approved_scope(scope_grant: dict[str, Any]) -> str | None:
+    """Extract approved scope from simulated or real SCOPE v0.5 grant shapes."""
+    approved = scope_grant.get("granted_scope")
+    if approved:
+        return str(approved)
+    auth = scope_grant.get("authorization") or {}
+    approved = auth.get("approved_scope")
+    return str(approved) if approved else None
+
+
+def _scope_grant_requested_scope(
+    scope_grant: dict[str, Any],
+    record: dict[str, Any] | None = None,
+    trigger: dict[str, Any] | None = None,
+) -> str | None:
+    """Extract requested scope from grant, trigger, or record fallback chain."""
+    requested = scope_grant.get("requested_scope")
+    if requested:
+        return str(requested)
+    source = scope_grant.get("source") or {}
+    requested = source.get("requested_scope")
+    if requested:
+        return str(requested)
+    if trigger:
+        requested = trigger.get("requested_scope")
+        if requested:
+            return str(requested)
+    if record:
+        rt = record.get("review_trigger") or {}
+        requested = rt.get("requested_scope")
+        if requested:
+            return str(requested)
+    return None
+
+
 def validate_approval_grant(
     *,
     granted_scope: str,
