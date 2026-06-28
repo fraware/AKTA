@@ -1,0 +1,12 @@
+{
+  "grant_id": "SCOPE-GRANT-REAL-NARROW01",
+  "grant_version": "0.6.0",
+  "authorization": {
+    "approved_scope": "protocol_draft",
+    "allowed_tools": ["protocol_editor.draft_change"]
+  },
+  "source": {
+    "requested_scope": "active_protocol_update",
+    "packet_id": "SCOPE-PKT-REAL01"
+  }
+}
