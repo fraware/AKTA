@@ -38,3 +38,5 @@ An action must satisfy deployment-profile policy and evidence-to-action policy. 
 ## Core norm
 
 If AI changes what science does next, there should be an AKTA Record.
+
+AKTA is an open protocol with a reference implementation. It is not a safety certification.
