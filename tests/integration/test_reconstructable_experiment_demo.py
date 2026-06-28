@@ -24,6 +24,7 @@ EXPECTED_ARTIFACTS = [
     "09_pcs_bundle",
     "10_scientific_memory_import.json",
     "11_pcs_bench_report.json",
+    "01_akta_decision_after_grant.json",
     "README.md",
     "reconstruction_report.md",
 ]
@@ -60,3 +61,10 @@ def test_reconstructable_experiment_demo_generates_chain(clean_out_dir: None, mo
 
     recon = (OUT_DIR / "reconstruction_report.md").read_text(encoding="utf-8")
     assert "linkage" in recon.lower() or "Linkage" in recon
+    assert "Case C" in recon or "post-grant" in recon.lower()
+
+    post_grant = json.loads(
+        (OUT_DIR / "01_akta_decision_after_grant.json").read_text(encoding="utf-8")
+    )
+    assert post_grant["admissibility"] in ("blocked", "review_required", "authorization_required")
+    assert post_grant["admissibility"] not in ("allowed", "allowed_with_logging", "draft_only")
