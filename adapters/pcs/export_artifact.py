@@ -20,6 +20,10 @@ CORE_FILES = [
     "tool_registry_hash.txt",
 ]
 
+OPTIONAL_ARTIFACTS = [
+    "vsa_report.json",
+]
+
 
 def build_pcs_manifest(
     record: dict[str, Any],
@@ -31,6 +35,7 @@ def build_pcs_manifest(
     include_scope_decision: bool = False,
     include_scope_grant: bool = False,
     include_pf_obligation: bool = False,
+    include_vsa_report: bool = False,
 ) -> dict[str, Any]:
     """Build PCS manifest v0.5 from record and optional chain artifacts."""
     provenance = record.get("provenance", {})
@@ -45,6 +50,8 @@ def build_pcs_manifest(
         files.append("scope_grant.json")
     if include_pf_obligation:
         files.append("pf_obligation.json")
+    if include_vsa_report:
+        files.append("vsa_report.json")
 
     manifest: dict[str, Any] = {
         "artifact_type": "akta_scientific_action_record",
@@ -103,6 +110,7 @@ def validate_pcs_bundle(bundle_dir: str | Path) -> None:
         include_scope_decision=(bundle_dir / "scope_decision.json").exists(),
         include_scope_grant=(bundle_dir / "scope_grant.json").exists(),
         include_pf_obligation=(bundle_dir / "pf_obligation.json").exists(),
+        include_vsa_report=(bundle_dir / "vsa_report.json").exists(),
     )
     if stored_manifest_hash != recomputed["manifest_hash"]:
         raise ValueError("PCS manifest_hash does not match recomputed hash")
@@ -117,6 +125,7 @@ def export_pcs_bundle(
     scope_decision: dict[str, Any] | None = None,
     scope_grant: dict[str, Any] | None = None,
     pf_obligation: dict[str, Any] | None = None,
+    vsa_report: dict[str, Any] | None = None,
     validate: bool = True,
 ) -> Path:
     """Export AKTA Record as PCS-compatible artifact bundle with full chain."""
@@ -142,11 +151,20 @@ def export_pcs_bundle(
         raise ValueError("PCS export requires valid policy_hash on record provenance")
 
     if validate and scope_grant is not None:
-        from akta.scope_contract import validate_approval_grant
+        from akta.scope_contract import (
+            _scope_grant_approved_scope,
+            _scope_grant_requested_scope,
+            validate_approval_grant,
+        )
 
-        granted = scope_grant.get("granted_scope", "")
-        requested = scope_grant.get("requested_scope") or data.get("review_trigger", {}).get(
-            "requested_scope", ""
+        granted = _scope_grant_approved_scope(scope_grant) or ""
+        requested = (
+            _scope_grant_requested_scope(
+                scope_grant,
+                data,
+                data.get("review_trigger"),
+            )
+            or ""
         )
         if granted and requested:
             try:
@@ -187,6 +205,15 @@ def export_pcs_bundle(
     if pf_obligation is not None:
         _write("pf_obligation.json", json.dumps(pf_obligation, indent=2))
 
+    has_vsa = vsa_report is not None
+    if vsa_report is None:
+        ctx_vsa = (data.get("context") or {}).get("vsa_report")
+        if isinstance(ctx_vsa, dict):
+            vsa_report = ctx_vsa
+            has_vsa = True
+    if vsa_report is not None:
+        _write("vsa_report.json", json.dumps(vsa_report, indent=2))
+
     manifest = build_pcs_manifest(
         data,
         decision_payload,
@@ -196,6 +223,7 @@ def export_pcs_bundle(
         include_scope_decision=has_scope_decision,
         include_scope_grant=has_scope_grant,
         include_pf_obligation=has_pf,
+        include_vsa_report=has_vsa,
     )
     manifest_content = json.dumps(manifest, indent=2)
     (out_dir / "manifest.json").write_text(manifest_content, encoding="utf-8")
