@@ -48,6 +48,23 @@ If policy files are modified without updating references:
 2. PF-Core obligations become invalid
 3. PCS manifest hash files will not match record provenance
 
+v0.6 adds Ed25519 signing alongside HMAC:
+
+| Algorithm | Sign | Verify |
+|-----------|------|--------|
+| HMAC-SHA256 | `AKTA_POLICY_HMAC_KEY` (default dev key in regenerate script) | `AKTA_POLICY_HMAC_KEY` |
+| Ed25519 | `AKTA_POLICY_SIGNING_KEY` (32-byte hex or base64) | `AKTA_POLICY_PUBLIC_KEY` or manifest `public_keys` |
+
+```bash
+pip install akta-protocol[security]
+export AKTA_POLICY_SIGNING_KEY=<32-byte-hex-private-key>
+python scripts/regenerate_policy_manifest.py --algorithm Ed25519
+export AKTA_REQUIRE_SIGNED_POLICY=1
+export AKTA_POLICY_PUBLIC_KEY=<base64-public-key>
+```
+
+Key rotation: include retired public keys in manifest `public_keys` or set `AKTA_POLICY_PREVIOUS_PUBLIC_KEYS` when regenerating.
+
 v0.5 separates dev and production verification:
 
 | Mode | Env | Behavior |
