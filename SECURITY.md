@@ -4,6 +4,7 @@
 
 | Version | Supported |
 |---------|-----------|
+| 0.6.x   | Yes       |
 | 0.5.x   | Yes       |
 | 0.4.x   | Yes       |
 | 0.3.x   | Yes       |
@@ -30,6 +31,13 @@ Regenerate manifest after policy edits: `python scripts/regenerate_policy_manife
 
 See [docs/policy_integrity.md](docs/policy_integrity.md).
 
+### v0.6 controls
+
+- Ed25519 signed policy manifests (`AKTA_REQUIRE_SIGNED_POLICY=1`); HMAC retained for deployment attestation
+- Key rotation via manifest `public_keys` list and `AKTA_POLICY_PREVIOUS_PUBLIC_KEYS` at sign time
+- REST API optional key auth (`AKTA_REST_API_KEY`) and rate limiting
+- Mandatory tool declaration fail-closed for unregistered mutating tools
+
 ### v0.5 controls
 
 - JSON schema validation on all artifacts
@@ -55,9 +63,14 @@ See [docs/policy_integrity.md](docs/policy_integrity.md).
 - Unknown mutating tools blocked by default (abstain_insufficient_context)
 - Explicit version fields on policy and schemas
 
+### Out of scope for v0.6
+
+- Live SCOPE/PF/PCS runtime enforcement (delegated to external repos; AKTA adapters simulate or bridge)
+- Model truthfulness guarantees
+- P7 fully autonomous scientific operator runtime
+
 ### Out of scope for v0.5
 
-- Ed25519 signed policy releases (HMAC deployment key supported; public-key verification stub only)
 - Live SCOPE/PF/PCS runtime enforcement (delegated to external repos; AKTA adapters simulate or bridge)
 - Model truthfulness guarantees
 
