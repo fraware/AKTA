@@ -89,7 +89,9 @@ def run_scenario_eval(
         failure_mode = scenario.get("failure_mode") or exp.get("failure_mode")
         severity = scenario.get("severity") or exp.get("severity")
 
-        results.append({
+        from evals.inter_rater import attach_label_metadata
+
+        entry = attach_label_metadata({
             "scenario_id": sid,
             "passed": passed,
             "checks": checks,
@@ -108,7 +110,8 @@ def run_scenario_eval(
                 "tool_registry_hash": d.get("tool_registry_hash"),
                 "next_admissible_steps": d.get("next_admissible_steps", []),
             },
-        })
+        }, exp)
+        results.append(entry)
 
     total = len(scenarios)
     report = {
@@ -119,8 +122,10 @@ def run_scenario_eval(
         "results": results,
     }
     from evals.graders import grade_report
+    from evals.inter_rater import compute_inter_rater_stats
     from evals.metrics import compute_metrics
 
     graded = grade_report(report, scenarios)
     graded["metrics"] = compute_metrics(graded)
+    graded["inter_rater_stats"] = compute_inter_rater_stats(graded["results"])
     return graded
