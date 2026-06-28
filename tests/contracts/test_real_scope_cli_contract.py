@@ -22,24 +22,45 @@ def _make_cli_side_effect(tmp_path: Path):
         proc = type("Proc", (), {"returncode": 0, "stdout": "", "stderr": ""})()
 
         if cmd[1:3] == ["packet", "create"]:
-            trigger = json.loads(Path(cmd[cmd.index("--trigger") + 1]).read_text(encoding="utf-8"))
+            trigger = json.loads(Path(cmd[cmd.index("--akta-trigger") + 1]).read_text(encoding="utf-8"))
             out = Path(cmd[cmd.index("--out") + 1])
-            out.write_text(json.dumps({"packet_type": "scope_review_packet", "trigger": trigger}), encoding="utf-8")
+            out.write_text(
+                json.dumps({
+                    "packet_type": "scope_review_packet",
+                    "review_request": {"requested_scope": trigger.get("requested_scope")},
+                }),
+                encoding="utf-8",
+            )
         elif cmd[1:3] == ["decision", "submit"]:
-            granted = cmd[cmd.index("--grant-scope") + 1]
-            reviewer = cmd[cmd.index("--reviewer") + 1]
+            decision_input = json.loads(
+                Path(cmd[cmd.index("--decision") + 1]).read_text(encoding="utf-8")
+            )
+            reviewer = json.loads(Path(cmd[cmd.index("--reviewer") + 1]).read_text(encoding="utf-8"))
             out = Path(cmd[cmd.index("--out") + 1])
-            out.write_text(json.dumps({"status": "granted", "granted_scope": granted, "reviewer_id": reviewer}), encoding="utf-8")
+            out.write_text(
+                json.dumps({
+                    "status": "granted",
+                    "decision": decision_input,
+                    "reviewer": reviewer,
+                }),
+                encoding="utf-8",
+            )
         elif cmd[1:3] == ["grant", "issue"]:
             decision = json.loads(Path(cmd[cmd.index("--decision") + 1]).read_text(encoding="utf-8"))
+            packet = json.loads(Path(cmd[cmd.index("--packet") + 1]).read_text(encoding="utf-8"))
+            approved = decision["decision"]["approved_scope"]
+            reviewer_id = decision.get("reviewer", {}).get("reviewer_id", "protocol_owner")
             out = Path(cmd[cmd.index("--out") + 1])
-            out.write_text(json.dumps({
-                "grant_id": "SCOPE-GRANT-CLI01",
-                "granted_scope": decision["granted_scope"],
-                "requested_scope": "active_protocol_update",
-                "reviewer_id": decision.get("reviewer_id"),
-                "review_trigger_id": "AKTA-REVTRIG-CLI01",
-            }), encoding="utf-8")
+            out.write_text(
+                json.dumps({
+                    "grant_id": "SCOPE-GRANT-CLI01",
+                    "granted_scope": approved,
+                    "requested_scope": packet["review_request"]["requested_scope"],
+                    "reviewer_id": reviewer_id,
+                    "review_trigger_id": "AKTA-REVTRIG-CLI01",
+                }),
+                encoding="utf-8",
+            )
         return proc
 
     return fake_run, calls
@@ -61,10 +82,11 @@ def test_scope_cli_real_command_shapes(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.adapter_mode == ADAPTER_MODE_CLI
     assert result.error is None
     assert len(calls) == 3
-    assert calls[0][:4] == ["scope", "packet", "create", "--trigger"]
+    assert calls[0][:4] == ["scope", "packet", "create", "--akta-trigger"]
     assert calls[1][:4] == ["scope", "decision", "submit", "--packet"]
-    assert calls[2][:4] == ["scope", "grant", "issue", "--decision"]
-    assert "--grant-scope" in calls[1]
+    assert calls[2][:4] == ["scope", "grant", "issue", "--packet"]
+    assert "--reviewer" in calls[1]
+    assert "--decision" in calls[1]
     assert result.grant is not None
     assert result.grant["granted_scope"] == "protocol_draft"
 
