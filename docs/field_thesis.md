@@ -34,7 +34,7 @@ If AI changes what science does next, there should be an AKTA Record.
 
 ## Deployment profiles
 
-Profiles P0–P6 represent increasing autonomy. P7 (fully autonomous scientific operator) is defined for taxonomy only and is not supported in v0.1.
+Profiles P0–P6 represent increasing autonomy. P7 (fully autonomous scientific operator) is defined for taxonomy only and is not supported at runtime.
 
 ## Helpful Boundedness
 
