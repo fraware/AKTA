@@ -1,7 +1,7 @@
 ---
 name: akta-scientific-action-admissibility
 description: >-
-  Evaluates scientific action admissibility using the AKTA protocol (v0.4).
+  Evaluates scientific action admissibility using the AKTA protocol (v0.5).
   Classifies AI outputs (A0-A10), assigns responsibility levels, applies evidence
   and deployment profile policy, gates tool calls, emits AKTA Records, and produces
   SCOPE-compatible review triggers with requested_scope. Use when integrating
@@ -11,7 +11,7 @@ description: >-
   authority transfer.
 ---
 
-# AKTA Scientific Action Admissibility (v0.4)
+# AKTA Scientific Action Admissibility (v0.5)
 
 ## Quick start
 
@@ -28,7 +28,8 @@ akta gate \
 akta record --decision akta_decision.json --out akta_record.json
 akta review-trigger export --decision akta_decision.json --out review_trigger.json
 
-# v0.4: oracle-independent eval, transition runner, MCP server
+# v0.5: SCOPE adapter modes, PCS full chain, production policy integrity
+python scripts/demo_akta_scope_protocol_drift.py
 python evals/run_oracle_independent.py
 python -m adapters.mcp.server
 ```
@@ -50,9 +51,9 @@ Do **not** use AKTA to decide scientific truth — use VSA for evidence groundin
 3. **Gate tool call** — block if `admissibility` is `blocked`, `abstain_insufficient_context`, `review_required`, or `authorization_required`
 4. **Emit record** — `decision.to_record()` for every non-trivial decision
 5. **Export integrations** — PF-Core obligation (`akta export pf`), PCS bundle (`akta export pcs`)
-6. **SCOPE handoff** — when `review_required` or `authorization_required`, export `review_trigger` with `requested_scope` for SCOPE routing (simulated or subprocess via `SCOPE_CLI`)
+6. **SCOPE handoff** — when `review_required` or `authorization_required`, export `review_trigger` with `requested_scope` for SCOPE routing (simulated, python-import via `SCOPE_REPO_PATH`, or CLI via `SCOPE_CLI`)
 
-## Review context (v0.4)
+## Review context (v0.5)
 
 Prior review metadata in `context.metadata` is enforced:
 
@@ -134,7 +135,7 @@ See [examples/weak_evidence_gate.md](examples/weak_evidence_gate.md) and [exampl
 ## Additional resources
 
 - Protocol overview: [docs/scientific_action_admissibility.md](../../docs/scientific_action_admissibility.md)
-- v0.4 integration: [docs/integration_guide.md](../../docs/integration_guide.md)
+- v0.5 integration: [docs/integration_guide.md](../../docs/integration_guide.md)
 - Threat model: [docs/threat_model.md](../../docs/threat_model.md)
 - SCOPE bridge: [docs/scope_bridge.md](../../docs/scope_bridge.md)
 - Integration: [docs/integration_guide.md](../../docs/integration_guide.md)
