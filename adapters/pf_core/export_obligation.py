@@ -10,6 +10,10 @@ from akta.hash import hash_object
 from akta.records import validate_against_schema
 
 
+def _hash_field(value: str) -> str:
+    return hash_object({"value": value})
+
+
 def _obligation_type(admissibility: str) -> str:
     mapping = {
         "blocked": "tool_block",
@@ -58,12 +62,16 @@ def build_pf_obligation(record: dict[str, Any], decision_id: str | None = None) 
         "source_record_id": record.get("record_id"),
         "decision_id": decision_id or record.get("record_id", "").replace("SAR", "DEC"),
         "decision": admissibility,
+        "decision_reason_hash": _hash_field(decision.get("decision_reason", "")),
         "blocked_tools": blocked,
         "allowed_tools": allowed,
         "max_responsibility_level": classification.get("responsibility_level"),
         "policy_hash": provenance.get("policy_hash"),
         "tool_registry_hash": provenance.get("tool_registry_hash"),
         "domain_overlay_hash": provenance.get("domain_overlay_hash"),
+        "scope_grant_ref": record.get("integrations", {}).get("scope_grant_ref"),
+        "review_trigger_id": (record.get("review_trigger") or {}).get("review_trigger_id"),
+        "expires_at": (record.get("review_trigger") or {}).get("expires_at"),
         "enforcement_mode": _enforcement_mode(admissibility),
         "required_runtime_behavior": _runtime_behavior(admissibility, blocked, allowed),
         "next_admissible_steps": decision.get("next_admissible_steps", []),
