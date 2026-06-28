@@ -132,7 +132,22 @@ def detect_handoff_authority_transfer(chain: list[dict[str, Any]]) -> bool:
     return all(ranks[i] <= ranks[i + 1] for i in range(len(ranks) - 1)) and ranks[-1] > ranks[0]
 
 
-_NEGATION_PREFIX = re.compile(r"\b(do not|don't|never|without|not to)\b")
+_NEGATION_PREFIX = re.compile(r"\b(do not|don't|never|without|not to|avoid)\b")
+_HEDGING_PREFIX = re.compile(r"\b(might|may|could|possibly|perhaps|tentatively)\b")
+_AUTHORITY_TRANSFER = re.compile(
+    r"\b(on your behalf|execute for me|go ahead and|take care of|handle this for me|"
+    r"proceed with (the )?(submission|execution|order|purchase|deployment))\b"
+)
+
+
+def detect_prose_authority_transfer(text: str) -> bool:
+    """Detect authority-transfer phrasing in NL prose."""
+    return bool(_AUTHORITY_TRANSFER.search(text.lower()))
+
+
+def detect_hedging(text: str) -> bool:
+    """Detect hedging language that lowers classification confidence."""
+    return bool(_HEDGING_PREFIX.search(text.lower()))
 
 
 def _keyword_match_negated(text: str, match_start: int) -> bool:
@@ -275,6 +290,12 @@ def classify(
                 text = ai_output if isinstance(ai_output, str) else str(
                     ai_output.get("summary", ai_output) if isinstance(ai_output, dict) else ai_output
                 )
+                if detect_prose_authority_transfer(text):
+                    uncertainty_flags.append("prose_authority_transfer")
+                    confidence = min(confidence, 0.65)
+                if detect_hedging(text):
+                    uncertainty_flags.append("hedging_language")
+                    confidence = min(confidence, 0.72)
                 ai_action, ai_alts = classify_from_action_text(text) or (None, [])
                 if not ai_action:
                     ai_action, ai_alts = classify_from_action_text(requested_action)
@@ -308,6 +329,15 @@ def classify(
 
     if len(alternates) > 1 or (alternates and confidence < CONFIDENCE_THRESHOLD):
         uncertainty_flags.append("ambiguous_wording")
+
+    nl_text = requested_action.lower().replace("_", " ")
+    if ai_output and isinstance(ai_output, str):
+        nl_text = f"{nl_text} {ai_output.lower()}"
+    elif isinstance(ai_output, dict) and ai_output.get("summary"):
+        nl_text = f"{nl_text} {str(ai_output['summary']).lower()}"
+    if detect_prose_authority_transfer(nl_text) and not structured_action:
+        uncertainty_flags.append("prose_authority_transfer")
+        confidence = min(confidence, 0.65)
 
     responsibility_level = action_to_responsibility(policy, action_type)
 
