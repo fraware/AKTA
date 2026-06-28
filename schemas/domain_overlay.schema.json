@@ -11,6 +11,18 @@
     "disclaimer": { "type": "string" },
     "minimum_evidence_for": { "type": "object" },
     "required_review_roles": { "type": "object" },
+    "requested_scope_overrides": { "type": "object" },
+    "hazard_triggers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["condition", "decision"],
+        "properties": {
+          "condition": { "type": "string" },
+          "decision": { "type": "string" }
+        }
+      }
+    },
     "blocked_actions": { "type": "array", "items": { "type": "string" } },
     "metadata_requirements": { "type": "array", "items": { "type": "string" } },
     "tool_restrictions": { "type": "object" }
