@@ -1,0 +1,6 @@
+{
+  "grant_id": "SCOPE-GRANT-SIM-NARROW01",
+  "granted_scope": "protocol_draft",
+  "requested_scope": "active_protocol_update",
+  "adapter_mode": "simulated"
+}
