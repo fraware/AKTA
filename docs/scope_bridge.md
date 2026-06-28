@@ -77,41 +77,33 @@ akta gate --output ai_output.json --tool protocol_editor.update_active_protocol 
 akta review-trigger export --decision decision.json --out review_trigger.json
 ```
 
-## SCOPE adapter (v0.4)
+## SCOPE adapter (v0.5)
 
-`adapters/scope/client.py` supports two modes:
+`adapters/scope/client.py` supports three modes (auto-detected):
 
 | Mode | When | Behavior |
 |------|------|----------|
-| **simulated** | Default (no env vars) | Uses `akta/scope_contract.py` to assemble packets and validate grants |
-| **subprocess** | `SCOPE_CLI` or `SCOPE_REPO_PATH` set | Invokes external SCOPE CLI |
+| **simulated** | Default (no env vars) | Contract simulation via `akta/scope_contract.py` |
+| **python-import** | `SCOPE_REPO_PATH` set | Imports `scope.ScopeEngine` from sibling repo |
+| **cli** | `SCOPE_CLI` set (no repo path) | `scope packet create`, `scope decision submit`, `scope grant issue` |
 
-### Subprocess setup
+Priority: `SCOPE_REPO_PATH` → python-import; else `SCOPE_CLI` → cli; else simulated.
+
+### CLI setup
 
 ```powershell
-$env:SCOPE_CLI = "scope"                    # CLI on PATH, or full path
-$env:SCOPE_REPO_PATH = "C:\path\to\SCOPE"   # optional repo root
-
-python -c "
-from adapters.scope.client import submit_review_trigger
-trigger = {'review_trigger_id': 'AKTA-REVTRIG-DEMO', 'requested_scope': 'protocol_draft'}
-print(submit_review_trigger(trigger))
-"
+$env:SCOPE_CLI = "scope"
+python scripts/demo_akta_scope_protocol_drift.py
 ```
 
-stdin JSON to SCOPE:
+### Python import setup
 
-```json
-{"trigger": {...}, "grant_scope": "protocol_draft", "reviewer_id": "scope_reviewer"}
+```powershell
+$env:SCOPE_REPO_PATH = "C:\path\to\SCOPE"
+python scripts/demo_akta_scope_protocol_drift.py
 ```
 
-Expected stdout JSON:
-
-```json
-{"review_packet": {...}, "grant": {...}, "decision": {"status": "granted", "granted_scope": "..."}}
-```
-
-See [tests/contracts/README.md](../tests/contracts/README.md) for cross-repo contract test instructions.
+Invalid grants fail before PCS export. See [tests/contracts/README.md](../tests/contracts/README.md) and `adapters/scope/engine_protocol.py` for the python-import engine interface.
 
 ## PCS bundle inclusion
 
