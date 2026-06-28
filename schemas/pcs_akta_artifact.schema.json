@@ -10,7 +10,8 @@
     "policy_hash",
     "tool_registry_hash",
     "manifest_hash",
-    "files"
+    "files",
+    "file_hashes"
   ],
   "properties": {
     "artifact_type": { "type": "string", "const": "akta_scientific_action_record" },
@@ -25,6 +26,10 @@
       "type": "array",
       "items": { "type": "string" },
       "minItems": 4
+    },
+    "file_hashes": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "^sha256:" }
     }
   },
   "additionalProperties": true
