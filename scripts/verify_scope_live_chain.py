@@ -70,9 +70,11 @@ def verify_live_scope_chain(
     """Run live SCOPE chain and PCS grant validation checks."""
     from adapters.pcs.export_artifact import export_pcs_bundle
     from adapters.scope.client import (
+        ADAPTER_MODE_AKTA_REVIEW_CLI,
         ADAPTER_MODE_CLI,
         ADAPTER_MODE_PYTHON_IMPORT,
         ADAPTER_MODE_SIMULATED,
+        SCOPE_CLI_MODE_AKTA_REVIEW,
         submit_review_trigger,
     )
     from akta.records import AKTARecord
@@ -97,7 +99,14 @@ def verify_live_scope_chain(
         cli = scope_cli or os.environ.get("SCOPE_CLI", "scope")
         os.environ["SCOPE_CLI"] = cli
         os.environ.pop("SCOPE_REPO_PATH", None)
+        os.environ.pop("SCOPE_CLI_MODE", None)
         expected_mode = ADAPTER_MODE_CLI
+    elif mode == "akta-review":
+        cli = scope_cli or os.environ.get("SCOPE_CLI", "scope")
+        os.environ["SCOPE_CLI"] = cli
+        os.environ["SCOPE_CLI_MODE"] = SCOPE_CLI_MODE_AKTA_REVIEW
+        os.environ.pop("SCOPE_REPO_PATH", None)
+        expected_mode = ADAPTER_MODE_AKTA_REVIEW_CLI
     else:
         report["error"] = f"Unknown mode: {mode}"
         return report
@@ -209,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--scope-cli", type=str, default=None, help="SCOPE CLI command name")
     parser.add_argument(
         "--mode",
-        choices=("python-import", "cli"),
+        choices=("python-import", "cli", "akta-review"),
         required=True,
         help="SCOPE adapter mode to verify",
     )
