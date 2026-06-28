@@ -1,9 +1,9 @@
-.PHONY: install test eval-canonical eval-public eval-public-100 eval-oracle demo-weak-evidence demo-akta-weak-evidence demo-akta-scope-protocol-drift ci
+.PHONY: install test eval-canonical eval-public eval-public-100 eval-oracle eval-holdout eval-v06 demo-weak-evidence demo-akta-weak-evidence demo-akta-scope-protocol-drift demo-reconstructable ci
 
 PYTHON ?= python
 
 install:
-	$(PYTHON) -m pip install -e ".[dev]"
+	$(PYTHON) -m pip install -e ".[dev,security]"
 
 test:
 	$(PYTHON) -m pytest tests/ skills/akta-scientific-action-admissibility/tests/ -v
@@ -17,6 +17,15 @@ eval-public-100:
 eval-oracle:
 	$(PYTHON) evals/run_oracle_independent.py --out evals/reports/oracle_independent.json
 
+eval-holdout:
+	$(PYTHON) evals/run_holdout_eval.py --out evals/reports/holdout_private.json
+
+eval-v06:
+	$(PYTHON) evals/adversarial_transitions.py --out evals/reports/adversarial_transitions.json
+
+demo-reconstructable:
+	$(PYTHON) scripts/demo_reconstructable_experiment.py
+
 demo-weak-evidence:
 	$(PYTHON) scripts/demo_weak_evidence.py
 
@@ -26,7 +35,8 @@ demo-akta-weak-evidence:
 demo-akta-scope-protocol-drift:
 	$(PYTHON) scripts/demo_akta_scope_protocol_drift.py
 
-ci: install test eval-canonical eval-public-100 eval-oracle
+ci: install test eval-canonical eval-public-100 eval-oracle eval-holdout eval-v06
 	$(PYTHON) -m pytest tests/test_invalid_cases.py tests/integration/ tests/contracts/ -v
 	$(PYTHON) scripts/demo_integrated_weak_evidence.py
 	$(PYTHON) scripts/demo_akta_scope_protocol_drift.py
+	$(PYTHON) scripts/demo_reconstructable_experiment.py
