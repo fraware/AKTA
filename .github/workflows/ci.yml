@@ -22,7 +22,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,security]"
 
       - name: Run pytest
         run: pytest tests/ skills/akta-scientific-action-admissibility/tests/ -v
@@ -50,6 +50,12 @@ jobs:
       - name: Run oracle-independent eval
         run: python evals/run_oracle_independent.py --out evals/reports/oracle_independent.json
 
+      - name: Run holdout private eval
+        run: python evals/run_holdout_eval.py --out evals/reports/holdout_private.json
+
+      - name: Run adversarial transition eval (v0.6)
+        run: python evals/adversarial_transitions.py --out evals/reports/adversarial_transitions.json
+
       - name: Invalid fixtures must fail
         run: pytest tests/test_invalid_cases.py -v
 
@@ -59,9 +65,70 @@ jobs:
       - name: Run integrated protocol-drift demo
         run: python scripts/demo_akta_scope_protocol_drift.py
 
+      - name: Run reconstructable experiment demo
+        run: python scripts/demo_reconstructable_experiment.py
+
       - name: Upload eval reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: eval-reports-py${{ matrix.python-version }}
           path: evals/reports/
+
+  cross-repo-pf-pcs:
+    runs-on: ubuntu-latest
+    if: ${{ vars.PF_CORE_REPO_PATH != '' || vars.PCS_CORE_REPO_PATH != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -e ".[dev,security]"
+      - name: Cross-repo PF-Core validation
+        if: ${{ vars.PF_CORE_REPO_PATH != '' }}
+        env:
+          PF_CORE_REPO_PATH: ${{ vars.PF_CORE_REPO_PATH }}
+        run: pytest tests/contracts/test_cross_repo_live.py::test_pf_core_live_validation -v -m integration
+      - name: Cross-repo PCS-Core validation
+        if: ${{ vars.PCS_CORE_REPO_PATH != '' }}
+        env:
+          PCS_CORE_REPO_PATH: ${{ vars.PCS_CORE_REPO_PATH }}
+        run: pytest tests/contracts/test_cross_repo_live.py::test_pcs_core_live_validation -v -m integration
+
+  cross-repo-scope:
+    runs-on: ubuntu-latest
+    if: ${{ vars.SCOPE_REPO_PATH != '' || secrets.SCOPE_REPO_URL != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -e ".[dev,security]"
+      - name: Optional SCOPE sibling checkout
+        if: ${{ secrets.SCOPE_REPO_URL != '' }}
+        env:
+          SCOPE_REPO_URL: ${{ secrets.SCOPE_REPO_URL }}
+        run: |
+          git clone --depth 1 "$SCOPE_REPO_URL" scope-sibling
+          echo "SCOPE_REPO_PATH=$GITHUB_WORKSPACE/scope-sibling" >> $GITHUB_ENV
+      - name: SCOPE live contract tests
+        env:
+          SCOPE_REPO_PATH: ${{ env.SCOPE_REPO_PATH || vars.SCOPE_REPO_PATH }}
+        run: pytest tests/contracts/test_scope_python_import_live_shape.py -v -m integration
+
+  cross-repo-pcs-bench:
+    runs-on: ubuntu-latest
+    if: ${{ vars.PCS_BENCH_REPO_PATH != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -e ".[dev,security]"
+      - name: PCS-Bench external integration contract
+        env:
+          PCS_BENCH_REPO_PATH: ${{ vars.PCS_BENCH_REPO_PATH }}
+        run: pytest tests/contracts/test_pcs_bench_external.py -v
