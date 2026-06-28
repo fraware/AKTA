@@ -60,6 +60,36 @@ def evaluate_prior_review(
             reason=f"Prior review {prior_id} was denied; repeating blocked action.",
         )
 
+    if expired:
+        return EvaluationLayer(
+            source="review_context",
+            decision="review_required",
+            reason=(
+                f"Prior review {prior_id} expired (scope={prior_scope}); "
+                f"new review required before {action_type}."
+            ),
+        )
+
+    allowed = metadata.get("prior_review_allowed_tools")
+    if allowed is not None and requested_tool not in allowed:
+        return EvaluationLayer(
+            source="review_context",
+            decision="blocked",
+            reason=(
+                f"SCOPE grant does not allow requested tool {requested_tool}."
+            ),
+        )
+
+    grant_blocked = metadata.get("prior_review_blocked_tools")
+    if grant_blocked and requested_tool in grant_blocked:
+        return EvaluationLayer(
+            source="review_context",
+            decision="blocked",
+            reason=(
+                f"Prior review {prior_id} blocks tool {requested_tool}."
+            ),
+        )
+
     scope_exceeded = _scope_exceeded(prior_scope, action_type, requested_tool, tool_spec)
     if scope_exceeded:
         return EvaluationLayer(
@@ -68,16 +98,6 @@ def evaluate_prior_review(
             reason=(
                 f"Prior review {prior_id} scope {prior_scope} does not cover "
                 f"{requested_tool} ({action_type})."
-            ),
-        )
-
-    if expired:
-        return EvaluationLayer(
-            source="review_context",
-            decision="review_required",
-            reason=(
-                f"Prior review {prior_id} expired (scope={prior_scope}); "
-                f"new review required before {action_type}."
             ),
         )
 
