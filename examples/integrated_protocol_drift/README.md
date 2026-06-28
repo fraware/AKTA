@@ -1,7 +1,6 @@
-# Integrated Protocol Drift Demo (AKTA v0.3 x SCOPE)
+# Integrated Protocol Drift Demo (AKTA v0.7.1 x SCOPE)
 
-This example demonstrates the authority-transfer boundary between AKTA pre-action
-admissibility and SCOPE scoped human approval.
+This example demonstrates the authority-transfer boundary between AKTA pre-action admissibility and SCOPE scoped human approval.
 
 ## Flow
 
@@ -15,17 +14,23 @@ admissibility and SCOPE scoped human approval.
 ## Authority boundary
 
 AKTA decides whether a transition is admissible and which SCOPE `requested_scope` applies.
-SCOPE decides who reviews and what scope is granted. PF-Core enforces the resulting
-runtime obligation. PCS packages artifacts for bench/memory workflows.
+SCOPE decides who reviews and what scope is granted. PF-Core enforces the resulting runtime obligation. PCS packages artifacts for bench and memory workflows.
 
-Neither AKTA nor SCOPE alone authorizes global permission. A narrow `protocol_draft`
-grant must not unlock active protocol mutation or robot execution.
+Neither AKTA nor SCOPE alone authorizes global permission. A narrow `protocol_draft` grant must not unlock active protocol mutation or robot execution. AKTA does not broaden SCOPE grants; SCOPE does not override AKTA evidence or profile policy by default.
 
 ## Regenerate
 
 ```bash
 python scripts/demo_akta_scope_protocol_drift.py
 # or: make demo-akta-scope-protocol-drift
+```
+
+With live SCOPE sibling:
+
+```bash
+export SCOPE_REPO_PATH=/path/to/SCOPE
+python scripts/demo_akta_scope_protocol_drift.py
+# Output must show adapter_mode=python-import or cli, never simulated
 ```
 
 ## Artifacts
@@ -39,5 +44,4 @@ python scripts/demo_akta_scope_protocol_drift.py
 | `scope_narrow_grant.json` | Simulated narrow grant (draft only) |
 | `akta_decision_draft_only.json` | Permitted draft-only follow-up |
 | `pf_obligation.json` | PF-Core runtime obligation |
-| `pcs_bundle/` | PCS export including review trigger |
-| `scope_review_packet.json` | SCOPE trigger + record packet (also in `pcs_bundle/`) |
+| `pcs_bundle/` | PCS v0.5 export including review trigger and scope artifacts |
