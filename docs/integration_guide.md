@@ -1,6 +1,32 @@
-# AKTA Integration Guide (v0.2)
+# AKTA Integration Guide (v0.4)
 
 AKTA integrates with adjacent systems in the AI-for-science trust stack.
+
+## v0.4 integration additions
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| SCOPE adapter | `adapters/scope/client.py` | Simulated or subprocess review flow |
+| MCP stdio server | `adapters/mcp/server.py` | `akta_evaluate`, `akta_export` over JSON-RPC |
+| Guardrail adapters | `adapters/guardrails/` | OpenAI / Anthropic tool-call checks |
+| Transition runner | `evals/transition_runner.py` | SCOPE grant → re-gate verification |
+| Oracle-independent eval | `evals/run_oracle_independent.py` | Hand-written expected labels |
+| Domain overlays | `overlays/biology_v0.yaml`, `chemistry_v0.yaml`, `clinical_v0.yaml` | Hazard triggers and scope overrides |
+| Policy integrity | `akta/policy_integrity.py` | HMAC manifest verification |
+| PCS-Bench export | `adapters/pcs_bench/export_suite.py` | Benchmark suite for PCS-Core |
+
+```bash
+# Oracle-independent eval
+python evals/run_oracle_independent.py --out evals/reports/oracle_independent.json
+
+# MCP server (stdio)
+python -m adapters.mcp.server
+
+# REST API v0.4
+akta-rest --host 127.0.0.1 --port 8765
+```
+
+Cross-repo contract tests: [tests/contracts/README.md](../tests/contracts/README.md).
 
 ## Verified Science Agent (VSA)
 
@@ -50,7 +76,7 @@ See [scope_bridge.md](scope_bridge.md) and [review_integration.md](review_integr
 | Consequentiality | Decision `consequentiality` / `consequentiality_reason` |
 | Rich classifier | Decision `classification` audit block |
 | PF obligation v0.2 | `enforcement_mode`, `required_runtime_behavior` |
-| PCS bundle v0.2 | `schema_version: akta-record-v0.2` |
+| PCS bundle v0.4 | `schema_version: akta-record-v0.4` |
 
 ## Python API
 

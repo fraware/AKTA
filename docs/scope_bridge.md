@@ -11,52 +11,111 @@ AKTA emits SCOPE-compatible review triggers when admissibility is `review_requir
 | PF-Core | Post-action proof that runtime honored the AKTA decision |
 | PCS-Core | Packaging of AKTA Records and review artifacts for memory/bench |
 
-## Trigger artifact
+## Trigger artifact (v0.3)
 
-Review triggers conform to `schemas/review_trigger.schema.json`. Required fields for SCOPE consumption:
+Review triggers conform to `schemas/review_trigger.schema.json` with `review_trigger_version = "0.3"`.
 
 | Field | SCOPE use |
 |-------|-----------|
 | `review_trigger_id` | Unique trigger handle for approval records |
-| `decision_id` | Bind to AKTA Decision that produced the trigger |
-| `source_record_id` | Bind to AKTA Record (may be provisional pre-record export) |
+| `akta_decision_id` / `decision_id` | Bind to AKTA Decision (aliases for compatibility) |
+| `akta_record_id` / `source_record_id` | Bind to AKTA Record |
+| `requested_scope` | **Required** machine-enforced SCOPE approval scope enum |
+| `review_route` | Optional human/process routing hint |
 | `required_review_role` | Route to protocol_owner, domain_scientist, compute_lead, etc. |
-| `review_scope` | Typed scope: `experimental_plan_review`, `queue_prioritization_review`, etc. |
 | `review_artifacts_required` | Minimum evidence packet contents |
 | `blocked_tools` / `allowed_next_steps` | Scoped permission surface |
 | `approval_effect` | Must remain scoped; not global permission |
 | `default_expiration` | Typically `single_run` |
 | `policy_hash` / `tool_registry_hash` | Integrity binding to trusted policy |
-| `consequentiality` / `consequentiality_reason` | v0.2 escalation context |
+| `consequentiality` / `consequentiality_reason` | Escalation context |
 | `review_trigger_hash` | Content integrity for trigger artifact |
+
+### SCOPE approval scopes (`requested_scope` enum)
+
+- `protocol_draft`
+- `active_protocol_update`
+- `single_validation_plan`
+- `single_validation_run_draft`
+- `single_run_queue_priority`
+- `robot_queue_submission`
+- `execution_payload_preparation`
+- `publication_claim`
+- `scientific_memory_import`
+
+Tool-to-scope mapping lives in `policy/tool_to_requested_scope.yaml`. AKTA never emits values outside this enum.
 
 ## Consumption workflow
 
 ```text
 1. Runtime calls AKTA Gate before mutating tool invocation
-2. AKTA returns review_required with embedded review_trigger
+2. AKTA returns review_required with embedded review_trigger (requested_scope set)
 3. SCOPE receives trigger via:
    - decision JSON (`review_trigger` field)
    - `akta review-trigger export --decision ... --out review_trigger.json`
    - PCS bundle (`review_trigger.json` when present)
 4. SCOPE assembles review_artifacts_required packet
-5. Reviewer approves scoped next step only (matches allowed_next_steps)
+5. Reviewer approves scoped next step only (matches allowed_next_steps / granted scope)
 6. Runtime re-evaluates or applies scoped authorization token
 7. New AKTA Record documents the approved transition
 ```
 
+## Authority-transfer boundary
+
+AKTA assigns `requested_scope`; SCOPE grants approval scope. A narrow grant (e.g. `protocol_draft` when `active_protocol_update` was requested) must not authorize active mutation or robot execution. See `examples/integrated_protocol_drift/` and `scripts/demo_akta_scope_protocol_drift.py`.
+
+## Contract testing without SCOPE repo
+
+When SCOPE is not checked out locally, use `tests/contracts/scope_fixtures.py` to simulate field extraction and approval scope validation.
+
 ## CLI export
 
 ```bash
-akta gate --output ai_output.json --tool experiment_planner.create_run_plan \
-  --profile P5_review_gated_experimental_planner --context context.json --out decision.json
+akta gate --output ai_output.json --tool protocol_editor.update_active_protocol \
+  --profile P4_protocol_drafting_assistant --context context.json --out decision.json
 
 akta review-trigger export --decision decision.json --out review_trigger.json
 ```
 
+## SCOPE adapter (v0.4)
+
+`adapters/scope/client.py` supports two modes:
+
+| Mode | When | Behavior |
+|------|------|----------|
+| **simulated** | Default (no env vars) | Uses `akta/scope_contract.py` to assemble packets and validate grants |
+| **subprocess** | `SCOPE_CLI` or `SCOPE_REPO_PATH` set | Invokes external SCOPE CLI |
+
+### Subprocess setup
+
+```powershell
+$env:SCOPE_CLI = "scope"                    # CLI on PATH, or full path
+$env:SCOPE_REPO_PATH = "C:\path\to\SCOPE"   # optional repo root
+
+python -c "
+from adapters.scope.client import submit_review_trigger
+trigger = {'review_trigger_id': 'AKTA-REVTRIG-DEMO', 'requested_scope': 'protocol_draft'}
+print(submit_review_trigger(trigger))
+"
+```
+
+stdin JSON to SCOPE:
+
+```json
+{"trigger": {...}, "grant_scope": "protocol_draft", "reviewer_id": "scope_reviewer"}
+```
+
+Expected stdout JSON:
+
+```json
+{"review_packet": {...}, "grant": {...}, "decision": {"status": "granted", "granted_scope": "..."}}
+```
+
+See [tests/contracts/README.md](../tests/contracts/README.md) for cross-repo contract test instructions.
+
 ## PCS bundle inclusion
 
-When a record includes `review_trigger`, PCS export adds `review_trigger.json` to the bundle and lists it in `manifest.json` files. SCOPE can ingest the bundle directly without re-deriving trigger fields from the decision.
+When a record includes `review_trigger`, PCS export adds `review_trigger.json` to the bundle and lists it in `manifest.json` files.
 
 ## Anti-patterns (SCOPE must enforce)
 
@@ -64,13 +123,11 @@ When a record includes `review_trigger`, PCS export adds `review_trigger.json` t
 - **Stale review reuse (F14)** — prior `prior_review_id` metadata does not authorize escalated actions
 - **Global permission** — approval for one run plan must not authorize queue submission or active protocol mutation
 - **Hash mismatch** — triggers with `policy_hash` not matching trusted policy must be rejected
-
-## Schema validation
-
-SCOPE should validate incoming triggers against `review_trigger.schema.json` before routing. AKTA validates triggers at emission when `validate_output=True` on the gate.
+- **Scope mismatch** — grants must not exceed `requested_scope` without AKTA re-evaluation
 
 ## Related documentation
 
+- [akta_v03_integration.md](akta_v03_integration.md) — v0.3 integration summary
 - [review_integration.md](review_integration.md) — AKTA review trigger semantics
 - [pcs_export.md](pcs_export.md) — PCS bundle layout including review triggers
 - [pf_core_bridge.md](pf_core_bridge.md) — Runtime enforcement after review
