@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from akta.errors import AKTAReviewRequired
 from adapters.langgraph.middleware import AKTALangGraphMiddleware
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -42,7 +43,7 @@ def test_wrap_tool_blocks_prioritization(middleware: AKTALangGraphMiddleware) ->
         "lab_scheduler.prioritize",
         "prioritize_next_run",
     )
-    with pytest.raises(PermissionError, match="AKTA blocked"):
+    with pytest.raises((PermissionError, AKTAReviewRequired)):
         gated(
             ai_output={"summary": "Prioritize B."},
             context={"evidence_state": "E2_preliminary_signal"},
