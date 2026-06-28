@@ -1,4 +1,8 @@
-"""Integrated weak-evidence demo — full AKTA v0.2 artifact pipeline."""
+"""Integrated weak-evidence demo — AKTA v0.2 artifact pipeline (no SCOPE chain).
+
+For the canonical AKTA x SCOPE integration demo, use
+`scripts/demo_akta_scope_protocol_drift.py` instead.
+"""
 
 from __future__ import annotations
 
@@ -54,7 +58,9 @@ def stabilize_decision(
     if d.get("review_trigger"):
         rt = dict(d["review_trigger"])
         rt["decision_id"] = decision_id
+        rt["akta_decision_id"] = decision_id
         rt["source_record_id"] = record_id
+        rt["akta_record_id"] = record_id
         if review_trigger_id:
             rt["review_trigger_id"] = review_trigger_id
         d["review_trigger"] = _rehash_review_trigger(rt)
@@ -88,7 +94,7 @@ def run_demo() -> int:
     if legacy_pcs.exists():
         shutil.rmtree(legacy_pcs)
 
-    print("=== AKTA v0.2 Demo: Integrated Weak-Evidence Pipeline ===\n")
+    print("=== AKTA Demo: Integrated Weak-Evidence Pipeline (AKTA/PF/PCS) ===\n")
 
     vsa_report = json.loads((demo_dir / "vsa_report.json").read_text(encoding="utf-8"))
     vsa_ctx = import_vsa_report(vsa_report)
@@ -120,35 +126,18 @@ def run_demo() -> int:
     record_path = demo_dir / "akta_record.json"
     AKTARecord(record_data).save(record_path)
 
-    # Review-trigger artifact (review_required companion scenario, fixed ids)
-    review_decision = gate.evaluate(
-        ai_output={"summary": "Create run plan for replicated batch."},
-        requested_tool="experiment_planner.create_run_plan",
-        requested_action="create_run_plan",
-        context=AKTAContext.from_dict({
-            "domain": "materials",
-            "evidence_state": "E5_internally_replicated_evidence",
-            "validation_status": "V4_internally_replicated",
-        }),
-        deployment_profile="P5_review_gated_experimental_planner",
-    )
-    review_d = stabilize_decision(
-        review_decision.to_dict(),
-        decision_id=DEMO_REVIEW_DECISION_ID,
-        record_id=DEMO_REVIEW_RECORD_ID,
-        review_trigger_id=DEMO_REVIEW_TRIGGER_ID,
-    )
-    review_trigger = review_d.get("review_trigger")
-    if review_trigger:
-        (demo_dir / "review_trigger.json").write_text(
-            json.dumps(review_trigger, indent=2), encoding="utf-8"
-        )
-
     pf_path = export_pf_obligation(
         AKTARecord(record_data), demo_dir, validate=True, decision_id=d["decision_id"]
     )
     pf_obligation = json.loads(pf_path.read_text(encoding="utf-8"))
     (demo_dir / "pf_obligation.json").write_text(json.dumps(pf_obligation, indent=2), encoding="utf-8")
+
+    # Review trigger is exported only when the primary weak-evidence gate path requires review.
+    review_trigger_path = demo_dir / "review_trigger.json"
+    if d.get("review_trigger"):
+        (review_trigger_path).write_text(json.dumps(d["review_trigger"], indent=2), encoding="utf-8")
+    elif review_trigger_path.exists():
+        review_trigger_path.unlink()
 
     export_pcs_bundle(
         AKTARecord(record_data), pcs_dir, decision=d, validate=True
@@ -164,7 +153,7 @@ def run_demo() -> int:
     print(f"Record:       {record_data['record_id']}")
     print(f"PF obligation: {pf_obligation['obligation_type']}")
     print(f"PCS bundle:   {pcs_dir / 'manifest.json'}")
-    print(f"Review trigger: {demo_dir / 'review_trigger.json'}")
+    print(f"Review trigger: {review_trigger_path if review_trigger_path.exists() else '(none — primary path is blocked, not review_required)'}")
     print(f"Consequentiality: {d.get('consequentiality')} — {d.get('consequentiality_reason', '')[:60]}")
 
     reports_dir = ROOT / "evals" / "reports"
@@ -182,7 +171,7 @@ def run_demo() -> int:
         ROOT / "overlays",
     )
     benchmark = {
-        "demo": "integrated_weak_evidence_v0.2",
+        "demo": "integrated_weak_evidence_v0.3",
         "canonical_5": {"accuracy": canonical["accuracy"], "passed": canonical["passed"]},
         "public_100": {"accuracy": public["accuracy"], "passed": public["passed"]},
         "metrics": public.get("metrics", {}),
