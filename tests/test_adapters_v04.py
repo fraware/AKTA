@@ -113,14 +113,24 @@ def test_scope_adapter_cli_mode_mock(monkeypatch: pytest.MonkeyPatch) -> None:
             out = Path(cmd[cmd.index("--out") + 1])
             out.write_text(scope_output, encoding="utf-8")
         elif cmd[1:3] == ["decision", "submit"]:
-            granted = cmd[cmd.index("--grant-scope") + 1]
+            decision_input = json.loads(
+                Path(cmd[cmd.index("--decision") + 1]).read_text(encoding="utf-8")
+            )
             out = Path(cmd[cmd.index("--out") + 1])
-            out.write_text(json.dumps({"status": "granted", "granted_scope": granted}), encoding="utf-8")
+            out.write_text(
+                json.dumps({
+                    "status": "granted",
+                    "decision": decision_input,
+                }),
+                encoding="utf-8",
+            )
         elif cmd[1:3] == ["grant", "issue"]:
+            decision = json.loads(Path(cmd[cmd.index("--decision") + 1]).read_text(encoding="utf-8"))
+            approved = decision["decision"]["approved_scope"]
             out = Path(cmd[cmd.index("--out") + 1])
             out.write_text(json.dumps({
                 "grant_id": "SCOPE-GRANT-SUBPROC01",
-                "granted_scope": "protocol_draft",
+                "granted_scope": approved,
                 "requested_scope": "active_protocol_update",
                 "reviewer_id": "scope_reviewer",
                 "review_trigger_id": "AKTA-REVTRIG-SUBPROC01",
