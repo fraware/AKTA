@@ -1,0 +1,29 @@
+{
+  "artifact_type": "akta_scientific_action_record",
+  "schema_version": "akta-record-v0.5",
+  "record_hash": "sha256:bbac7ad5cce800d57f7a65b83700141e3b8d6f2b0a0040caedca4177f7fa1b22",
+  "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
+  "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
+  "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8",
+  "decision_id": "AKTA-DEC-RECON0001",
+  "files": [
+    "akta_decision.json",
+    "akta_record.json",
+    "domain_overlay_hash.txt",
+    "manifest.json",
+    "pf_obligation.json",
+    "policy_hash.txt",
+    "tool_registry_hash.txt",
+    "vsa_report.json"
+  ],
+  "file_hashes": {
+    "akta_decision.json": "sha256:4ef67ea8cc70cbf7a0120b095cd166e10410108fe263bd7bbfd03d9dbfd18de0",
+    "akta_record.json": "sha256:efe5b95d4bdb294c477e7c67761ffdb214731ee2782a60f0ebbb934e30164d61",
+    "domain_overlay_hash.txt": "sha256:aff97a5c94f9f99549b9f4043617ba8dcfce973312fde13d63101d173bcb0860",
+    "pf_obligation.json": "sha256:3ff749049bca7b0f92833e7beb8d9a296f5d26a5ceb33b43bb88dfda0db81773",
+    "policy_hash.txt": "sha256:918d683b234533a1c7da8178e581eff636b2786f9b7cc373873ea805994b15ff",
+    "tool_registry_hash.txt": "sha256:a5e313d4198cc3479985a6db476f6f330c8f45024c42580cff52ab7ee0c1f371",
+    "vsa_report.json": "sha256:c07f594b4bc65fa176891ea43c8bebd95d1f045dbfa0208ee7505049a43a7cbe"
+  },
+  "manifest_hash": "sha256:d17d568a9229f3245f6e3897787bcc368c181e36d2d1cf2c0c718e6cd1552200"
+}
