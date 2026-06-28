@@ -8,8 +8,9 @@ from typing import Any
 
 import yaml
 
-from akta.errors import PolicyError
+from akta.errors import PolicyError, UnsupportedProfileError
 from akta.hash import hash_file_content, hash_object
+from akta.policy_integrity import verify_policy_integrity
 
 
 POLICY_FILES = [
@@ -40,7 +41,8 @@ class PolicyBundle:
     evidence_to_action_matrix: dict[str, Any]
     evidence_to_action_rules: dict[str, Any]
     tool_registry: dict[str, Any]
-    version: str = "akta-core-v0.2"
+    tool_to_requested_scope: dict[str, Any]
+    version: str = "akta-core-v0.4"
     policy_hash: str = ""
     tool_registry_hash: str = ""
     _raw_files: dict[str, str] = field(default_factory=dict, repr=False)
@@ -72,9 +74,22 @@ class PolicyBundle:
         raw_files["default_tool_registry.yaml"] = registry_content
         tool_registry = yaml.safe_load(registry_content)
 
-        version = loaded["action_ontology"].get("version", "akta-core-v0.2")
-        policy_hash = hash_object({k: raw_files[k] for k in sorted(raw_files) if k != "default_tool_registry.yaml"})
+        scope_path = policy_dir / "tool_to_requested_scope.yaml"
+        if not scope_path.exists():
+            raise PolicyError(f"Tool scope mapping not found: {scope_path}")
+        scope_content = scope_path.read_text(encoding="utf-8")
+        raw_files["tool_to_requested_scope.yaml"] = scope_content
+        tool_to_requested_scope = yaml.safe_load(scope_content)
+
+        version = loaded["action_ontology"].get("version", "akta-core-v0.4")
+        policy_hash = hash_object({
+            k: raw_files[k]
+            for k in sorted(raw_files)
+            if k not in ("default_tool_registry.yaml", "tool_to_requested_scope.yaml")
+        })
         tool_registry_hash = hash_file_content(registry_content)
+
+        verify_policy_integrity(policy_dir, required=False)
 
         return cls(
             policy_dir=policy_dir,
@@ -88,6 +103,7 @@ class PolicyBundle:
             evidence_to_action_matrix=loaded["evidence_to_action_matrix"],
             evidence_to_action_rules=loaded["evidence_to_action_rules"],
             tool_registry=tool_registry,
+            tool_to_requested_scope=tool_to_requested_scope,
             version=version,
             policy_hash=policy_hash,
             tool_registry_hash=tool_registry_hash,
@@ -100,9 +116,9 @@ class PolicyBundle:
             raise PolicyError(f"Unknown deployment profile: {profile}")
         info = profiles[profile]
         if not info.get("supported", True):
-            raise PolicyError(
-                f"Deployment profile {profile} is not supported: "
-                f"{info.get('disclaimer', '')}"
+            raise UnsupportedProfileError(
+                profile,
+                reason=str(info.get("disclaimer", "")),
             )
         return info
 
