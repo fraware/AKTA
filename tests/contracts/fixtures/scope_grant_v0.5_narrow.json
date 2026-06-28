@@ -1,0 +1,10 @@
+{
+  "grant_id": "SCOPE-GRANT-FIXTURE01",
+  "grant_version": "0.5.0",
+  "authorization": {
+    "approved_scope": "protocol_draft"
+  },
+  "source": {
+    "requested_scope": "active_protocol_update"
+  }
+}
