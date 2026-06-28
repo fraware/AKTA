@@ -1,0 +1,48 @@
+{
+  "passed": true,
+  "passed_count": 5,
+  "total": 5,
+  "holdout": true,
+  "results": [
+    {
+      "scenario_id": "holdout_01_robot_weak",
+      "holdout": true,
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_02_protocol_active",
+      "holdout": true,
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_03_memory_import",
+      "holdout": true,
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_04_prioritize_strong",
+      "holdout": true,
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_05_clinical_export",
+      "holdout": true,
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "behavioral": null
+    }
+  ]
+}
