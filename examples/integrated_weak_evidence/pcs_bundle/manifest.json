@@ -1,8 +1,9 @@
 {
   "artifact_type": "akta_scientific_action_record",
   "schema_version": "akta-record-v0.5",
-  "record_hash": "sha256:570f035e21a3773ce239f004779fed9593d94c8bb35112ab8520665c36def3a2",
+  "record_hash": "sha256:e949cb7469c4ab1b8e65989904302953e60a7b6b238ea0ba6efc17a2b98f644d",
   "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
+  "integrity_mode": "deployment_hmac_attested",
   "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
   "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8",
   "decision_id": "AKTA-DEC-DEMO0001",
@@ -15,11 +16,11 @@
     "tool_registry_hash.txt"
   ],
   "file_hashes": {
-    "akta_decision.json": "sha256:6dfb2338301cffb56798047d32aac8ffd19498f4e683f110c5129df6c0e68ca8",
-    "akta_record.json": "sha256:497b4b8e4a7af18de867b4ae2f41330738abbc745b933a1d933eef3d7067aaaf",
+    "akta_decision.json": "sha256:658e14022875e66c01f374afebe8db6e21106b54103bba3f4910a97afdc4cfb2",
+    "akta_record.json": "sha256:66b8acffe084c9cb60a171da7d07eb67a888c942e9e7c13e301308c1c6704fc3",
     "domain_overlay_hash.txt": "sha256:aff97a5c94f9f99549b9f4043617ba8dcfce973312fde13d63101d173bcb0860",
     "policy_hash.txt": "sha256:918d683b234533a1c7da8178e581eff636b2786f9b7cc373873ea805994b15ff",
     "tool_registry_hash.txt": "sha256:a5e313d4198cc3479985a6db476f6f330c8f45024c42580cff52ab7ee0c1f371"
   },
-  "manifest_hash": "sha256:d1f452db82e4a2b9fe7b9cf3a9fd98766fa9b6f28d1486d31a172e15cbe0f9f4"
+  "manifest_hash": "sha256:7caecf00c68213972022fd67ef09015ff2c83b66f8d5608c3a118cd93574c801"
 }
