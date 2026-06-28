@@ -24,6 +24,7 @@ def test_mcp_tools_list() -> None:
     resp = _server().handle({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
     names = {t["name"] for t in resp["result"]["tools"]}
     assert "akta_evaluate" in names
+    assert "akta_evaluate_with_grant" in names
     assert "akta_export" in names
 
 
@@ -47,6 +48,40 @@ def test_mcp_evaluate_blocks_weak_evidence() -> None:
     payload = json.loads(resp["result"]["content"][0]["text"])
     assert payload["admissibility"] == "blocked"
     assert payload["policy_hash"].startswith("sha256:")
+
+
+def test_mcp_evaluate_with_grant_blocks_listed_tool() -> None:
+    resp = _server().handle({
+        "jsonrpc": "2.0",
+        "id": 5,
+        "method": "tools/call",
+        "params": {
+            "name": "akta_evaluate_with_grant",
+            "arguments": {
+                "ai_output": {"summary": "Prioritize after grant."},
+                "requested_tool": "lab_scheduler.prioritize",
+                "requested_action": "prioritize_next_run",
+                "deployment_profile": "P5_review_gated_experimental_planner",
+                "domain_overlay": "generic_lab_v0",
+                "context": {
+                    "evidence_state": "E5_internally_replicated_evidence",
+                    "validation_status": "V5_independently_replicated",
+                },
+                "scope_grant": {
+                    "grant_id": "SCOPE-GRANT-MCP-BLOCKED",
+                    "authorization": {
+                        "approved_scope": "single_run_queue_priority",
+                        "blocked_tools": ["lab_scheduler.prioritize"],
+                    },
+                    "source": {"requested_scope": "single_run_queue_priority"},
+                    "expires_at": "2030-01-01T00:00:00Z",
+                },
+            },
+        },
+    })
+    payload = json.loads(resp["result"]["content"][0]["text"])
+    assert payload["admissibility"] == "blocked"
+    assert "lab_scheduler.prioritize" in payload.get("blocked_tools", [])
 
 
 def test_mcp_unknown_method_error() -> None:
