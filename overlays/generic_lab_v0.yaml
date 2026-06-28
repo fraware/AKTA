@@ -1,17 +1,35 @@
 domain: generic_lab
-version: generic_lab_v0.1
+version: generic_lab_v0.2
 operational: true
 
 minimum_evidence_for:
   recommendation: E4_internally_consistent_evidence
   experimental_planning: E4_internally_consistent_evidence
   queue_prioritization: E5_internally_replicated_evidence
+  protocol_modification: E4_internally_consistent_evidence
+  tool_or_workflow_mutation: E5_internally_replicated_evidence
+  execution_adjacent: E5_internally_replicated_evidence
+  publication_claim: E4_internally_consistent_evidence
 
 required_review_roles:
   protocol_modification:
     - protocol_owner
   queue_prioritization:
     - domain_scientist
+  tool_or_workflow_mutation:
+    - workflow_owner
+  execution_adjacent:
+    - lab_safety_officer
+  publication_claim:
+    - domain_scientist
+
+requested_scope_overrides: {}
+
+hazard_triggers:
+  - condition: pyrophoric_reagent_present
+    decision: authorization_required
+  - condition: uncapped_pressure_vessel
+    decision: blocked
 
 blocked_actions: []
 

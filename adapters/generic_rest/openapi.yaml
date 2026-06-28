@@ -1,0 +1,61 @@
+openapi: 3.0.3
+info:
+  title: AKTA REST API
+  version: 0.4.0
+  description: Scientific action admissibility gate REST interface
+paths:
+  /v0/health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /v0/policy:
+    get:
+      summary: Policy metadata
+      responses:
+        "200":
+          description: Policy version and hashes
+  /v0/evaluate:
+    post:
+      summary: Evaluate action admissibility
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [requested_tool]
+              properties:
+                requested_tool:
+                  type: string
+                requested_action:
+                  type: string
+                ai_output: {}
+                context:
+                  type: object
+                deployment_profile:
+                  type: string
+                domain_overlay:
+                  type: string
+      responses:
+        "200":
+          description: AKTA decision
+  /v0/records:
+    post:
+      summary: Build AKTA record from decision
+      responses:
+        "200":
+          description: AKTA record
+  /v0/export/pcs:
+    post:
+      summary: Export PCS artifact bundle
+      responses:
+        "200":
+          description: PCS manifest
+  /v0/export/pf:
+    post:
+      summary: Export PF-Core obligation
+      responses:
+        "200":
+          description: PF obligation

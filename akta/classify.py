@@ -100,11 +100,51 @@ def action_to_responsibility(policy: PolicyBundle, action_type: str) -> str:
     return mapping.get(action_type, "R3_consequential_interpretation")
 
 
+def classify_from_structured_action(
+    structured: dict[str, Any] | None,
+    tool_payload: dict[str, Any] | None,
+) -> tuple[str | None, str, list[str]]:
+    """Resolve action type from structured context (priority over regex)."""
+    if structured and structured.get("action_type"):
+        action = str(structured["action_type"])
+        source = "structured_action"
+        alts = list(structured.get("alternate_action_types") or [])
+        return action, source, alts
+    if tool_payload and tool_payload.get("action_type"):
+        action = str(tool_payload["action_type"])
+        source = "tool_payload"
+        alts = list(tool_payload.get("alternate_action_types") or [])
+        return action, source, alts
+    return None, "", []
+
+
+def detect_handoff_authority_transfer(chain: list[dict[str, Any]]) -> bool:
+    """True when responsibility monotonically escalates across the handoff chain."""
+    ranks = [
+        responsibility_rank(h.get("responsibility_level", ""))
+        for h in chain
+        if h.get("responsibility_level")
+    ]
+    if len(ranks) < 2:
+        return False
+    return all(ranks[i] <= ranks[i + 1] for i in range(len(ranks) - 1)) and ranks[-1] > ranks[0]
+
+
+_NEGATION_PREFIX = re.compile(r"\b(do not|don't|never|without|not to)\b")
+
+
+def _keyword_match_negated(text: str, match_start: int) -> bool:
+    """True when a negation cue appears shortly before the keyword match."""
+    window = text[max(0, match_start - 48) : match_start]
+    return bool(_NEGATION_PREFIX.search(window))
+
+
 def classify_from_action_text(requested_action: str) -> tuple[str | None, list[str]]:
-    text = requested_action.lower()
+    text = requested_action.lower().replace("_", " ")
     matches: list[str] = []
     for pattern, action_type in ACTION_KEYWORDS:
-        if re.search(pattern, text):
+        hit = re.search(pattern, text)
+        if hit and not _keyword_match_negated(text, hit.start()):
             matches.append(action_type)
     if not matches:
         return None, []
@@ -177,7 +217,18 @@ def classify(
     uncertainty_flags: list[str] = []
     classifier_mode = "deterministic"
 
-    if tool_spec.known:
+    structured_action, structured_source, structured_alts = classify_from_structured_action(
+        context.structured_action, context.tool_payload
+    )
+    if structured_action:
+        action_type = structured_action
+        matched_source = structured_source
+        matched_evidence = structured_source
+        alternates.extend(structured_alts)
+        rationale_parts.append(f"{structured_source} specifies {structured_action}")
+        confidence = 0.99
+
+    if tool_spec.known and not structured_action:
         action_type = tool_spec.action_type
         matched_source = "tool_registry"
         matched_evidence = f"tool={requested_tool}"
@@ -192,24 +243,29 @@ def classify(
                 f"NL text suggests {nl_action} but tool registry overrides to {action_type}"
             )
     else:
-        action_type, alternates = classify_from_action_text(requested_action)
-        if action_type:
-            matched_source = "requested_action"
-            matched_evidence = f"action={requested_action}"
-            rationale_parts.append(f"requested_action '{requested_action}' matched {action_type}")
-            confidence = 0.85
-        elif ai_output:
-            text = ai_output if isinstance(ai_output, str) else str(
-                ai_output.get("summary", ai_output) if isinstance(ai_output, dict) else ai_output
-            )
-            action_type, alternates = classify_from_action_text(text) or (None, [])
-            if not action_type:
-                action_type, alternates = classify_from_action_text(requested_action)
-            if action_type:
-                matched_source = "ai_output"
-                matched_evidence = "ai_output text"
-                rationale_parts.append("inferred from ai_output text")
-                confidence = 0.75
+        if not action_type:
+            nl_action, nl_alts = classify_from_action_text(requested_action)
+            alternates.extend(nl_alts)
+            if nl_action:
+                action_type = nl_action
+                matched_source = "requested_action"
+                matched_evidence = f"action={requested_action}"
+                rationale_parts.append(f"requested_action '{requested_action}' matched {action_type}")
+                confidence = 0.85
+            elif ai_output:
+                text = ai_output if isinstance(ai_output, str) else str(
+                    ai_output.get("summary", ai_output) if isinstance(ai_output, dict) else ai_output
+                )
+                ai_action, ai_alts = classify_from_action_text(text) or (None, [])
+                if not ai_action:
+                    ai_action, ai_alts = classify_from_action_text(requested_action)
+                alternates.extend(ai_alts)
+                if ai_action:
+                    action_type = ai_action
+                    matched_source = "ai_output"
+                    matched_evidence = "ai_output text"
+                    rationale_parts.append("inferred from ai_output text")
+                    confidence = 0.75
 
     if not action_type:
         plugin_result = run_plugin_classification(
@@ -221,7 +277,7 @@ def classify(
             ai_output=ai_output,
         )
         if plugin_result is not None:
-            classifier_mode = "model_assisted"
+            classifier_mode = plugin_result.source if plugin_result.source == "llm_classifier" else "plugin_assisted"
             action_type = plugin_result.action_type
             confidence = plugin_result.confidence
             alternates.extend(plugin_result.alternates)
@@ -244,6 +300,8 @@ def classify(
 
     handoff_chain = context.handoff_chain or []
     if handoff_chain:
+        if detect_handoff_authority_transfer(handoff_chain):
+            uncertainty_flags.append("handoff_authority_transfer")
         max_handoff_action = action_type
         max_handoff_resp = responsibility_level
         for hop in handoff_chain:

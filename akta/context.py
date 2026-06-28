@@ -23,6 +23,8 @@ class AKTAContext:
     verification_status: str | None = None
     consequential: bool | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    tool_payload: dict[str, Any] | None = None
+    structured_action: dict[str, Any] | None = None
     vsa_report: dict[str, Any] | None = None
     prior_akta_records: list[dict[str, Any]] = field(default_factory=list)
     handoff_chain: list[dict[str, Any]] = field(default_factory=list)
@@ -42,6 +44,8 @@ class AKTAContext:
             "verification_status",
             "consequential",
             "metadata",
+            "tool_payload",
+            "structured_action",
             "vsa_report",
             "prior_akta_records",
             "handoff_chain",
@@ -71,6 +75,8 @@ class AKTAContext:
             "verification_status",
             "consequential",
             "metadata",
+            "tool_payload",
+            "structured_action",
             "vsa_report",
             "prior_akta_records",
             "handoff_chain",

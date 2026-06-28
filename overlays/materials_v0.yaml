@@ -1,11 +1,15 @@
 domain: materials
-version: materials_v0.1
+version: materials_v0.2
 operational: true
 
 minimum_evidence_for:
   recommendation: E4_internally_consistent_evidence
   experimental_planning: E4_internally_consistent_evidence
   queue_prioritization: E5_internally_replicated_evidence
+  protocol_modification: E4_internally_consistent_evidence
+  tool_or_workflow_mutation: E5_internally_replicated_evidence
+  execution_adjacent: E6_independently_reproduced_evidence
+  publication_claim: E5_internally_replicated_evidence
 
 required_review_roles:
   protocol_modification:
@@ -13,6 +17,25 @@ required_review_roles:
   queue_prioritization:
     - principal_investigator
     - lab_operations_lead
+  tool_or_workflow_mutation:
+    - workflow_owner
+  execution_adjacent:
+    - lab_safety_officer
+    - principal_investigator
+  publication_claim:
+    - domain_scientist
+    - communications_lead
+
+requested_scope_overrides:
+  robot_queue.submit: robot_queue_submission
+
+hazard_triggers:
+  - condition: pyrophoric_reagent_present
+    decision: authorization_required
+  - condition: reactive_metal_batch
+    decision: authorization_required
+  - condition: uncapped_pressure_vessel
+    decision: blocked
 
 blocked_actions:
   - A9_execution_adjacent_or_external_action

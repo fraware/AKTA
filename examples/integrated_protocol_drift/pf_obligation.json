@@ -1,0 +1,35 @@
+{
+  "obligation_id": "PF-OBL-AKTA-SAR-DRIFT0001",
+  "obligation_type": "tool_review",
+  "source": "AKTA",
+  "source_record_id": "AKTA-SAR-DRIFT0001",
+  "decision_id": "AKTA-DEC-DRIFT0001",
+  "decision": "review_required",
+  "decision_reason_hash": "sha256:24c91bb03ef39f5f31307b9c0e338df1ae28965f62984ca015674f4d9ef01635",
+  "blocked_tools": [
+    "protocol_editor.update_active_protocol"
+  ],
+  "allowed_tools": [],
+  "max_responsibility_level": "R4_methodological_modification",
+  "policy_hash": "sha256:e0951ca2ff63b3fce9b3c841b324c3bf23d0f2e4b062c0c3dd5a057f7af5944d",
+  "tool_registry_hash": "sha256:106f428d42b42d5f0f459d8e65da25f1f9ee237efb6a3b27fe880f83d7bc604c",
+  "domain_overlay_hash": "sha256:67d13db14ede89da9ffbd5592e7f081b209d25a03bc3942e7a7f1feac1d4eaab",
+  "scope_grant_ref": null,
+  "review_trigger_id": "AKTA-REVTRIG-DRIFT0001",
+  "expires_at": "2026-06-28T08:52:42Z",
+  "enforcement_mode": "review_gate",
+  "required_runtime_behavior": {
+    "block_execution": false,
+    "require_review_before_tool_call": true,
+    "require_authorization_before_tool_call": false,
+    "blocked_tools": [
+      "protocol_editor.update_active_protocol"
+    ],
+    "allowed_tools": [],
+    "log_all_tool_calls": false
+  },
+  "next_admissible_steps": [],
+  "required_review_role": "protocol_owner",
+  "consequentiality": true,
+  "obligation_hash": "sha256:738bb0b50387dfe4ce1edefd0dc72c826e35a4e17a8da43100f5f71b1e55a41a"
+}

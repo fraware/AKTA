@@ -21,7 +21,7 @@ Every AKTA Decision and Record includes:
 
 ```json
 {
-  "policy_version": "akta-core-v0.1",
+  "policy_version": "akta-core-v0.4",
   "policy_hash": "sha256:...",
   "tool_registry_hash": "sha256:..."
 }
@@ -47,7 +47,7 @@ If policy files are modified without updating references:
 2. PF-Core obligations become invalid
 3. PCS manifest hash files will not match record provenance
 
-v0.1 does not include signed policy releases. Integrators should pin policy versions and verify hashes at startup.
+v0.4 includes optional HMAC-SHA256 manifest verification via `policy/policy_manifest.yaml`. Enable with `AKTA_VERIFY_POLICY=1` or pass `required=True` to `verify_policy_integrity()`. Production deployments should pin policy versions and verify hashes (and signatures when configured) at startup.
 
 ## Tool registry integrity
 

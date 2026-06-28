@@ -73,15 +73,28 @@ def run_scenario_eval(
             checks["next_admissible_steps"] = (
                 len(d.get("next_admissible_steps", [])) >= exp["next_admissible_steps_min"]
             )
+        if exp.get("expected_next_admissible_steps"):
+            actual_steps = set(d.get("next_admissible_steps", []))
+            checks["expected_next_admissible_steps"] = all(
+                step in actual_steps for step in exp["expected_next_admissible_steps"]
+            )
+        if exp.get("requested_scope"):
+            trigger = d.get("review_trigger") or {}
+            checks["requested_scope"] = trigger.get("requested_scope") == exp["requested_scope"]
 
         passed = all(checks.values())
         if passed:
             passed_count += 1
 
+        failure_mode = scenario.get("failure_mode") or exp.get("failure_mode")
+        severity = scenario.get("severity") or exp.get("severity")
+
         results.append({
             "scenario_id": sid,
             "passed": passed,
             "checks": checks,
+            "failure_mode": failure_mode,
+            "severity": severity,
             "expected": exp,
             "actual": {
                 "admissibility": d["admissibility"],
@@ -89,6 +102,11 @@ def run_scenario_eval(
                 "responsibility_level": d["responsibility_level"],
                 "evidence_state": d["evidence_state"],
                 "validation_status": d["validation_status"],
+                "requested_scope": (d.get("review_trigger") or {}).get("requested_scope"),
+                "review_trigger_id": (d.get("review_trigger") or {}).get("review_trigger_id"),
+                "policy_hash": d.get("policy_hash"),
+                "tool_registry_hash": d.get("tool_registry_hash"),
+                "next_admissible_steps": d.get("next_admissible_steps", []),
             },
         })
 

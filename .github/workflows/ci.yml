@@ -27,8 +27,8 @@ jobs:
       - name: Run pytest
         run: pytest tests/ skills/akta-scientific-action-admissibility/tests/ -v
 
-      - name: Run integration contract tests
-        run: pytest tests/integration/ -v
+      - name: Run integration and contract tests
+        run: pytest tests/integration/ tests/contracts/ -v
 
       - name: Validate JSON schemas
         run: pytest tests/test_schemas.py -v
@@ -47,11 +47,17 @@ jobs:
             --expected scenarios/expected_decisions.jsonl \
             --out evals/reports/public_100.json
 
+      - name: Run oracle-independent eval
+        run: python evals/run_oracle_independent.py --out evals/reports/oracle_independent.json
+
       - name: Invalid fixtures must fail
         run: pytest tests/test_invalid_cases.py -v
 
       - name: Run integrated weak-evidence demo
         run: python scripts/demo_integrated_weak_evidence.py
+
+      - name: Run integrated protocol-drift demo
+        run: python scripts/demo_akta_scope_protocol_drift.py
 
       - name: Upload eval reports
         if: always()

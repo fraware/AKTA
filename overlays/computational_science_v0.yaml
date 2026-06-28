@@ -1,17 +1,34 @@
 domain: computational_science
-version: computational_science_v0.1
+version: computational_science_v0.2
 operational: true
 
 minimum_evidence_for:
   recommendation: E3_noisy_or_conflicting_evidence
   experimental_planning: E4_internally_consistent_evidence
   queue_prioritization: E5_internally_replicated_evidence
+  protocol_modification: E4_internally_consistent_evidence
+  tool_or_workflow_mutation: E4_internally_consistent_evidence
+  execution_adjacent: E5_internally_replicated_evidence
+  publication_claim: E4_internally_consistent_evidence
 
 required_review_roles:
   protocol_modification:
     - compute_lead
   queue_prioritization:
     - project_lead
+  tool_or_workflow_mutation:
+    - compute_lead
+  execution_adjacent:
+    - project_lead
+  publication_claim:
+    - compute_lead
+
+requested_scope_overrides:
+  workflow.update_state: execution_payload_preparation
+
+hazard_triggers:
+  - condition: production_cluster_mutation
+    decision: authorization_required
 
 blocked_actions: []
 

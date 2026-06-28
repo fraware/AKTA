@@ -52,6 +52,18 @@ def classify_consequentiality(
 
     if tool_spec.mutates_state:
         reasons.append("mutating tool")
+    if context.consequential is True:
+        reasons.append("context.consequential flag")
+    if context.metadata:
+        if context.metadata.get("consequential") is True:
+            reasons.append("metadata.consequential flag")
+        if context.metadata.get("mutates_external_state"):
+            reasons.append("metadata mutates_external_state")
+    structured = context.structured_action or context.tool_payload or {}
+    if structured.get("consequential") is True:
+        reasons.append("structured consequential signal")
+    if structured.get("external_effect") is True:
+        reasons.append("structured external_effect")
     if tool_spec.external_effect:
         reasons.append("external effect")
     if action_type in CONSEQUENTIAL_ACTIONS:

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/review_decision.schema.json",
+  "title": "SCOPE Review Decision Import",
+  "type": "object",
+  "required": ["review_decision_id", "review_trigger_id", "decision", "reviewer_id"],
+  "properties": {
+    "review_decision_id": { "type": "string" },
+    "review_trigger_id": { "type": "string" },
+    "decision": { "type": "string", "enum": ["approved", "denied", "deferred"] },
+    "granted_scope": { "type": "string" },
+    "reviewer_id": { "type": "string" },
+    "expires_at": { "type": "string" },
+    "comments": { "type": "string" }
+  },
+  "additionalProperties": true
+}

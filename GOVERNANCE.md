@@ -8,11 +8,11 @@ AKTA is an open protocol with a reference implementation. It is stewarded as a s
 
 - **Protocol changes** (schemas, ontologies, deployment profiles): require design review and version bump.
 - **Reference kernel changes**: follow normal pull request review.
-- **Domain overlays**: operational overlays (materials, computational science, generic lab) are maintained in-repo; high-risk domain overlays (biology, chemistry, clinical) remain non-operational placeholders until domain expert review.
+- **Domain overlays**: operational overlays include generic lab, materials, computational science, biology, chemistry, and clinical (v0.4). Domain-specific hazard triggers and reviewer roles are maintained in-repo; institutional deployment still requires local governance review.
 
 ## Versioning
 
-AKTA follows semantic versioning for the reference implementation package (`akta-protocol`). Schema versions are embedded in artifact metadata (e.g., `akta-core-v0.1`, `akta-record-v0.1`).
+AKTA follows semantic versioning for the reference implementation package (`akta-protocol`). Schema versions are embedded in artifact metadata (e.g., `akta-core-v0.4`, `akta-record-v0.4`).
 
 ## Non-certification
 
@@ -20,7 +20,7 @@ AKTA does not certify autonomous labs, safety compliance, or scientific correctn
 
 ## P7 exclusion
 
-Deployment profile P7 (fully autonomous scientific operator) is defined for future taxonomy only. AKTA v0.1 does not support or certify fully autonomous scientific operation.
+Deployment profile P7 (fully autonomous scientific operator) is defined for future taxonomy only. AKTA raises `UnsupportedProfileError` if P7 is requested. **P7 runtime is a permanent non-goal** unless the Open Scientific Action Protocol specification explicitly adds P7 support in a future version.
 
 ## Maintainers
 

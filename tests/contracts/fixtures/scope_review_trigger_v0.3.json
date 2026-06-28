@@ -1,0 +1,49 @@
+{
+  "review_trigger_id": "AKTA-REVTRIG-48F7B23F",
+  "review_trigger_version": "0.3",
+  "decision_id": "AKTA-DEC-7B24CBA2",
+  "akta_decision_id": "AKTA-DEC-7B24CBA2",
+  "source_record_id": "AKTA-SAR-PENDING-7B24CBA2",
+  "akta_record_id": "AKTA-SAR-PENDING-7B24CBA2",
+  "requested_tool": "protocol_editor.update_active_protocol",
+  "requested_action": "update_threshold",
+  "deployment_profile": "P4_protocol_drafting_assistant",
+  "scientific_action_type": "A5_protocol_modification",
+  "responsibility_level": "R4_methodological_modification",
+  "evidence_state": "E4_internally_consistent_evidence",
+  "validation_status": "V3_preliminary_experimental_support",
+  "verification_status": "Q0_unchecked",
+  "admissibility": "review_required",
+  "decision_reason": "Evidence rule E4_internally_consistent_evidence+A5_protocol_modification constrains to review_required (resolved from draft_only_or_review_required). Tool registry default permission for protocol_editor.update_active_protocol is review_required.",
+  "required_review_role": "protocol_owner",
+  "requested_scope": "active_protocol_update",
+  "review_artifacts_required": [
+    "ai_output",
+    "akta_record",
+    "protocol_diff",
+    "evidence_state",
+    "validation_status",
+    "blocked_tools",
+    "next_admissible_steps"
+  ],
+  "blocked_tools": [
+    "protocol_editor.update_active_protocol"
+  ],
+  "allowed_next_steps": [],
+  "approval_effect": "Allows scoped next step only; not global permission.",
+  "default_expiration": "single_run",
+  "policy_hash": "sha256:cf77192ad7fe6144e8b494e2ed29479b1754704041ec1e1d4897ea4649f4fbd4",
+  "tool_registry_hash": "sha256:3dece8b23b7e10e1fd5444c65bcb50d52d23bf5d65864ce9aa46e2f3de59ddce",
+  "classifier_confidence": 0.98,
+  "classification_rationale": "tool registry maps protocol_editor.update_active_protocol to A5_protocol_modification",
+  "consequentiality": true,
+  "consequentiality_reason": "mutating tool; external effect; action type A5_protocol_modification; active protocol mutation",
+  "scientific_context": {
+    "domain": "generic_lab",
+    "project_id": null,
+    "system_id": "example_agent"
+  },
+  "review_route": "active_protocol_review",
+  "domain_overlay_hash": "sha256:67d13db14ede89da9ffbd5592e7f081b209d25a03bc3942e7a7f1feac1d4eaab",
+  "review_trigger_hash": "sha256:61873cd752c8a1bdcd958164f4ebbd0e703f39d02b8c870a4e9a175466d30231"
+}

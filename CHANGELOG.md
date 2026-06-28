@@ -4,6 +4,58 @@ All notable changes to AKTA are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0] - 2026-06-28
+
+### Added
+
+- Operational domain overlays: `biology_v0.yaml`, `chemistry_v0.yaml`, `clinical_v0.yaml` (replace placeholders)
+- Policy integrity: `policy/policy_manifest.yaml` with HMAC-SHA256 verification (`akta/policy_integrity.py`)
+- Review lifecycle: `akta/review_context.py` (F12 disclaimer, F14 stale review, prior record influence)
+- Review decision import stub: `schemas/review_decision.schema.json`, `akta/review_decision.py`
+- Structured classification from `context.structured_action` / `context.tool_payload`
+- Optional LLM classifier plugin (`AKTA_LLM_CLASSIFIER` + `OPENAI_API_KEY`, fail-closed without key)
+- SCOPE adapter: `adapters/scope/client.py` (simulated or subprocess via `SCOPE_CLI`)
+- MCP stdio server: `adapters/mcp/server.py` (`akta_evaluate`, `akta_export`)
+- Guardrail adapters: `adapters/guardrails/openai_adapter.py`, `anthropic_adapter.py`
+- PCS-Bench export: `adapters/pcs_bench/export_suite.py`
+- Transition runner: `evals/transition_runner.py` (SCOPE grant → re-gate)
+- Oracle-independent scenarios: `scenarios/oracle_independent.jsonl` (10 hand-written labels)
+- Tool registry expanded to 27 tools; `scientific_memory.import` → A8 with correct mutability
+- REST OpenAPI spec at `adapters/generic_rest/openapi.yaml`; API version v0.3
+
+### Changed
+
+- Policy version `akta-core-v0.4`; package version `0.4.0`
+- PCS manifest `schema_version` → `akta-record-v0.3`
+- PF obligation export adds `decision_reason_hash`, `scope_grant_ref`, `review_trigger_id`, `expires_at`
+- LangGraph middleware: `AKTAReviewRequired` for review_required; draft_only allows non-mutating tools only
+- `allowed_log_nonconseq` respects consequentiality; legacy evidence matrix fail-closed for consequential actions
+- Review triggers emit `expires_at`; demo weak-evidence exports review trigger only when primary path requires review
+- Archived `scenarios/public_40.jsonl` (superseded by `public_100.jsonl`)
+
+### Removed
+
+- Placeholder overlays (`biology_placeholder.yaml`, etc.)
+
+## [0.3.0] - 2026-06-28
+
+### Added
+
+- SCOPE v0.3 review trigger schema: required `requested_scope`, optional `review_route`, ID aliases (`akta_decision_id`, `akta_record_id`)
+- `policy/tool_to_requested_scope.yaml` tool-to-scope mapping for A5–A10 review-relevant tools
+- `akta/scope_mapping.py` resolver with valid SCOPE enum enforcement
+- AKTA x SCOPE integrated protocol-drift demo (`examples/integrated_protocol_drift/`, `make demo-akta-scope-protocol-drift`)
+- Cross-repo contract tests: `tests/contracts/` with SCOPE fixture simulator, PF obligation, PCS manifest fixtures
+- Scenario eval checks for `requested_scope`, severity, failure_mode tags; `requested_scope_accuracy` metric
+- Domain overlay v0.2 expansions: A5/A8/A9/A10 minimum evidence, reviewer roles, hazard triggers, scope overrides
+
+### Changed
+
+- Policy version bumped to `akta-core-v0.3`; package version `0.3.0`
+- Review trigger version `0.3`; deprecated v0.2 `review_scope` vocabulary removed from emission
+- `expected_decisions.jsonl` enriched with `requested_scope`, severity, and failure_mode metadata
+- Documentation refresh: `docs/limitations.md` v0.2/v0.3 sections, `docs/scope_bridge.md` v0.3 fields
+
 ## [0.2.0] - 2026-06-27
 
 ### Added

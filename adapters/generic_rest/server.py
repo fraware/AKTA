@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from importlib.metadata import version as pkg_version
+
 from akta.cards import validate_card
 from akta.context import AKTAContext
 from akta.errors import AKTAError, SchemaValidationError
@@ -64,7 +66,14 @@ class AKTARESTHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         try:
             if path == "/v0/health":
-                self._send_json(HTTPStatus.OK, {"status": "ok", "version": "0.1"})
+                self._send_json(HTTPStatus.OK, {
+                    "status": "ok",
+                    "version": pkg_version("akta-protocol"),
+                    "api_version": "v0.4",
+                })
+            elif path == "/v0/openapi":
+                spec_path = Path(__file__).resolve().parent / "openapi.yaml"
+                self._send_json(HTTPStatus.OK, {"openapi_path": str(spec_path), "api_version": "v0.4"})
             elif path == "/v0/policy":
                 gate = self._gate()
                 self._send_json(

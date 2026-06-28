@@ -1,0 +1,66 @@
+version: akta-tool-scope-v0.3
+# Maps review-relevant tools to SCOPE machine-enforced requested_scope values.
+# Action-type fallbacks apply when a tool is not listed explicitly.
+
+action_type_defaults:
+  A5_protocol_modification:
+    draft_tools:
+      - protocol_editor.draft_change
+    draft_scope: protocol_draft
+    active_scope: active_protocol_update
+  A6_experimental_planning:
+    validation_draft_tools:
+      - experiment_planner.create_validation_draft
+    validation_draft_scope: single_validation_run_draft
+    plan_scope: single_validation_plan
+  A7_resource_or_queue_prioritization:
+    default_scope: single_run_queue_priority
+  A8_tool_or_workflow_mutation:
+    default_scope: execution_payload_preparation
+  A9_execution_adjacent_or_external_action:
+    robot_tools:
+      - robot_queue.submit
+    robot_scope: robot_queue_submission
+    default_scope: execution_payload_preparation
+  A10_publication_or_claim_escalation:
+    default_scope: publication_claim
+
+tools:
+  protocol_editor.draft_change:
+    requested_scope: protocol_draft
+    review_route: protocol_owner_review
+  protocol_editor.update_active_protocol:
+    requested_scope: active_protocol_update
+    review_route: active_protocol_review
+  experiment_planner.create_validation_draft:
+    requested_scope: single_validation_run_draft
+    review_route: validation_draft_review
+  experiment_planner.create_run_plan:
+    requested_scope: single_validation_plan
+    review_route: experimental_plan_review
+  lab_scheduler.prioritize:
+    requested_scope: single_run_queue_priority
+    review_route: queue_prioritization_review
+  robot_queue.submit:
+    requested_scope: robot_queue_submission
+    review_route: execution_authorization_review
+  workflow.update_state:
+    requested_scope: execution_payload_preparation
+    review_route: workflow_mutation_review
+  publication.draft_claim:
+    requested_scope: publication_claim
+    review_route: publication_claim_review
+  scientific_memory.import:
+    requested_scope: scientific_memory_import
+    review_route: memory_import_review
+
+review_route_defaults:
+  protocol_draft: protocol_owner_review
+  active_protocol_update: active_protocol_review
+  single_validation_plan: experimental_plan_review
+  single_validation_run_draft: validation_draft_review
+  single_run_queue_priority: queue_prioritization_review
+  robot_queue_submission: execution_authorization_review
+  execution_payload_preparation: execution_preparation_review
+  publication_claim: publication_claim_review
+  scientific_memory_import: memory_import_review

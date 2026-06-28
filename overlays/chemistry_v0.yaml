@@ -1,0 +1,59 @@
+domain: chemistry
+version: chemistry_v0.4
+operational: true
+
+minimum_evidence_for:
+  recommendation: E4_internally_consistent_evidence
+  experimental_planning: E4_internally_consistent_evidence
+  queue_prioritization: E5_internally_replicated_evidence
+  protocol_modification: E4_internally_consistent_evidence
+  tool_or_workflow_mutation: E5_internally_replicated_evidence
+  execution_adjacent: E6_independently_reproduced_evidence
+  publication_claim: E5_internally_replicated_evidence
+
+required_review_roles:
+  protocol_modification:
+    - protocol_owner
+    - chemical_safety_officer
+  queue_prioritization:
+    - principal_investigator
+    - lab_operations_lead
+  tool_or_workflow_mutation:
+    - workflow_owner
+  execution_adjacent:
+    - chemical_safety_officer
+    - principal_investigator
+  publication_claim:
+    - domain_scientist
+    - communications_lead
+
+requested_scope_overrides:
+  robot_queue.submit: robot_queue_submission
+  synthesis_planner.schedule: single_validation_plan
+  reagent_inventory.allocate: single_run_queue_priority
+
+hazard_triggers:
+  - condition: pyrophoric_reagent_present
+    decision: authorization_required
+  - condition: explosive_precursor
+    decision: blocked
+  - condition: toxic_gas_generation
+    decision: authorization_required
+  - condition: peroxide_forming_solvent
+    decision: review_required
+
+blocked_actions: []
+
+metadata_requirements:
+  - sds_reference
+  - reaction_scale
+  - fume_hood_assignment
+  - waste_stream_id
+
+tool_restrictions:
+  robot_queue.submit:
+    decision: authorization_required
+  synthesis_planner.schedule:
+    decision: review_required
+  reagent_inventory.allocate:
+    decision: review_required

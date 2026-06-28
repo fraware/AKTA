@@ -137,6 +137,8 @@ class AKTAGate:
                     "project_id": ctx.project_id,
                     "system_id": ctx.system_id,
                 },
+                scope_config=self.policy.tool_to_requested_scope,
+                overlay=overlay_obj,
             )
             if validate_output:
                 validate_against_schema(review_trigger, "review_trigger.schema.json")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -10,7 +11,15 @@ from akta.consequentiality import ConsequentialityResult, classify_consequential
 from akta.context import AKTAContext
 from akta.overlays import DomainOverlay
 from akta.policy import PolicyBundle
+from akta.review_context import (
+    evaluate_disclaimer_boundary,
+    evaluate_prior_akta_records,
+    evaluate_prior_review,
+)
 from akta.tool_registry import ToolSpec
+
+
+logger = logging.getLogger(__name__)
 
 
 DECISION_ORDER = {
@@ -38,31 +47,7 @@ PERMISSION_TO_DECISION = {
 }
 
 
-@dataclass
-class EvaluationLayer:
-    """Single policy layer contribution."""
-
-    source: str
-    decision: str
-    reason: str
-
-
-@dataclass
-class EvaluationResult:
-    """Composed admissibility evaluation."""
-
-    admissibility: str
-    layers: list[EvaluationLayer] = field(default_factory=list)
-    decision_reason: str = ""
-    required_review_role: str | None = None
-    blocked_tools: list[str] = field(default_factory=list)
-    allowed_tools: list[str] = field(default_factory=list)
-    next_admissible_steps: list[str] = field(default_factory=list)
-    review_required: bool = False
-    authorization_required: bool = False
-    record_required: bool = True
-    consequentiality: bool = False
-    consequentiality_reason: str = ""
+from akta.evaluation_types import EvaluationLayer, EvaluationResult
 
 
 def strictest(*decisions: str) -> str:
@@ -87,7 +72,9 @@ def resolve_conditional_decision(
 
     if raw in ("allowed_log_or_review", "allowed_log_nonconseq"):
         if raw == "allowed_log_nonconseq":
-            return "allowed_with_logging"
+            return (
+                "review_required" if consequentiality.consequential else "allowed_with_logging"
+            )
         return "review_required" if consequentiality.consequential else "allowed_with_logging"
 
     if raw in ("draft_only_or_review_required", "draft_only_or_review"):
@@ -146,7 +133,9 @@ def evidence_decision(
     rules = policy.evidence_to_action_rules.get("rules", {})
     state_rules = rules.get(evidence_state)
     if not state_rules:
-        return _legacy_evidence_decision(policy, evidence_state, action_type)
+        return _legacy_evidence_decision(
+            policy, evidence_state, action_type, tool_spec, consequentiality
+        )
 
     raw = state_rules.get(action_type)
     if raw is None:
@@ -165,11 +154,23 @@ def _legacy_evidence_decision(
     policy: PolicyBundle,
     evidence_state: str,
     action_type: str,
+    tool_spec: ToolSpec,
+    consequentiality: ConsequentialityResult,
 ) -> tuple[str | None, str]:
-    """Fallback to legacy rank-based matrix for backward compatibility."""
+    """Fallback to legacy rank-based matrix; fail-closed for consequential actions."""
     constraints = policy.evidence_to_action_matrix.get("constraints", {})
     constraint = constraints.get(evidence_state)
     if not constraint:
+        if consequentiality.consequential or tool_spec.mutates_state:
+            logger.warning(
+                "No evidence rules for %s; fail-closed block for consequential action %s",
+                evidence_state,
+                action_type,
+            )
+            return "blocked", (
+                f"No evidence rules for {evidence_state}; fail-closed block for "
+                f"consequential action {action_type}."
+            )
         return None, ""
 
     max_action = constraint.get("max_action", "A2_hypothesis_generation")
@@ -213,8 +214,12 @@ def overlay_decision(
     min_evidence = overlay.minimum_evidence_for()
     action_key_map = {
         "A4_recommendation": "recommendation",
+        "A5_protocol_modification": "protocol_modification",
         "A6_experimental_planning": "experimental_planning",
         "A7_resource_or_queue_prioritization": "queue_prioritization",
+        "A8_tool_or_workflow_mutation": "tool_or_workflow_mutation",
+        "A9_execution_adjacent_or_external_action": "execution_adjacent",
+        "A10_publication_or_claim_escalation": "publication_claim",
     }
     key = action_key_map.get(action_type)
     if key and key in min_evidence:
@@ -244,6 +249,36 @@ def overlay_decision(
             )
 
     return layers
+
+
+def hazard_trigger_decision(
+    overlay: DomainOverlay | None,
+    context: AKTAContext,
+) -> EvaluationLayer | None:
+    """Apply domain hazard triggers from overlay metadata/context."""
+    if overlay is None:
+        return None
+
+    triggers = overlay.data.get("hazard_triggers", [])
+    if not triggers:
+        return None
+
+    metadata = context.metadata or {}
+    active_hazards = set(metadata.get("hazard_flags", []))
+    if metadata.get("hazard_condition"):
+        active_hazards.add(str(metadata["hazard_condition"]))
+
+    for trigger in triggers:
+        condition = trigger.get("condition")
+        if not condition or condition not in active_hazards:
+            continue
+        decision = trigger.get("decision", "authorization_required")
+        return EvaluationLayer(
+            source="domain_overlay_hazard",
+            decision=decision,
+            reason=f"Domain overlay hazard trigger {condition} requires {decision}.",
+        )
+    return None
 
 
 def _evidence_rank(evidence_state: str) -> int:
@@ -276,6 +311,21 @@ def handoff_escalation_decision(context: AKTAContext) -> EvaluationLayer | None:
     ranks = [responsibility_rank(l) for l in levels if l]
     if not ranks:
         return None
+
+    # Monotonic authority transfer: each hop escalates responsibility.
+    monotonic_escalation = all(
+        ranks[i] <= ranks[i + 1] for i in range(len(ranks) - 1)
+    ) and ranks[-1] > ranks[0]
+
+    if monotonic_escalation and ranks[-1] - ranks[0] >= 2:
+        return EvaluationLayer(
+            source="handoff_chain",
+            decision="review_required",
+            reason=(
+                "Handoff chain shows monotonic authority transfer with "
+                f"responsibility escalation {levels[0]} -> {levels[-1]}."
+            ),
+        )
     if max(ranks) - min(ranks) >= 3:
         return EvaluationLayer(
             source="handoff_chain",
@@ -289,6 +339,51 @@ def handoff_escalation_decision(context: AKTAContext) -> EvaluationLayer | None:
             reason="Handoff chain reaches resource allocation responsibility level.",
         )
     return None
+
+
+def _draft_only_allowed_tools(
+    policy: PolicyBundle,
+    tool_spec: ToolSpec,
+    requested_tool: str,
+) -> list[str]:
+    """Policy-driven draft-only allowlist from tool registry."""
+    allowed: list[str] = []
+    tools = policy.tool_registry.get("tools", {})
+    for name, spec in tools.items():
+        if spec.get("default_permission") == "draft_only" and not spec.get("mutates_state", False):
+            allowed.append(name)
+    if requested_tool in tools and not tool_spec.mutates_state:
+        allowed.append(requested_tool)
+    return sorted(set(allowed))
+
+
+def _blocked_tools_closure(
+    policy: PolicyBundle,
+    action_type: str,
+    requested_tool: str,
+    tool_spec: ToolSpec,
+) -> list[str]:
+    """Expand blocked tools to action-type family and mutating siblings."""
+    blocked = {requested_tool}
+    tools = policy.tool_registry.get("tools", {})
+    family = tools.get(requested_tool, {}).get("action_family")
+    target_action = tool_spec.action_type
+
+    for name, spec in tools.items():
+        if spec.get("action_type") == target_action and spec.get("mutates_state"):
+            blocked.add(name)
+        if family and spec.get("action_family") == family and spec.get("mutates_state"):
+            blocked.add(name)
+
+    if action_type == "A7_resource_or_queue_prioritization":
+        blocked.add("robot_queue.submit")
+    if action_type == "A9_execution_adjacent_or_external_action":
+        blocked.update(
+            n for n, s in tools.items()
+            if s.get("action_type") == "A9_execution_adjacent_or_external_action"
+            and s.get("mutates_state")
+        )
+    return sorted(blocked)
 
 
 def low_confidence_decision(
@@ -373,6 +468,8 @@ def required_review_role_for(
             "A5_protocol_modification": "protocol_owner",
             "A6_experimental_planning": "domain_scientist",
             "A7_resource_or_queue_prioritization": "domain_scientist",
+            "A8_tool_or_workflow_mutation": "workflow_owner",
+            "A9_execution_adjacent_or_external_action": "lab_safety_officer",
             "A10_publication_or_claim_escalation": "domain_scientist",
         }
         return default_roles.get(action_type)
@@ -381,6 +478,9 @@ def required_review_role_for(
     key_map = {
         "A5_protocol_modification": "protocol_modification",
         "A7_resource_or_queue_prioritization": "queue_prioritization",
+        "A8_tool_or_workflow_mutation": "tool_or_workflow_mutation",
+        "A9_execution_adjacent_or_external_action": "execution_adjacent",
+        "A10_publication_or_claim_escalation": "publication_claim",
     }
     key = key_map.get(action_type)
     if key and key in roles:
@@ -431,6 +531,10 @@ def evaluate_admissibility(
 
     layers.extend(overlay_decision(overlay, action_type, evidence_state, requested_tool))
 
+    hazard_layer = hazard_trigger_decision(overlay, context)
+    if hazard_layer:
+        layers.append(hazard_layer)
+
     tool_layer = tool_registry_decision(tool_spec, requested_tool)
     if tool_layer:
         layers.append(tool_layer)
@@ -443,6 +547,20 @@ def evaluate_admissibility(
     if conf_layer:
         layers.append(conf_layer)
 
+    prior_review_layer = evaluate_prior_review(
+        context.metadata, action_type, requested_tool, tool_spec
+    )
+    if prior_review_layer:
+        layers.append(prior_review_layer)
+
+    prior_records_layer = evaluate_prior_akta_records(context.prior_akta_records, action_type)
+    if prior_records_layer:
+        layers.append(prior_records_layer)
+
+    disclaimer_layer = evaluate_disclaimer_boundary(context.metadata, tool_spec, requested_tool)
+    if disclaimer_layer:
+        layers.append(disclaimer_layer)
+
     final = strictest(*(layer.decision for layer in layers))
     reasons = [layer.reason for layer in layers if layer.decision == final]
     if not reasons:
@@ -453,16 +571,19 @@ def evaluate_admissibility(
     allowed_tools: list[str] = []
 
     if final in ("blocked", "abstain_insufficient_context", "authorization_required", "review_required"):
-        blocked_tools = [requested_tool]
-        if action_type == "A7_resource_or_queue_prioritization":
-            blocked_tools.append("robot_queue.submit")
+        blocked_tools = _blocked_tools_closure(policy, action_type, requested_tool, tool_spec)
     elif final == "draft_only":
         blocked_tools = [requested_tool] if tool_spec.mutates_state else []
-        allowed_tools = ["experiment_planner.create_validation_draft"]
+        allowed_tools = _draft_only_allowed_tools(policy, tool_spec, requested_tool)
         if requested_tool in VALIDATION_DRAFT_TOOLS or not tool_spec.mutates_state:
-            allowed_tools.append(requested_tool)
+            if requested_tool not in allowed_tools:
+                allowed_tools.append(requested_tool)
     else:
         allowed_tools = [requested_tool]
+
+    if final != "draft_only" and not allowed_tools:
+        if final not in ("blocked", "abstain_insufficient_context", "authorization_required", "review_required"):
+            allowed_tools = [requested_tool]
 
     next_steps = next_admissible_steps_for(action_type, evidence_state, final)
 

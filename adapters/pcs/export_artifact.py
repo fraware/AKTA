@@ -10,7 +10,12 @@ from akta.hash import hash_object
 from akta.records import validate_against_schema
 
 
-def build_pcs_manifest(record: dict[str, Any], decision: dict[str, Any] | None = None) -> dict[str, Any]:
+def build_pcs_manifest(
+    record: dict[str, Any],
+    decision: dict[str, Any] | None = None,
+    *,
+    include_scope_packet: bool = False,
+) -> dict[str, Any]:
     """Build PCS manifest from record and optional full decision."""
     provenance = record.get("provenance", {})
     files = [
@@ -22,10 +27,12 @@ def build_pcs_manifest(record: dict[str, Any], decision: dict[str, Any] | None =
     ]
     if record.get("review_trigger"):
         files.append("review_trigger.json")
+    if include_scope_packet:
+        files.append("scope_review_packet.json")
 
     manifest = {
         "artifact_type": "akta_scientific_action_record",
-        "schema_version": "akta-record-v0.2",
+        "schema_version": "akta-record-v0.4",
         "record_hash": record.get("record_hash"),
         "policy_hash": provenance.get("policy_hash"),
         "domain_overlay_hash": provenance.get("domain_overlay_hash"),
@@ -45,6 +52,7 @@ def export_pcs_bundle(
     out_dir: str | Path,
     *,
     decision: dict[str, Any] | None = None,
+    scope_review_packet: dict[str, Any] | None = None,
     validate: bool = True,
 ) -> Path:
     """Export AKTA Record as PCS-compatible artifact bundle."""
@@ -69,7 +77,9 @@ def export_pcs_bundle(
     if validate and not provenance.get("policy_hash", "").startswith("sha256:"):
         raise ValueError("PCS export requires valid policy_hash on record provenance")
 
-    manifest = build_pcs_manifest(data, decision_payload)
+    manifest = build_pcs_manifest(
+        data, decision_payload, include_scope_packet=scope_review_packet is not None
+    )
 
     (out_dir / "akta_record.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
     (out_dir / "akta_decision.json").write_text(json.dumps(decision_payload, indent=2), encoding="utf-8")
@@ -84,6 +94,11 @@ def export_pcs_bundle(
     review_trigger = data.get("review_trigger")
     if review_trigger:
         (out_dir / "review_trigger.json").write_text(json.dumps(review_trigger, indent=2), encoding="utf-8")
+
+    if scope_review_packet is not None:
+        (out_dir / "scope_review_packet.json").write_text(
+            json.dumps(scope_review_packet, indent=2), encoding="utf-8"
+        )
 
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 

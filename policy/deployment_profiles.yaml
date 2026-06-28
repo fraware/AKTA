@@ -1,4 +1,4 @@
-version: akta-core-v0.1
+version: akta-core-v0.4
 profiles:
   P0_no_action_assistant:
     id: P0
@@ -32,4 +32,4 @@ profiles:
     id: P7
     name: fully_autonomous_scientific_operator
     supported: false
-    disclaimer: "P7 is defined for future taxonomy only. AKTA v0.1 does not support or certify fully autonomous scientific operation."
+    disclaimer: "P7 is defined for future taxonomy only. AKTA does not support or certify fully autonomous scientific operation. This is a permanent non-goal unless the AKTA specification explicitly adds P7 runtime support."
