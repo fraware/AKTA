@@ -58,6 +58,7 @@ def build_pcs_manifest(
         "schema_version": PCS_SCHEMA_VERSION,
         "record_hash": record.get("record_hash"),
         "policy_hash": provenance.get("policy_hash"),
+        "integrity_mode": provenance.get("integrity_mode"),
         "domain_overlay_hash": provenance.get("domain_overlay_hash"),
         "tool_registry_hash": provenance.get("tool_registry_hash"),
         "decision_id": (decision or {}).get("decision_id") or record.get("record_id", "").replace("SAR", "DEC"),
