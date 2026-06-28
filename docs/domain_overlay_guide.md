@@ -8,28 +8,47 @@ Overlays encode domain science norms that the generic kernel cannot assume:
 
 - Minimum evidence thresholds for recommendations, planning, and queue prioritization
 - Required review roles for sensitive action types
-- Blocked action types for immature domains
+- Hazard triggers with decision escalation
+- SCOPE `requested_scope` overrides
 - Tool-specific restrictions
+
+## Governance tiers (v0.5+)
+
+| Tier | Production deployment |
+|------|----------------------|
+| `core_reference` | Allowed |
+| `experimental_domain_overlay` | Refused when `AKTA_PRODUCTION_MODE=1` |
+| `expert_reviewed_domain_overlay` | Allowed when institutionally approved |
+| `institutional_deployment_overlay` | Allowed |
+
+See [overlays/README.md](../overlays/README.md) for tier promotion workflow.
 
 ## Overlay files
 
 Overlays live in `overlays/` as YAML files validated against `schemas/domain_overlay.schema.json`.
 
-| Overlay | Status | Domain |
-|---------|--------|--------|
-| `generic_lab_v0.yaml` | Operational | Generic laboratory |
-| `materials_v0.yaml` | Operational | Materials science |
-| `computational_science_v0.yaml` | Operational | Computational science |
-| `biology_placeholder.yaml` | Placeholder | Biology |
-| `chemistry_placeholder.yaml` | Placeholder | Chemistry |
-| `clinical_placeholder.yaml` | Placeholder | Clinical (non-operational) |
+| Overlay | Tier | Domain |
+|---------|------|--------|
+| `generic_lab_v0.yaml` | core_reference | Generic laboratory |
+| `materials_v0.yaml` | core_reference | Materials science |
+| `computational_science_v0.yaml` | core_reference | Computational science |
+| `materials_expert_v0.yaml` | expert_reviewed_domain_overlay | Materials science (expert-reviewed) |
+| `biology_v0.yaml` | experimental_domain_overlay | Biology / biosafety |
+| `chemistry_v0.yaml` | experimental_domain_overlay | Chemistry / chemical safety |
+| `clinical_v0.yaml` | experimental_domain_overlay | Clinical / IRB-governed research |
+
+Legacy aliases `biology_placeholder`, `chemistry_placeholder`, and `clinical_placeholder` resolve to the experimental overlay files for scenario compatibility.
+
+Experimental overlays are not deployment-ready without institutional governance. Expert review is not safety certification.
 
 ## Key fields
 
 ```yaml
 domain: materials
 version: materials_v0.1
+tier: core_reference
 operational: true
+non_certification_statement: "This overlay is not a safety certification."
 
 minimum_evidence_for:
   recommendation: E4_internally_consistent_evidence
@@ -42,7 +61,9 @@ required_review_roles:
   queue_prioritization:
     - domain_scientist
 
-blocked_actions: []
+hazard_triggers: []
+
+requested_scope_overrides: {}
 
 tool_restrictions:
   workflow.update_state:
@@ -74,6 +95,6 @@ akta gate ... --domain-overlay materials_v0
 
 1. Keep overlays declarative — no executable logic
 2. Prefer minimum evidence thresholds over blanket blocks where possible
-3. Mark immature domains as `operational: false`
-4. Document metadata requirements for audit reconstruction
+3. Mark immature domains as `experimental_domain_overlay` with `operational: false` where appropriate
+4. Include `non_certification_statement` on every overlay
 5. Version overlays independently from core policy
