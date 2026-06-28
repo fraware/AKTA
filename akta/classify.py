@@ -68,7 +68,8 @@ class ClassificationResult:
         matched_source: Provenance of the primary classification (tool_registry, requested_action, plugin, etc.).
         matched_evidence: Short pointer to the signal used (tool name, action text, etc.).
         uncertainty_flags: Taxonomy flags such as ``nl_tool_mismatch`` or ``model_assisted_fallback``.
-        classifier_mode: ``deterministic`` or ``model_assisted`` when a plugin contributed.
+        classifier_mode: ``deterministic`` or ``llm_advisory`` when a plugin contributed.
+        llm_metadata: Model, prompt_hash, schema, confidence when LLM advisory path used.
     """
 
     action_type: str
@@ -80,6 +81,7 @@ class ClassificationResult:
     matched_evidence: str = ""
     uncertainty_flags: list[str] = field(default_factory=list)
     classifier_mode: str = "deterministic"
+    llm_metadata: dict[str, Any] | None = None
 
     @property
     def primary_action_type(self) -> str:
@@ -228,6 +230,17 @@ def classify(
         rationale_parts.append(f"{structured_source} specifies {structured_action}")
         confidence = 0.99
 
+    plugin_result = None
+    if not structured_action:
+        plugin_result = run_plugin_classification(
+            policy,
+            requested_tool,
+            requested_action,
+            tool_spec,
+            context,
+            ai_output=ai_output,
+        )
+
     if tool_spec.known and not structured_action:
         action_type = tool_spec.action_type
         matched_source = "tool_registry"
@@ -241,6 +254,12 @@ def classify(
             uncertainty_flags.append("nl_tool_mismatch")
             rationale_parts.append(
                 f"NL text suggests {nl_action} but tool registry overrides to {action_type}"
+            )
+        if plugin_result is not None and plugin_result.action_type != action_type:
+            alternates.append(plugin_result.action_type)
+            uncertainty_flags.append("llm_overridden_by_tool_registry")
+            rationale_parts.append(
+                f"LLM suggested {plugin_result.action_type} but tool registry overrides"
             )
     else:
         if not action_type:
@@ -267,24 +286,18 @@ def classify(
                     rationale_parts.append("inferred from ai_output text")
                     confidence = 0.75
 
-    if not action_type:
-        plugin_result = run_plugin_classification(
-            policy,
-            requested_tool,
-            requested_action,
-            tool_spec,
-            context,
-            ai_output=ai_output,
-        )
-        if plugin_result is not None:
-            classifier_mode = plugin_result.source if plugin_result.source == "llm_classifier" else "plugin_assisted"
-            action_type = plugin_result.action_type
-            confidence = plugin_result.confidence
-            alternates.extend(plugin_result.alternates)
-            uncertainty_flags.extend(plugin_result.uncertainty_flags)
-            matched_source = plugin_result.source
-            matched_evidence = f"plugin={plugin_result.source}"
-            rationale_parts.append(plugin_result.rationale)
+    if not action_type and plugin_result is not None:
+        classifier_mode = "llm_advisory" if plugin_result.source == "llm_classifier" else "plugin_assisted"
+        action_type = plugin_result.action_type
+        confidence = plugin_result.confidence
+        alternates.extend(plugin_result.alternates)
+        uncertainty_flags.extend(plugin_result.uncertainty_flags)
+        matched_source = plugin_result.source
+        matched_evidence = f"plugin={plugin_result.source}"
+        rationale_parts.append(plugin_result.rationale)
+        llm_metadata = plugin_result.llm_metadata
+    else:
+        llm_metadata = None
 
     if not action_type:
         action_type = "A8_tool_or_workflow_mutation"
@@ -332,6 +345,7 @@ def classify(
         matched_evidence=matched_evidence,
         uncertainty_flags=list(dict.fromkeys(uncertainty_flags)),
         classifier_mode=classifier_mode,
+        llm_metadata=llm_metadata if classifier_mode == "llm_advisory" else None,
     )
 
 
