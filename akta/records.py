@@ -12,6 +12,12 @@ import jsonschema
 
 from akta.hash import hash_object
 from akta.errors import SchemaValidationError
+from akta.overlays import DomainOverlay
+from akta.scope_mapping import (
+    REVIEW_TRIGGER_VERSION,
+    resolve_requested_scope,
+    resolve_review_route,
+)
 
 
 SCHEMAS_DIR = Path(__file__).resolve().parent.parent / "schemas"
@@ -32,6 +38,11 @@ def validate_against_schema(data: dict[str, Any], schema_name: str) -> None:
 
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _review_expires_at() -> str:
+    """Default review trigger expiration (single-run scope)."""
+    return utc_now_iso()
 
 
 def new_record_id() -> str:
@@ -80,18 +91,29 @@ def build_review_trigger(
     consequentiality: bool = False,
     consequentiality_reason: str = "",
     scientific_context: dict[str, Any] | None = None,
+    scope_config: dict[str, Any] | None = None,
+    overlay: DomainOverlay | None = None,
 ) -> dict[str, Any]:
-    """Build SCOPE-compatible review trigger artifact."""
-    scope_map = {
-        "A5_protocol_modification": "protocol_draft_to_validation_run",
-        "A6_experimental_planning": "experimental_plan_review",
-        "A7_resource_or_queue_prioritization": "queue_prioritization_review",
-        "A10_publication_or_claim_escalation": "publication_claim_review",
-    }
+    """Build SCOPE-compatible review trigger artifact (v0.3)."""
+    scope_config = scope_config or {}
+    requested_scope = resolve_requested_scope(
+        scope_config=scope_config,
+        requested_tool=requested_tool,
+        action_type=action_type,
+        overlay=overlay,
+    )
+    review_route = resolve_review_route(
+        scope_config=scope_config,
+        requested_scope=requested_scope,
+        requested_tool=requested_tool,
+    )
     trigger = {
         "review_trigger_id": new_review_trigger_id(),
+        "review_trigger_version": REVIEW_TRIGGER_VERSION,
         "decision_id": decision_id,
+        "akta_decision_id": decision_id,
         "source_record_id": record_id,
+        "akta_record_id": record_id,
         "requested_tool": requested_tool,
         "requested_action": requested_action,
         "deployment_profile": deployment_profile,
@@ -103,7 +125,7 @@ def build_review_trigger(
         "admissibility": admissibility,
         "decision_reason": decision_reason,
         "required_review_role": role or "domain_scientist",
-        "review_scope": scope_map.get(action_type, "scientific_action_review"),
+        "requested_scope": requested_scope,
         "review_artifacts_required": [
             "ai_output",
             "akta_record",
@@ -117,6 +139,7 @@ def build_review_trigger(
         "allowed_next_steps": allowed_next_steps or [],
         "approval_effect": "Allows scoped next step only; not global permission.",
         "default_expiration": "single_run",
+        "expires_at": _review_expires_at(),
         "policy_hash": policy_hash,
         "tool_registry_hash": tool_registry_hash,
         "classifier_confidence": classifier_confidence,
@@ -125,6 +148,8 @@ def build_review_trigger(
         "consequentiality_reason": consequentiality_reason,
         "scientific_context": scientific_context or {},
     }
+    if review_route:
+        trigger["review_route"] = review_route
     if domain_overlay_hash:
         trigger["domain_overlay_hash"] = domain_overlay_hash
     trigger["review_trigger_hash"] = hash_object(
