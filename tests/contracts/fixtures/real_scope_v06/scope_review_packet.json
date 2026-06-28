@@ -1,0 +1,15 @@
+{
+  "packet_id": "SCOPE-PKT-FIXTURE-V06",
+  "packet_type": "scope_review_packet",
+  "packet_version": "0.6.0",
+  "review_request": {
+    "requested_scope": "active_protocol_update",
+    "required_review_role": "protocol_owner"
+  },
+  "akta_constraints": {
+    "blocked_tools": [
+      "protocol_editor.update_active_protocol",
+      "collaboration.share_protocol"
+    ]
+  }
+}
