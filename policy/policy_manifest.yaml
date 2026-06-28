@@ -1,5 +1,5 @@
-version: akta-policy-manifest-v0.5
-bundle_version: akta-core-v0.5
+version: akta-policy-manifest-v0.6
+bundle_version: akta-core-v0.6
 files:
   action_ontology.yaml: sha256:c2ac6ac345552737b9bb8e0786f0886319419ac218e5162267a337d33568e6fa
   responsibility_levels.yaml: sha256:e98d3c5488575364f4b5ac9cbf48754f873475235843c5c8405473444e1ac461
@@ -10,8 +10,8 @@ files:
   admissibility_matrix.yaml: sha256:0b06d1574bb82f9dc39d2860cb805a585994d0487d93a81d659e695ee56971e0
   evidence_to_action_matrix.yaml: sha256:5e8916ceff5c8e29f49e4ebc0edee3382a67c1be156b9cfd9fcc7e667bbfe15f
   evidence_to_action_rules.yaml: sha256:72175f5f4cfd6f5cd713098515af9bbf17cb6c6bbc258b5593d1a6b0e12197e2
-  default_tool_registry.yaml: sha256:90746b4b61b236802bf9762b6755e966a676c6294e83fd3606ce0826f1aff50a
+  default_tool_registry.yaml: sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8
   tool_to_requested_scope.yaml: sha256:c85beea0595b98fc913b8e5b90d22155bf74afb08937edf8147472c6749873cc
 signature:
   algorithm: HMAC-SHA256
-  value: 738460a0c413a5f092c0eb4cf16f8263c6be429ce398fc5efdfab22bd0155c50
+  value: ce06a65a3e2af973158654d6359ecec7c16a4cbaeef613db24ea777a1b02052a
