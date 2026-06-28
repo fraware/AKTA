@@ -1,4 +1,4 @@
-"""Tests for SCOPE-compatible review triggers (v0.2)."""
+"""Tests for SCOPE-compatible review triggers (v0.3)."""
 
 from __future__ import annotations
 
@@ -29,6 +29,11 @@ def test_review_trigger_schema_validates() -> None:
     trigger = d["review_trigger"]
     validate_against_schema(trigger, "review_trigger.schema.json")
     assert trigger["decision_id"] == d["decision_id"]
+    assert trigger["akta_decision_id"] == d["decision_id"]
+    assert trigger["akta_record_id"] == trigger["source_record_id"]
+    assert trigger["review_trigger_version"] == "0.3"
+    assert trigger["requested_scope"] == "active_protocol_update"
+    assert trigger.get("review_route") == "active_protocol_review"
     assert trigger["policy_hash"].startswith("sha256:")
     assert trigger["review_trigger_hash"].startswith("sha256:")
     assert "blocked_tools" in trigger
