@@ -8,11 +8,11 @@ AKTA is an open protocol with a reference implementation. It is stewarded as a s
 
 - **Protocol changes** (schemas, ontologies, deployment profiles): require design review and version bump.
 - **Reference kernel changes**: follow normal pull request review.
-- **Domain overlays**: operational overlays include generic lab, materials, computational science, biology, chemistry, and clinical (v0.4). Domain-specific hazard triggers and reviewer roles are maintained in-repo; institutional deployment still requires local governance review.
+- **Domain overlays**: core reference overlays (generic lab, materials, computational science) are operational. Biology, chemistry, and clinical overlays are experimental (v0.5) and not deployment-ready without institutional governance.
 
 ## Versioning
 
-AKTA follows semantic versioning for the reference implementation package (`akta-protocol`). Schema versions are embedded in artifact metadata (e.g., `akta-core-v0.4`, `akta-record-v0.4`).
+AKTA follows semantic versioning for the reference implementation package (`akta-protocol`). Schema versions are embedded in artifact metadata (e.g., `akta-core-v0.5`, `akta-record-v0.5`).
 
 ## Non-certification
 

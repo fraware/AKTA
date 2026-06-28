@@ -13,7 +13,7 @@ If AI changes what science does next, there should be an AKTA Record.
 ```bash
 pip install -e ".[dev]"
 
-# Run the weak-evidence gate demo (AKTA/PF/PCS only — no SCOPE chain)
+# Dev mode (default): policy manifest optional; experimental overlays allowed
 akta gate \
   --output examples/weak_evidence/ai_output.json \
   --tool lab_scheduler.prioritize \
@@ -21,43 +21,44 @@ akta gate \
   --context examples/weak_evidence/context.json \
   --out examples/weak_evidence/akta_decision.json
 
-akta record \
-  --decision examples/weak_evidence/akta_decision.json \
-  --out examples/weak_evidence/akta_record.json
+# Production mode: requires policy manifest + deployment HMAC key
+# $env:AKTA_PRODUCTION_MODE = "1"
+# $env:AKTA_POLICY_HMAC_KEY = "<deployment-secret>"
+# Regenerate manifest after policy edits:
+python scripts/regenerate_policy_manifest.py
 
-pytest tests/ -v
-akta eval --scenarios scenarios/canonical_5.jsonl --expected scenarios/expected_decisions.jsonl
-akta eval --scenarios scenarios/public_100.jsonl --expected scenarios/expected_decisions.jsonl
+# SCOPE adapter modes (see docs/scope_bridge.md)
+# simulated (default) | python-import ($env:SCOPE_REPO_PATH) | cli ($env:SCOPE_CLI)
+python scripts/demo_akta_scope_protocol_drift.py
 
-# Oracle-independent eval (hand-written labels, not gate-derived)
-python evals/run_oracle_independent.py
-# or: akta-oracle-eval
-
-# Transition eval (SCOPE grant -> re-gate)
-python -c "from evals.transition_runner import run_transition; import json; ..."
-
-# MCP stdio server (JSON-RPC over stdin/stdout)
-python -m adapters.mcp.server
-
-# REST API (OpenAPI v0.4)
-akta-rest --host 127.0.0.1 --port 8765
-
-# Export adapters (v0.2)
+# PCS v0.5 full-chain export (10 artifacts + file_hashes)
 akta export pcs --record examples/weak_evidence/akta_record.json \
   --decision examples/weak_evidence/akta_decision.json \
   --out dist/pcs_bundle/ --validate
+
+pytest tests/ -v
+make ci
+```
+
+### REST API (OpenAPI v0.5)
+
+```bash
+akta-rest --host 127.0.0.1 --port 8765
+# GET /v0/health, /v0/policy; POST /v0/evaluate, /v0/export/pcs, /v0/export/pf
+```
+
+### Additional commands
+
+```bash
+akta record --decision examples/weak_evidence/akta_decision.json --out examples/weak_evidence/akta_record.json
+akta eval --scenarios scenarios/canonical_5.jsonl --expected scenarios/expected_decisions.jsonl
+akta eval --scenarios scenarios/public_100.jsonl --expected scenarios/expected_decisions.jsonl
+python evals/run_oracle_independent.py
+python -m adapters.mcp.server
 akta export pf --record examples/weak_evidence/akta_record.json \
-  --decision examples/weak_evidence/akta_decision.json \
-  --out dist/pf_obligations/ --validate
+  --decision examples/weak_evidence/akta_decision.json --out dist/pf_obligations/ --validate
 akta review-trigger export --decision decision.json --out review_trigger.json
-
-# Integrated weak-evidence demo (AKTA/PF/PCS; no SCOPE simulation)
 python scripts/demo_integrated_weak_evidence.py
-# or: make demo-akta-weak-evidence
-
-# Integrated AKTA x SCOPE protocol-drift demo (canonical AKTA×SCOPE chain)
-python scripts/demo_akta_scope_protocol_drift.py
-# or: make demo-akta-scope-protocol-drift
 ```
 
 ## Architecture
@@ -118,7 +119,7 @@ record = decision.to_record()
 - [Review integration](docs/review_integration.md)
 - [SCOPE bridge](docs/scope_bridge.md)
 - [AKTA v0.3 integration](docs/akta_v03_integration.md)
-- [Threat model (v0.4)](docs/threat_model.md)
+- [Threat model](docs/threat_model.md)
 - [PF-Core bridge](docs/pf_core_bridge.md)
 - [PCS export](docs/pcs_export.md)
 - [VSA import](docs/vsa_import.md)
@@ -139,11 +140,23 @@ akta-rest --host 127.0.0.1 --port 8765
 # GET  /v0/policy, /v0/health
 ```
 
+## v0.5 acceptance status
+
+| Criterion | Status |
+|-----------|--------|
+| SCOPE adapter (simulated / python-import / cli) | Pass |
+| PCS full-chain export with file_hashes + tamper validation | Pass |
+| Production policy integrity (dev vs production HMAC) | Pass |
+| LLM classifier trust boundary (registry overrides LLM) | Pass |
+| Overlay governance tiers + production refusal | Pass |
+| Policy file versioning in decision provenance | Pass |
+| 210+ tests; `make ci` green | Pass |
+
 ## v0.4 acceptance status
 
 | Criterion | Status |
 |-----------|--------|
-| Operational domain overlays (biology, chemistry, clinical) | Pass |
+| Experimental overlays (biology, chemistry, clinical) | Pass (not operational; refused in production) |
 | Policy manifest HMAC verification | Pass |
 | Review lifecycle (F12/F14, prior records) | Pass |
 | Structured classification + negation guard | Pass |
@@ -205,4 +218,4 @@ akta-rest --host 127.0.0.1 --port 8765
 
 ## Status
 
-AKTA v0.4 is a reference implementation. It is not a safety certification. Deployment profile P7 (fully autonomous scientific operator) is defined for taxonomy only and is not supported.
+AKTA v0.5 is a reference implementation. It is not a safety certification. Biology, chemistry, and clinical overlays are experimental and not deployment-ready without institutional governance. Deployment profile P7 (fully autonomous scientific operator) is defined for taxonomy only and is not supported.

@@ -3,10 +3,31 @@
   "$id": "https://akta.dev/schemas/domain_overlay.schema.json",
   "title": "AKTA Domain Overlay",
   "type": "object",
-  "required": ["domain", "version"],
+  "required": [
+    "domain",
+    "version",
+    "tier",
+    "maintainer",
+    "review_status",
+    "review_date",
+    "non_certification_statement"
+  ],
   "properties": {
     "domain": { "type": "string" },
     "version": { "type": "string" },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "core_reference",
+        "experimental_domain_overlay",
+        "expert_reviewed_domain_overlay",
+        "institutional_deployment_overlay"
+      ]
+    },
+    "maintainer": { "type": "string" },
+    "review_status": { "type": "string" },
+    "review_date": { "type": "string" },
+    "non_certification_statement": { "type": "string" },
     "operational": { "type": "boolean" },
     "disclaimer": { "type": "string" },
     "minimum_evidence_for": { "type": "object" },

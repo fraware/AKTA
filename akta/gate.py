@@ -169,6 +169,7 @@ class AKTAGate:
             "consequentiality_reason": evaluation.consequentiality_reason,
             "policy_version": self.policy.version,
             "policy_hash": self.policy.policy_hash,
+            "policy_file_versions": dict(self.policy.policy_file_versions),
             "domain_overlay_version": overlay_obj.version if overlay_obj else None,
             "domain_overlay_hash": overlay_obj.overlay_hash if overlay_obj else None,
             "tool_registry_hash": self.policy.tool_registry_hash,
@@ -182,6 +183,7 @@ class AKTAGate:
                 "uncertainty_flags": classification.uncertainty_flags,
                 "classifier_mode": classification.classifier_mode,
             },
+            "llm_advisory": classification.llm_metadata,
             "ai_output_summary": (
                 ai_output if isinstance(ai_output, str)
                 else (ai_output.get("summary") if isinstance(ai_output, dict) else str(ai_output))

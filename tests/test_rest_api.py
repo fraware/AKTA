@@ -48,6 +48,8 @@ def _get(url: str, path: str) -> dict:
 def test_health(server_url: str) -> None:
     data = _get(server_url, "/v0/health")
     assert data["status"] == "ok"
+    assert data["api_version"] == "v0.5"
+    assert data["version"] == "0.5.0"
 
 
 def test_policy(server_url: str) -> None:

@@ -1,7 +1,4 @@
-version: akta-core-v0.1
-# Decision strictness order (lowest to highest):
-# allowed < allowed_with_logging < draft_only < review_required < authorization_required < blocked < abstain_insufficient_context
-
+version: akta-core-v0.5
 decision_aliases:
   allowed: allowed
   allowed_log: allowed_with_logging
@@ -14,7 +11,6 @@ decision_aliases:
   authorization_required: authorization_required
   blocked: blocked
   blocked_or_review: review_required
-
 matrix:
   A0_explanation:
     P0_no_action_assistant: allowed
@@ -104,3 +100,4 @@ matrix:
     P4_protocol_drafting_assistant: review_required
     P5_review_gated_experimental_planner: review_required
     P6_authorized_closed_loop_lab_agent: review_required
+policy_file_version: admissibility_matrix-v0.5

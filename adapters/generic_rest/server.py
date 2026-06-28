@@ -69,11 +69,11 @@ class AKTARESTHandler(BaseHTTPRequestHandler):
                 self._send_json(HTTPStatus.OK, {
                     "status": "ok",
                     "version": pkg_version("akta-protocol"),
-                    "api_version": "v0.4",
+                    "api_version": "v0.5",
                 })
             elif path == "/v0/openapi":
                 spec_path = Path(__file__).resolve().parent / "openapi.yaml"
-                self._send_json(HTTPStatus.OK, {"openapi_path": str(spec_path), "api_version": "v0.4"})
+                self._send_json(HTTPStatus.OK, {"openapi_path": str(spec_path), "api_version": "v0.5"})
             elif path == "/v0/policy":
                 gate = self._gate()
                 self._send_json(

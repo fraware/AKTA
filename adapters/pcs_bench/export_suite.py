@@ -11,7 +11,7 @@ def export_scenario_suite(
     scenarios: list[dict[str, Any]],
     out_path: str | Path,
     *,
-    suite_id: str = "akta-pcs-bench-v0.4",
+    suite_id: str = "akta-pcs-bench-v0.5",
     include_expected: dict[str, dict[str, Any]] | None = None,
 ) -> Path:
     """Write PCS-Bench consumable JSONL scenario suite."""

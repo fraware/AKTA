@@ -1,9 +1,9 @@
-"""Integrated AKTA x SCOPE protocol-drift demo (v0.3).
+"""Integrated AKTA x SCOPE protocol-drift demo (v0.5).
 
 Flow:
   active protocol update -> AKTA review_required (requested_scope=active_protocol_update)
-  -> SCOPE packet -> protocol owner grants protocol_draft only
-  -> draft_change allowed; active update + robot blocked -> PF + PCS export
+  -> SCOPE adapter (simulated | python-import | cli) -> packet, decision, grant
+  -> draft_change allowed; active update + robot blocked -> PF + PCS full-chain export
 """
 
 from __future__ import annotations
@@ -78,20 +78,26 @@ def run_demo() -> int:
     from akta.records import AKTARecord, AKTADecision
     from adapters.pcs.export_artifact import export_pcs_bundle
     from adapters.pf_core.export_obligation import export_pf_obligation
-    from adapters.scope.client import submit_review_trigger
+    from adapters.scope.client import detect_adapter_mode, submit_review_trigger
 
     demo_dir = ROOT / "examples" / "integrated_protocol_drift"
     demo_dir.mkdir(parents=True, exist_ok=True)
     pcs_dir = demo_dir / "pcs_bundle"
 
-    print("=== AKTA v0.4 Demo: Integrated Protocol Drift (AKTA x SCOPE) ===\n")
+    adapter_mode = detect_adapter_mode()
+    mode_label = {
+        "simulated": "simulated (contract simulation only)",
+        "python-import": "python-import (SCOPE_REPO_PATH sibling repo)",
+        "cli": "cli (SCOPE_CLI subprocess)",
+    }.get(adapter_mode, adapter_mode)
+    print(f"=== AKTA v0.5 Demo: Integrated Protocol Drift (AKTA x SCOPE) ===")
+    print(f"SCOPE adapter mode: {mode_label}\n")
 
     context_data = json.loads((demo_dir / "context.json").read_text(encoding="utf-8"))
     ai_output = json.loads((demo_dir / "ai_output.json").read_text(encoding="utf-8"))
 
     gate = AKTAGate.from_policy_dir(ROOT / "policy", overlays_dir=ROOT / "overlays")
 
-    # Step 1: active protocol update -> review_required + active_protocol_update scope
     active_decision = gate.evaluate(
         ai_output=ai_output,
         requested_tool="protocol_editor.update_active_protocol",
@@ -119,25 +125,30 @@ def run_demo() -> int:
 
     scope_result = submit_review_trigger(
         active_d["review_trigger"],
+        record=active_record,
         grant_scope="protocol_draft",
         reviewer_id="protocol_owner",
     )
+    if scope_result.error:
+        print(f"SCOPE adapter error (invalid grant blocks PCS export): {scope_result.error}")
+        return 1
+
     scope_packet = scope_result.review_packet or {}
     scope_grant = scope_result.grant or {}
+    scope_decision = scope_result.decision or {}
     (demo_dir / "scope_review_packet.json").write_text(
         json.dumps(scope_packet, indent=2), encoding="utf-8"
     )
     (demo_dir / "scope_narrow_grant.json").write_text(
         json.dumps(scope_grant, indent=2), encoding="utf-8"
     )
-    print(f"SCOPE adapter mode: {scope_result.adapter_mode}")
+    (demo_dir / "scope_decision.json").write_text(
+        json.dumps(scope_decision, indent=2), encoding="utf-8"
+    )
     (demo_dir / "review_trigger.json").write_text(
         json.dumps(active_d["review_trigger"], indent=2), encoding="utf-8"
     )
 
-    # Step 2: narrow grant artifacts written by SCOPE adapter (simulated or subprocess)
-
-    # Step 3: draft-only follow-up remains admissible; active + robot still blocked
     draft_decision = gate.evaluate(
         ai_output={"summary": "Draft protocol threshold change for owner review."},
         requested_tool="protocol_editor.draft_change",
@@ -165,7 +176,6 @@ def run_demo() -> int:
     )
     assert robot_decision.admissibility in ("blocked", "authorization_required")
 
-    # Step 4: PF + PCS export for active-update record
     pf_path = export_pf_obligation(
         AKTARecord(active_record), demo_dir, validate=True, decision_id=active_d["decision_id"]
     )
@@ -179,6 +189,9 @@ def run_demo() -> int:
         pcs_dir,
         decision=active_d,
         scope_review_packet=scope_packet,
+        scope_decision=scope_decision,
+        scope_grant=scope_grant,
+        pf_obligation=pf_obligation,
         validate=True,
     )
 
@@ -186,8 +199,10 @@ def run_demo() -> int:
     print(f"Draft follow-up: {draft_d['admissibility']} (draft_change allowed)")
     print(f"Robot submit:   {robot_decision.admissibility} (still blocked/authorization)")
     print(f"SCOPE grant:    {scope_grant.get('granted_scope', scope_grant)}")
+    print(f"SCOPE decision: {scope_decision.get('status', scope_decision)}")
     print(f"PF obligation:  {pf_obligation['obligation_type']}")
     print(f"PCS bundle:     {pcs_dir / 'manifest.json'}")
+    print(f"Adapter mode:   {mode_label}")
     print(f"Artifacts in {demo_dir}")
     return 0
 

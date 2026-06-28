@@ -42,9 +42,10 @@ class PolicyBundle:
     evidence_to_action_rules: dict[str, Any]
     tool_registry: dict[str, Any]
     tool_to_requested_scope: dict[str, Any]
-    version: str = "akta-core-v0.4"
+    version: str = "akta-core-v0.5"
     policy_hash: str = ""
     tool_registry_hash: str = ""
+    policy_file_versions: dict[str, str] = field(default_factory=dict, repr=False)
     _raw_files: dict[str, str] = field(default_factory=dict, repr=False)
 
     @classmethod
@@ -59,13 +60,16 @@ class PolicyBundle:
 
         loaded: dict[str, Any] = {}
         raw_files: dict[str, str] = {}
+        file_versions: dict[str, str] = {}
         for name in POLICY_FILES:
             path = policy_dir / name
             if not path.exists():
                 raise PolicyError(f"Missing policy file: {path}")
             content = path.read_text(encoding="utf-8")
             raw_files[name] = content
-            loaded[name.replace(".yaml", "")] = yaml.safe_load(content)
+            parsed = yaml.safe_load(content)
+            loaded[name.replace(".yaml", "")] = parsed
+            file_versions[name] = parsed.get("policy_file_version", parsed.get("version", "unknown"))
 
         registry_path = Path(tool_registry_path) if tool_registry_path else policy_dir / "default_tool_registry.yaml"
         if not registry_path.exists():
@@ -73,6 +77,9 @@ class PolicyBundle:
         registry_content = registry_path.read_text(encoding="utf-8")
         raw_files["default_tool_registry.yaml"] = registry_content
         tool_registry = yaml.safe_load(registry_content)
+        file_versions["default_tool_registry.yaml"] = tool_registry.get(
+            "policy_file_version", tool_registry.get("version", "unknown")
+        )
 
         scope_path = policy_dir / "tool_to_requested_scope.yaml"
         if not scope_path.exists():
@@ -80,8 +87,14 @@ class PolicyBundle:
         scope_content = scope_path.read_text(encoding="utf-8")
         raw_files["tool_to_requested_scope.yaml"] = scope_content
         tool_to_requested_scope = yaml.safe_load(scope_content)
+        file_versions["tool_to_requested_scope.yaml"] = tool_to_requested_scope.get(
+            "policy_file_version", tool_to_requested_scope.get("version", "unknown")
+        )
 
-        version = loaded["action_ontology"].get("version", "akta-core-v0.4")
+        version = loaded["action_ontology"].get(
+            "policy_bundle_version",
+            loaded["action_ontology"].get("version", "akta-core-v0.5"),
+        )
         policy_hash = hash_object({
             k: raw_files[k]
             for k in sorted(raw_files)
@@ -107,6 +120,7 @@ class PolicyBundle:
             version=version,
             policy_hash=policy_hash,
             tool_registry_hash=tool_registry_hash,
+            policy_file_versions=file_versions,
             _raw_files=raw_files,
         )
 

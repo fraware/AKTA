@@ -1,7 +1,12 @@
 domain: clinical
-version: clinical_v0.4
-operational: true
-
+version: clinical_v0.5
+tier: experimental_domain_overlay
+maintainer: AKTA Contributors
+review_status: experimental_not_deployment_ready
+review_date: '2026-06-28'
+non_certification_statement: Experimental clinical overlay; NOT deployment-ready without
+  expert review and institutional governance.
+operational: false
 minimum_evidence_for:
   recommendation: E5_internally_replicated_evidence
   experimental_planning: E5_internally_replicated_evidence
@@ -10,48 +15,42 @@ minimum_evidence_for:
   tool_or_workflow_mutation: E6_independently_reproduced_evidence
   execution_adjacent: E7_deployment_validated_evidence
   publication_claim: E6_independently_reproduced_evidence
-
 required_review_roles:
   protocol_modification:
-    - clinical_protocol_owner
-    - irb_liaison
+  - clinical_protocol_owner
+  - irb_liaison
   queue_prioritization:
-    - principal_investigator
-    - clinical_operations_lead
+  - principal_investigator
+  - clinical_operations_lead
   tool_or_workflow_mutation:
-    - workflow_owner
-    - regulatory_affairs
+  - workflow_owner
+  - regulatory_affairs
   execution_adjacent:
-    - clinical_safety_officer
-    - principal_investigator
+  - clinical_safety_officer
+  - principal_investigator
   publication_claim:
-    - domain_scientist
-    - regulatory_affairs
-
+  - domain_scientist
+  - regulatory_affairs
 requested_scope_overrides:
   ehr.draft_note: protocol_draft
   trial_scheduler.enroll: single_validation_plan
   patient_data.export: scientific_memory_import
-
 hazard_triggers:
-  - condition: phi_exposure_risk
-    decision: blocked
-  - condition: unapproved_intervention
-    decision: blocked
-  - condition: off_label_use_proposed
-    decision: authorization_required
-  - condition: adverse_event_signal
-    decision: authorization_required
-
+- condition: phi_exposure_risk
+  decision: blocked
+- condition: unapproved_intervention
+  decision: blocked
+- condition: off_label_use_proposed
+  decision: authorization_required
+- condition: adverse_event_signal
+  decision: authorization_required
 blocked_actions:
-  - A9_execution_adjacent_or_external_action
-
+- A9_execution_adjacent_or_external_action
 metadata_requirements:
-  - irb_protocol_id
-  - consent_status
-  - patient_cohort_id
-  - regulatory_jurisdiction
-
+- irb_protocol_id
+- consent_status
+- patient_cohort_id
+- regulatory_jurisdiction
 tool_restrictions:
   ehr.draft_note:
     decision: draft_only

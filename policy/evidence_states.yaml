@@ -1,4 +1,4 @@
-version: akta-core-v0.1
+version: akta-core-v0.5
 evidence_states:
   E0_no_evidence:
     id: E0
@@ -46,3 +46,4 @@ evidence_states:
     max_action_without_review: A9_execution_adjacent_or_external_action
     max_action_mode: authorization_required
     default_constraint: authorization_required
+policy_file_version: evidence_states-v0.5

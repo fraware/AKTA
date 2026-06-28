@@ -1,4 +1,4 @@
-version: akta-core-v0.1
+version: akta-core-v0.5
 responsibility_levels:
   R0_informational_assistance:
     id: R0
@@ -40,7 +40,6 @@ responsibility_levels:
     id: R9
     name: publication_or_institutional_claim
     description: Moves a claim into a paper, report, grant, or institutional memory.
-
 action_to_responsibility:
   A0_explanation: R0_informational_assistance
   A1_retrieval_or_summary: R1_epistemic_assistance
@@ -53,3 +52,4 @@ action_to_responsibility:
   A8_tool_or_workflow_mutation: R7_execution_adjacent_preparation
   A9_execution_adjacent_or_external_action: R8_external_or_physical_execution
   A10_publication_or_claim_escalation: R9_publication_or_institutional_claim
+policy_file_version: responsibility_levels-v0.5

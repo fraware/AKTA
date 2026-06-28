@@ -1,4 +1,4 @@
-version: akta-core-v0.1
+version: akta-core-v0.5
 verification_statuses:
   Q0_unchecked:
     id: Q0
@@ -21,3 +21,4 @@ verification_statuses:
   Q6_deployment_verified:
     id: Q6
     name: deployment_verified
+policy_file_version: verification_statuses-v0.5

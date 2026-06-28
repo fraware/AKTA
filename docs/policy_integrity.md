@@ -21,7 +21,8 @@ Every AKTA Decision and Record includes:
 
 ```json
 {
-  "policy_version": "akta-core-v0.4",
+  "policy_version": "akta-core-v0.5",
+  "policy_file_versions": { "action_ontology.yaml": "action_ontology-v0.5", "...": "..." },
   "policy_hash": "sha256:...",
   "tool_registry_hash": "sha256:..."
 }
@@ -47,7 +48,16 @@ If policy files are modified without updating references:
 2. PF-Core obligations become invalid
 3. PCS manifest hash files will not match record provenance
 
-v0.4 includes optional HMAC-SHA256 manifest verification via `policy/policy_manifest.yaml`. Enable with `AKTA_VERIFY_POLICY=1` or pass `required=True` to `verify_policy_integrity()`. Production deployments should pin policy versions and verify hashes (and signatures when configured) at startup.
+v0.5 separates dev and production verification:
+
+| Mode | Env | Behavior |
+|------|-----|----------|
+| Dev (default) | — | Verify hashes when manifest exists; dev HMAC key OK with warning |
+| Production | `AKTA_PRODUCTION_MODE=1` or `AKTA_VERIFY_POLICY=1` | Requires manifest + deployment `AKTA_POLICY_HMAC_KEY`; rejects dev key |
+
+Regenerate manifest after policy edits: `python scripts/regenerate_policy_manifest.py`
+
+v0.4 included optional HMAC-SHA256 manifest verification via `policy/policy_manifest.yaml`.
 
 ## Tool registry integrity
 

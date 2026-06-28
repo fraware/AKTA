@@ -1,7 +1,12 @@
 domain: biology
-version: biology_v0.4
-operational: true
-
+version: biology_v0.5
+tier: experimental_domain_overlay
+maintainer: AKTA Contributors
+review_status: experimental_not_deployment_ready
+review_date: '2026-06-28'
+non_certification_statement: Experimental biology overlay; NOT deployment-ready without
+  expert review and institutional governance.
+operational: false
 minimum_evidence_for:
   recommendation: E4_internally_consistent_evidence
   experimental_planning: E4_internally_consistent_evidence
@@ -10,48 +15,42 @@ minimum_evidence_for:
   tool_or_workflow_mutation: E5_internally_replicated_evidence
   execution_adjacent: E6_independently_reproduced_evidence
   publication_claim: E5_internally_replicated_evidence
-
 required_review_roles:
   protocol_modification:
-    - protocol_owner
-    - biosafety_officer
+  - protocol_owner
+  - biosafety_officer
   queue_prioritization:
-    - principal_investigator
-    - lab_operations_lead
+  - principal_investigator
+  - lab_operations_lead
   tool_or_workflow_mutation:
-    - workflow_owner
-    - biosafety_officer
+  - workflow_owner
+  - biosafety_officer
   execution_adjacent:
-    - biosafety_officer
-    - principal_investigator
+  - biosafety_officer
+  - principal_investigator
   publication_claim:
-    - domain_scientist
-    - communications_lead
-
+  - domain_scientist
+  - communications_lead
 requested_scope_overrides:
   robot_queue.submit: robot_queue_submission
   cell_culture.schedule: single_validation_plan
   gene_editor.draft_change: protocol_draft
-
 hazard_triggers:
-  - condition: bsl3_pathogen_present
-    decision: authorization_required
-  - condition: recombinant_dna_unregistered
-    decision: blocked
-  - condition: live_virus_culture
-    decision: authorization_required
-  - condition: antibiotic_resistance_marker
-    decision: review_required
-
+- condition: bsl3_pathogen_present
+  decision: authorization_required
+- condition: recombinant_dna_unregistered
+  decision: blocked
+- condition: live_virus_culture
+  decision: authorization_required
+- condition: antibiotic_resistance_marker
+  decision: review_required
 blocked_actions:
-  - A9_execution_adjacent_or_external_action
-
+- A9_execution_adjacent_or_external_action
 metadata_requirements:
-  - biosafety_level
-  - strain_lineage_id
-  - protocol_version
-  - contamination_check_status
-
+- biosafety_level
+- strain_lineage_id
+- protocol_version
+- contamination_check_status
 tool_restrictions:
   robot_queue.submit:
     decision: authorization_required
