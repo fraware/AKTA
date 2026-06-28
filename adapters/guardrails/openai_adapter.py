@@ -55,6 +55,46 @@ class OpenAIGuardrailAdapter:
             raise PermissionError(
                 f"AKTA blocked {tool_name}: {d['admissibility']} — {d['decision_reason']}"
             )
+        if decision.admissibility == "draft_only":
+            from akta.tool_registry import ToolRegistry
+            spec = ToolRegistry(self.gate.policy.tool_registry).resolve(tool_name)
+            if spec.mutates_state:
+                raise PermissionError(f"AKTA draft_only: mutating tool {tool_name} not permitted")
+        return d
+
+    def check_with_grant(
+        self,
+        tool_name: str,
+        action_name: str,
+        *,
+        scope_grant: dict | None = None,
+        review_decision: dict | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Scoped re-gate after SCOPE grant (v0.6)."""
+        decision = self.gate.evaluate_with_grant(
+            ai_output=kwargs.get("ai_output", ""),
+            requested_tool=tool_name,
+            requested_action=action_name,
+            context=AKTAContext.from_dict(kwargs.get("context") or {}),
+            deployment_profile=kwargs.get("deployment_profile", self.deployment_profile),
+            domain_overlay=kwargs.get("domain_overlay"),
+            scope_grant=scope_grant,
+            review_decision=review_decision,
+        )
+        return self._enforce_decision(tool_name, decision.to_dict())
+
+    def _enforce_decision(self, tool_name: str, d: dict[str, Any]) -> dict[str, Any]:
+        if d.get("admissibility") == "review_required":
+            raise AKTAReviewRequired(
+                tool_name,
+                trigger=d.get("review_trigger"),
+                reason=d.get("decision_reason", ""),
+            )
+        if d.get("admissibility") in ("blocked", "abstain_insufficient_context", "authorization_required"):
+            raise PermissionError(
+                f"AKTA blocked {tool_name}: {d['admissibility']} — {d['decision_reason']}"
+            )
         return d
 
     def wrap_tool(
