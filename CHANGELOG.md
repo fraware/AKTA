@@ -4,6 +4,25 @@ All notable changes to AKTA are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.0] - 2026-06-28
+
+### Added
+
+- Real SCOPE adapter modes: `simulated`, `python-import` (`SCOPE_REPO_PATH`), `cli` (`SCOPE_CLI`) with `scope packet create`, `scope decision submit`, `scope grant issue`
+- PCS v0.5 full-chain export: `scope_decision.json`, `scope_grant.json`, `pf_obligation.json`, per-file `file_hashes`, tamper validation (`validate_pcs_bundle`)
+- Production policy integrity: `AKTA_PRODUCTION_MODE=1` requires manifest, deployment HMAC key; rejects dev key
+- LLM classifier trust boundary: tool registry always overrides LLM; `llm_advisory` metadata in decisions; `docs/classifier_trust_boundary.md`
+- Overlay governance tiers: `core_reference`, `experimental_domain_overlay`, `expert_reviewed_domain_overlay`, `institutional_deployment_overlay`
+- Policy file versioning: `policy_file_version` per YAML; `policy_bundle_version` in decision provenance
+- Contract tests: `test_scope_import_mode_contract.py`, `test_real_scope_cli_contract.py`, `test_pcs_full_chain_tamper.py`
+
+### Changed
+
+- Policy bundle version `akta-core-v0.5`; package version `0.5.0`
+- PCS manifest `schema_version` → `akta-record-v0.5`
+- SCOPE adapter mode labels: `simulated` | `python-import` | `cli` (replaces `subprocess`)
+- Biology/chemistry/clinical overlays marked `experimental_domain_overlay` (not deployment-ready in production)
+
 ## [0.4.0] - 2026-06-28
 
 ### Added
