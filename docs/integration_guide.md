@@ -1,6 +1,32 @@
-# AKTA Integration Guide (v0.4)
+# AKTA Integration Guide (v0.5)
 
 AKTA integrates with adjacent systems in the AI-for-science trust stack.
+
+## v0.5 integration additions
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| SCOPE adapter | `adapters/scope/client.py` | Simulated, python-import (`SCOPE_REPO_PATH`), or CLI (`SCOPE_CLI`) |
+| SCOPE engine protocol | `adapters/scope/engine_protocol.py` | Expected methods for python-import mode |
+| PCS v0.5 full chain | `adapters/pcs/export_artifact.py` | 10 artifacts, `file_hashes`, tamper validation |
+| Production policy integrity | `akta/policy_integrity.py` | Dev vs production HMAC; manifest required in production |
+| Overlay governance | `akta/overlays.py` | Tiers; production refuses experimental overlays |
+| LLM trust boundary | `docs/classifier_trust_boundary.md` | Tool registry overrides LLM; advisory metadata only |
+
+```bash
+# Production mode
+export AKTA_PRODUCTION_MODE=1
+export AKTA_POLICY_HMAC_KEY="<deployment-secret>"
+python scripts/regenerate_policy_manifest.py  # after policy edits
+
+# SCOPE modes
+export SCOPE_REPO_PATH=/path/to/SCOPE   # python-import
+export SCOPE_CLI=scope                  # CLI subprocess
+python scripts/demo_akta_scope_protocol_drift.py
+
+# PCS full-chain validate
+akta export pcs --record akta_record.json --decision akta_decision.json --out pcs_bundle/ --validate
+```
 
 ## v0.4 integration additions
 
@@ -22,7 +48,7 @@ python evals/run_oracle_independent.py --out evals/reports/oracle_independent.js
 # MCP server (stdio)
 python -m adapters.mcp.server
 
-# REST API v0.4
+# REST API v0.5
 akta-rest --host 127.0.0.1 --port 8765
 ```
 
@@ -76,7 +102,7 @@ See [scope_bridge.md](scope_bridge.md) and [review_integration.md](review_integr
 | Consequentiality | Decision `consequentiality` / `consequentiality_reason` |
 | Rich classifier | Decision `classification` audit block |
 | PF obligation v0.2 | `enforcement_mode`, `required_runtime_behavior` |
-| PCS bundle v0.4 | `schema_version: akta-record-v0.4` |
+| PCS bundle v0.5 | `schema_version: akta-record-v0.5` |
 
 ## Python API
 
