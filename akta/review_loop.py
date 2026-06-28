@@ -226,6 +226,7 @@ def apply_grant_decision_constraints(
     blocked.update(grant_state.trigger_blocked_tools)
 
     metadata = grant_state.context.get("metadata") or {}
+    blocked.update(metadata.get("prior_review_blocked_tools") or [])
     tool_layer = evaluate_grant_tool_allowlist(metadata, requested_tool)
     if tool_layer:
         blocked.add(requested_tool)
