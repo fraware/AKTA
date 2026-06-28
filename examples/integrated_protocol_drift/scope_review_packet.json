@@ -12,8 +12,8 @@
       "protocol_editor.update_active_protocol"
     ],
     "allowed_next_steps": [],
-    "policy_hash": "sha256:e0951ca2ff63b3fce9b3c841b324c3bf23d0f2e4b062c0c3dd5a057f7af5944d",
-    "tool_registry_hash": "sha256:106f428d42b42d5f0f459d8e65da25f1f9ee237efb6a3b27fe880f83d7bc604c"
+    "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
+    "tool_registry_hash": "sha256:90746b4b61b236802bf9762b6755e966a676c6294e83fd3606ce0826f1aff50a"
   },
   "packet_mode": "trigger_only"
 }
