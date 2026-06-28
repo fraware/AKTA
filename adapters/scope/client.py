@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 ADAPTER_MODE_SIMULATED = "simulated"
 ADAPTER_MODE_PYTHON_IMPORT = "python-import"
 ADAPTER_MODE_CLI = "cli"
+ADAPTER_MODE_AKTA_REVIEW_CLI = "akta-review-cli"
+SCOPE_CLI_MODE_AKTA_REVIEW = "akta-review"
 
 
 @dataclass
@@ -43,6 +45,9 @@ def detect_adapter_mode() -> str:
     if os.environ.get("SCOPE_REPO_PATH"):
         return ADAPTER_MODE_PYTHON_IMPORT
     if os.environ.get("SCOPE_CLI"):
+        cli_mode = os.environ.get("SCOPE_CLI_MODE", "").strip().lower()
+        if cli_mode in (SCOPE_CLI_MODE_AKTA_REVIEW, "akta-review-cli"):
+            return ADAPTER_MODE_AKTA_REVIEW_CLI
         return ADAPTER_MODE_CLI
     return ADAPTER_MODE_SIMULATED
 
@@ -281,6 +286,111 @@ def _run_scope_cli(
     return proc
 
 
+def _validate_akta_review_summary(summary: dict[str, Any]) -> None:
+    """Validate summary.json when schema is available."""
+    schema_path = _akta_repo_root() / "schemas" / "scope_akta_review_summary.schema.json"
+    if not schema_path.is_file():
+        return
+    from akta.records import validate_against_schema
+
+    validate_against_schema(summary, "scope_akta_review_summary.schema.json")
+
+
+def _akta_review_cli_scope(
+    trigger: dict[str, Any],
+    record: dict[str, Any] | None,
+    granted: str,
+    reviewer_id: str,
+) -> ScopeAdapterResult:
+    cli = os.environ.get("SCOPE_CLI", "scope")
+    with tempfile.TemporaryDirectory(prefix="akta-scope-akta-review-") as tmp:
+        tmp_path = Path(tmp)
+        trigger_path = tmp_path / "review_trigger.json"
+        trigger_path.write_text(json.dumps(trigger, indent=2), encoding="utf-8")
+        out_dir = tmp_path / "scope_out"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        reviewer_path = tmp_path / "reviewer.json"
+        reviewer_path.write_text(
+            json.dumps(
+                {"reviewer_id": reviewer_id, "role": _reviewer_role(trigger)},
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+        review_cmd = [
+            cli,
+            "akta",
+            "review",
+            "--akta-trigger",
+            str(trigger_path),
+            "--grant-scope",
+            granted,
+            "--reviewer",
+            str(reviewer_path),
+            "--decision-rationale",
+            _decision_input_for_grant(granted, trigger).get(
+                "rationale",
+                "Approved at requested scope.",
+            ),
+            "--out-dir",
+            str(out_dir),
+        ]
+        if record is not None:
+            record_path = tmp_path / "akta_record.json"
+            record_path.write_text(json.dumps(record, indent=2), encoding="utf-8")
+            review_cmd.extend(["--akta-record", str(record_path)])
+
+        scope_root = _resolve_scope_repo_root()
+        if scope_root is not None:
+            policy_dir = scope_root / "policy"
+            if policy_dir.is_dir():
+                review_cmd.extend(["--policy", str(policy_dir)])
+
+        result = _run_scope_cli(review_cmd, scope_repo=scope_root)
+        if isinstance(result, ScopeAdapterResult):
+            result.adapter_mode = ADAPTER_MODE_AKTA_REVIEW_CLI
+            return result
+
+        summary_path = out_dir / "summary.json"
+        if not summary_path.is_file():
+            return ScopeAdapterResult(
+                adapter_mode=ADAPTER_MODE_AKTA_REVIEW_CLI,
+                error="scope akta review did not write summary.json",
+            )
+
+        from akta.errors import SchemaValidationError
+
+        try:
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            _validate_akta_review_summary(summary)
+            packet = json.loads(Path(summary["packet_path"]).read_text(encoding="utf-8"))
+            decision = json.loads(Path(summary["decision_path"]).read_text(encoding="utf-8"))
+            grant = json.loads(Path(summary["grant_path"]).read_text(encoding="utf-8"))
+        except (KeyError, json.JSONDecodeError, OSError, ValueError, SchemaValidationError) as exc:
+            return ScopeAdapterResult(
+                adapter_mode=ADAPTER_MODE_AKTA_REVIEW_CLI,
+                error=str(exc),
+            )
+
+    validation_error = _validate_scope_chain_grant(grant, trigger, record)
+    if validation_error:
+        return ScopeAdapterResult(
+            adapter_mode=ADAPTER_MODE_AKTA_REVIEW_CLI,
+            review_packet=packet,
+            grant=grant,
+            decision=decision,
+            error=validation_error,
+        )
+
+    return ScopeAdapterResult(
+        adapter_mode=ADAPTER_MODE_AKTA_REVIEW_CLI,
+        review_packet=packet,
+        grant=grant,
+        decision=decision,
+    )
+
+
 def _cli_scope(
     trigger: dict[str, Any],
     record: dict[str, Any] | None,
@@ -440,6 +550,13 @@ def submit_review_trigger(
     if mode == ADAPTER_MODE_PYTHON_IMPORT:
         logger.info("SCOPE adapter mode: python-import (SCOPE_REPO_PATH)")
         return _python_import_scope(trigger, record, granted, reviewer_id)
+    if mode == ADAPTER_MODE_AKTA_REVIEW_CLI:
+        logger.info(
+            "SCOPE adapter mode: akta-review-cli (SCOPE_CLI=%s, SCOPE_CLI_MODE=%s)",
+            os.environ.get("SCOPE_CLI", "scope"),
+            os.environ.get("SCOPE_CLI_MODE", SCOPE_CLI_MODE_AKTA_REVIEW),
+        )
+        return _akta_review_cli_scope(trigger, record, granted, reviewer_id)
     if mode == ADAPTER_MODE_CLI:
         logger.info("SCOPE adapter mode: cli (SCOPE_CLI=%s)", os.environ.get("SCOPE_CLI", "scope"))
         return _cli_scope(trigger, record, granted, reviewer_id)
