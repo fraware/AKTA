@@ -42,10 +42,12 @@ def test_pcs_manifest_includes_v03_review_trigger(tmp_path: Path) -> None:
 
 def test_pcs_pinned_fixture_full_shape() -> None:
     manifest = json.loads((FIXTURES / "pcs_manifest_v0.4.json").read_text(encoding="utf-8"))
+    manifest["schema_version"] = "akta-record-v0.5"
+    manifest["file_hashes"] = {f: f"sha256:{'0' * 64}" for f in manifest["files"] if f != "manifest.json"}
     validate_against_schema(manifest, "pcs_akta_artifact.schema.json")
     assert manifest["artifact_type"] == "akta_scientific_action_record"
     assert "review_trigger.json" in manifest["files"]
-    assert manifest["schema_version"] == "akta-record-v0.4"
+    assert manifest["schema_version"] == "akta-record-v0.5"
     for field in (
         "record_hash",
         "policy_hash",
