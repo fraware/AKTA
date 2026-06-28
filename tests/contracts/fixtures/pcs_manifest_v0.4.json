@@ -1,0 +1,19 @@
+{
+  "artifact_type": "akta_scientific_action_record",
+  "schema_version": "akta-record-v0.4",
+  "record_hash": "sha256:db1a5202d8301129aca83b9d244d086a6e873088433b087fbd758c1cb96dcc61",
+  "policy_hash": "sha256:e0951ca2ff63b3fce9b3c841b324c3bf23d0f2e4b062c0c3dd5a057f7af5944d",
+  "domain_overlay_hash": "sha256:67d13db14ede89da9ffbd5592e7f081b209d25a03bc3942e7a7f1feac1d4eaab",
+  "tool_registry_hash": "sha256:106f428d42b42d5f0f459d8e65da25f1f9ee237efb6a3b27fe880f83d7bc604c",
+  "decision_id": "AKTA-DEC-4318BB3D",
+  "files": [
+    "akta_record.json",
+    "akta_decision.json",
+    "policy_hash.txt",
+    "domain_overlay_hash.txt",
+    "tool_registry_hash.txt",
+    "review_trigger.json",
+    "manifest.json"
+  ],
+  "manifest_hash": "sha256:5c2a595995912923286f250ca03c66f3ee3a7de994eeb4270796879a1d3d7cc8"
+}
