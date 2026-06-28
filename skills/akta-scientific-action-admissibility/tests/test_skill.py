@@ -50,6 +50,26 @@ def test_weak_evidence_example_matches_gate() -> None:
     assert decision.to_dict()["scientific_action_type"] == "A7_resource_or_queue_prioritization"
 
 
+def test_protocol_drift_review_trigger_has_requested_scope() -> None:
+    """Skill consumers must emit v0.3 requested_scope on review triggers."""
+    gate = AKTAGate.from_policy_dir(ROOT / "policy", overlays_dir=ROOT / "overlays")
+    decision = gate.evaluate(
+        ai_output={"summary": "Update active protocol threshold."},
+        requested_tool="protocol_editor.update_active_protocol",
+        requested_action="update_threshold",
+        context=AKTAContext.from_dict({
+            "evidence_state": "E4_internally_consistent_evidence",
+            "validation_status": "V3_preliminary_experimental_support",
+        }),
+        deployment_profile="P4_protocol_drafting_assistant",
+        domain_overlay="generic_lab_v0",
+    )
+    trigger = decision.to_dict()["review_trigger"]
+    assert trigger["review_trigger_version"] == "0.3"
+    assert trigger["requested_scope"] == "active_protocol_update"
+    assert "review_scope" not in trigger
+
+
 def test_multi_agent_handoff_example_blocked() -> None:
     gate = AKTAGate.from_policy_dir(ROOT / "policy", overlays_dir=ROOT / "overlays")
     ctx = {
