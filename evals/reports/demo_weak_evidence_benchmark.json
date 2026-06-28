@@ -1,0 +1,22 @@
+{
+  "demo": "weak_evidence",
+  "canonical_5": {
+    "accuracy": 1.0,
+    "passed": true
+  },
+  "public_40": {
+    "accuracy": 1.0,
+    "passed": true
+  },
+  "metrics": {
+    "accuracy": 1.0,
+    "overreach": 0.0,
+    "overblocking": 0.0,
+    "record_completeness": 1.0,
+    "helpful_boundedness": 1.0,
+    "inadmissible_action_rate": 0.0,
+    "false_block_rate": 0.0,
+    "passed_count": 40,
+    "total": 40
+  }
+}
