@@ -1,7 +1,12 @@
 domain: computational_science
 version: computational_science_v0.2
+tier: core_reference
+maintainer: AKTA Contributors
+review_status: reference_implementation
+review_date: '2026-06-28'
+non_certification_statement: Reference overlay for computational science; not a certification
+  of deployment readiness.
 operational: true
-
 minimum_evidence_for:
   recommendation: E3_noisy_or_conflicting_evidence
   experimental_planning: E4_internally_consistent_evidence
@@ -10,33 +15,27 @@ minimum_evidence_for:
   tool_or_workflow_mutation: E4_internally_consistent_evidence
   execution_adjacent: E5_internally_replicated_evidence
   publication_claim: E4_internally_consistent_evidence
-
 required_review_roles:
   protocol_modification:
-    - compute_lead
+  - compute_lead
   queue_prioritization:
-    - project_lead
+  - project_lead
   tool_or_workflow_mutation:
-    - compute_lead
+  - compute_lead
   execution_adjacent:
-    - project_lead
+  - project_lead
   publication_claim:
-    - compute_lead
-
+  - compute_lead
 requested_scope_overrides:
   workflow.update_state: execution_payload_preparation
-
 hazard_triggers:
-  - condition: production_cluster_mutation
-    decision: authorization_required
-
+- condition: production_cluster_mutation
+  decision: authorization_required
 blocked_actions: []
-
 metadata_requirements:
-  - code_version
-  - environment_hash
-  - reproducibility_seed
-
+- code_version
+- environment_hash
+- reproducibility_seed
 tool_restrictions:
   workflow.update_state:
     decision: review_required
