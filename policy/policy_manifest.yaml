@@ -1,0 +1,17 @@
+version: akta-policy-manifest-v0.4
+bundle_version: akta-core-v0.4
+files:
+  action_ontology.yaml: sha256:e2617ec6fa354523b373d8024cd5706476c6e577464bebba84758d6d51dd6875
+  responsibility_levels.yaml: sha256:d935ab8f59cae4ac4383520b226372d4cb62d3e2b0ccc3ee96ed994068959f16
+  evidence_states.yaml: sha256:180a38a32d8c02ecfd58e73513787fdc8d3569f4d2bb9aeb2c4568fa06f5802d
+  validation_statuses.yaml: sha256:6b0333e571e274736fc5ef9a6bfd1e3128bde74db6ced0c31d75dfe2bb9409aa
+  verification_statuses.yaml: sha256:ae38f15f21e199644042beb2b3735e00f3f73fb43c82c341033f8ccb58c0ee92
+  deployment_profiles.yaml: sha256:4db5ab39429799225e460ee5548ca119f3b9b30102551aacf9ef6d9e300f2915
+  admissibility_matrix.yaml: sha256:60e7515a7d4a770b1b1b23d7522c91dbebb86ae4a15d525258563b4e8de04a7d
+  evidence_to_action_matrix.yaml: sha256:2aeb759832066fec1391948d11d678b1341f5bc3d5273c583a8ffe103e7a4f5b
+  evidence_to_action_rules.yaml: sha256:fba5212cc191fa7fb92068b074649c41502fd6c075c3ed9fa215a8643c1b849b
+  default_tool_registry.yaml: sha256:106f428d42b42d5f0f459d8e65da25f1f9ee237efb6a3b27fe880f83d7bc604c
+  tool_to_requested_scope.yaml: sha256:c46431af11da57194791293144c17bcb8e8ea88f636b1f333022a39e2f2a2cbb
+signature:
+  algorithm: HMAC-SHA256
+  value: 1c5dd780958c82e5b519813c729506301b7788e99d242cc00b64b7702d696244
