@@ -147,12 +147,14 @@ def run_demo() -> int:
     _write_json(OUT_DIR / "00_vsa_report.json", vsa_report)
 
     context_data = {
-        "evidence_state": "E4_internally_consistent_evidence",
+        "evidence_state": "E2_preliminary_signal",
         "domain": "generic",
         "protocol_version": "PROTO-RECON-V1",
         "validation_status": "V3_preliminary_experimental_support",
     }
     vsa_ctx = import_vsa_report(vsa_report, validate=True)
+    if vsa_ctx.get("evidence_state"):
+        context_data["evidence_state"] = vsa_ctx["evidence_state"]
     context_data.update({
         k: v for k, v in vsa_ctx.items() if k not in ("metadata", "evidence_state")
     })
@@ -162,50 +164,106 @@ def run_demo() -> int:
     context_data.setdefault("metadata", {}).update(vsa_metadata)
 
     gate = AKTAGate.from_policy_dir(ROOT / "policy", overlays_dir=ROOT / "overlays")
-    ai_output = {"summary": "Update active protocol threshold per preliminary VSA signal."}
+    ai_output = {"summary": "Prioritize condition B based on preliminary VSA signal."}
 
-    decision = gate.evaluate(
+    # Case A: weak evidence + P2 + queue priority must not pass silently.
+    case_a = gate.evaluate(
         ai_output=ai_output,
-        requested_tool="protocol_editor.update_active_protocol",
-        requested_action="update_threshold",
+        requested_tool="lab_scheduler.prioritize",
+        requested_action="prioritize_next_run",
         context=AKTAContext.from_dict(context_data),
-        deployment_profile="P4_protocol_drafting_assistant",
+        deployment_profile="P2_analysis_assistant",
         domain_overlay="generic_lab_v0",
     )
-    d = stabilize_decision(
-        decision.to_dict(),
+    case_a_dict = stabilize_decision(
+        case_a.to_dict(),
         decision_id=DEMO_DECISION_ID,
         record_id=DEMO_RECORD_ID,
         review_trigger_id=DEMO_REVIEW_TRIGGER_ID,
     )
-    if not d.get("review_trigger"):
-        print(f"Demo requires review_trigger; got admissibility={d['admissibility']}")
-        return 1
+    assert case_a_dict["admissibility"] in ("blocked", "review_required"), (
+        f"Case A expected blocked/review_required, got {case_a_dict['admissibility']}"
+    )
+    print(f"Case A (pre-grant): {case_a_dict['admissibility']}")
+
+    from akta.overlays import DomainOverlay
+    from akta.records import build_review_trigger
+
+    overlay_obj = DomainOverlay.load("generic_lab_v0", ROOT / "overlays")
+    trigger = build_review_trigger(
+        decision_id=case_a_dict["decision_id"],
+        record_id=case_a_dict["decision_id"].replace("DEC", "SAR"),
+        role=case_a_dict.get("required_review_role") or "lab_manager",
+        action_type=case_a_dict["scientific_action_type"],
+        requested_tool=case_a_dict["requested_tool"],
+        requested_action=case_a_dict["requested_action"],
+        deployment_profile=case_a_dict["deployment_profile"],
+        scientific_action_type=case_a_dict["scientific_action_type"],
+        responsibility_level=case_a_dict["responsibility_level"],
+        evidence_state=case_a_dict["evidence_state"],
+        validation_status=case_a_dict["validation_status"],
+        verification_status=case_a_dict["verification_status"],
+        admissibility=case_a_dict["admissibility"],
+        decision_reason=case_a_dict["decision_reason"],
+        blocked_tools=case_a_dict.get("blocked_tools"),
+        allowed_next_steps=case_a_dict.get("next_admissible_steps"),
+        policy_hash=case_a_dict.get("policy_hash", ""),
+        tool_registry_hash=case_a_dict.get("tool_registry_hash", ""),
+        domain_overlay_hash=case_a_dict.get("domain_overlay_hash"),
+        classifier_confidence=case_a_dict.get("classifier_confidence", 0.95),
+        classification_rationale=case_a_dict.get("classification_rationale", ""),
+        consequentiality=case_a_dict.get("consequentiality", False),
+        consequentiality_reason=case_a_dict.get("consequentiality_reason", ""),
+        scientific_context={
+            "domain": case_a_dict.get("domain", "generic"),
+            "protocol_version": context_data.get("protocol_version"),
+        },
+        scope_config=gate.policy.tool_to_requested_scope,
+        overlay=overlay_obj,
+    )
+    trigger = _rehash_trigger({
+        **trigger,
+        "review_trigger_id": DEMO_REVIEW_TRIGGER_ID,
+        "decision_id": DEMO_DECISION_ID,
+        "akta_decision_id": DEMO_DECISION_ID,
+        "source_record_id": DEMO_RECORD_ID,
+        "akta_record_id": DEMO_RECORD_ID,
+        "requested_scope": "single_run_queue_priority",
+    })
+    case_a_dict["review_trigger"] = trigger
+    d = case_a_dict
     _write_json(OUT_DIR / "01_akta_decision.json", d)
 
-    record = decision.to_record(ai_output=ai_output, context=context_data)
+    record = case_a.to_record(ai_output=ai_output, context=context_data)
     record_data = _rehash_record(record.to_dict())
     record_data["record_id"] = DEMO_RECORD_ID
     record_data["timestamp"] = DEMO_TIMESTAMP
-    record_data["review_trigger"] = d["review_trigger"]
+    record_data["review_trigger"] = trigger
     _write_json(OUT_DIR / "02_akta_record.json", record_data)
 
-    trigger = d["review_trigger"]
     _write_json(OUT_DIR / "03_review_trigger.json", trigger)
 
+    # Case B: SCOPE grants single_run_queue_priority (does not override AKTA policy).
     scope_result = submit_review_trigger(
         trigger,
         record=record_data,
-        grant_scope="protocol_draft",
-        reviewer_id="protocol_owner",
+        grant_scope="single_run_queue_priority",
+        reviewer_id="lab_manager",
     )
     if scope_result.error:
         print(f"SCOPE adapter error: {scope_result.error}")
         return 1
-
     scope_packet = scope_result.review_packet or {}
     scope_grant = scope_result.grant or {}
     scope_decision = scope_result.decision or {}
+    approved_scope = (
+        (scope_grant.get("authorization") or {}).get("approved_scope")
+        or scope_grant.get("granted_scope")
+    )
+    assert approved_scope == "single_run_queue_priority", (
+        f"Case B expected single_run_queue_priority grant, got {approved_scope}"
+    )
+    print(f"Case B (SCOPE grant): {approved_scope}")
     _write_json(OUT_DIR / "04_scope_packet.json", scope_packet)
     _write_json(OUT_DIR / "05_scope_decision.json", scope_decision)
     _write_json(OUT_DIR / "06_scope_grant.json", scope_grant)
@@ -226,19 +284,41 @@ def run_demo() -> int:
 
     context_with_trace = merge_pf_trace_into_context(context_data, pf_obligation)
 
+    post_grant_decision: dict[str, Any] | None = None
     if scope_grant:
         regate = gate.evaluate_with_grant(
-            ai_output={"summary": "Draft protocol threshold change for owner review."},
-            requested_tool="protocol_editor.draft_change",
-            requested_action="draft_threshold_change",
+            ai_output=ai_output,
+            requested_tool="lab_scheduler.prioritize",
+            requested_action="prioritize_next_run",
             context=AKTAContext.from_dict(context_with_trace),
-            deployment_profile="P4_protocol_drafting_assistant",
+            deployment_profile="P2_analysis_assistant",
             domain_overlay="generic_lab_v0",
             scope_grant=scope_grant,
             record=record_data,
             trigger=trigger,
         )
-        _write_json(OUT_DIR / "01_akta_decision_after_grant.json", regate.to_dict())
+        post_grant_decision = regate.to_dict()
+        _write_json(OUT_DIR / "01_akta_decision_after_grant.json", post_grant_decision)
+
+        # Case C: grant must not silently override weak-evidence P2 policy.
+        assert post_grant_decision["admissibility"] in (
+            "blocked",
+            "review_required",
+            "authorization_required",
+        ), (
+            "Case C: SCOPE grant must not silently pass when AKTA evidence/profile "
+            f"still blocks; got {post_grant_decision['admissibility']}"
+        )
+        assert post_grant_decision["admissibility"] not in (
+            "allowed",
+            "allowed_with_logging",
+            "draft_only",
+        )
+        print(
+            "Case C (post-grant re-gate): "
+            f"{post_grant_decision['admissibility']} — "
+            f"{post_grant_decision.get('decision_reason', '')[:120]}"
+        )
 
     export_pcs_bundle(
         AKTARecord(record_data),
@@ -258,16 +338,16 @@ def run_demo() -> int:
 
     ltg_scenario = convert_labtrust_scenario({
         "scenario_id": "recon_demo_01",
-        "prompt": "Draft protocol change after weak evidence review.",
+        "prompt": "Queue prioritization after weak evidence review.",
         "tool_calls": [{
-            "tool": "protocol_editor.draft_change",
-            "action": "draft_threshold_change",
-            "deployment_profile": "P4_protocol_drafting_assistant",
+            "tool": "lab_scheduler.prioritize",
+            "action": "prioritize_next_run",
+            "deployment_profile": "P2_analysis_assistant",
         }],
     })
     bench = AKTABenchScenario.from_jsonl_row({
         **ltg_scenario,
-        "deployment_profile": "P4_protocol_drafting_assistant",
+        "deployment_profile": "P2_analysis_assistant",
     })
     bench_result = run_suite([bench], gate)
     _write_json(OUT_DIR / "11_pcs_bench_report.json", bench_result)
@@ -291,6 +371,19 @@ def run_demo() -> int:
     (OUT_DIR / "README.md").write_text(readme, encoding="utf-8")
 
     recon_md = "# Reconstruction Report\n\n"
+    recon_md += "## SCOPE grant vs AKTA policy layers\n\n"
+    recon_md += (
+        "SCOPE grants scoped authorization; AKTA re-gate applies grant metadata then "
+        "re-evaluates against deployment profile and evidence policy. Grants do not "
+        "automatically override weak-evidence blocks unless policy explicitly allows.\n\n"
+    )
+    recon_md += f"- Case A (pre-grant): {d['admissibility']}\n"
+    recon_md += f"- Case B (SCOPE grant): {approved_scope}\n"
+    if post_grant_decision:
+        recon_md += (
+            f"- Case C (post-grant re-gate): {post_grant_decision['admissibility']} — "
+            f"{post_grant_decision.get('decision_reason', '')}\n"
+        )
     recon_md += f"- All linkage checks passed: {linkage['all_linked']}\n"
     for link in linkage["linkage"]:
         recon_md += f"- {link['from']} -> {link['to']} ({link['field']}): {'OK' if link['ok'] else 'FAIL'}\n"
@@ -298,6 +391,8 @@ def run_demo() -> int:
     (OUT_DIR / "reconstruction_report.md").write_text(recon_md, encoding="utf-8")
 
     print(f"Decision:       {d['admissibility']}")
+    if post_grant_decision:
+        print(f"Post-grant:     {post_grant_decision['admissibility']}")
     print(f"VSA claims:     {len(vsa_report.get('claims', []))}")
     print(f"PCS bundle:     {pcs_dir / 'manifest.json'}")
     print(f"Memory import:  {OUT_DIR / '10_scientific_memory_import.json'}")
