@@ -28,7 +28,8 @@ def test_pcs_export_validates_manifest(tmp_path: Path) -> None:
     out = export_pcs_bundle(record, tmp_path / "pcs", decision=decision.to_dict(), validate=True)
     manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
     validate_against_schema(manifest, "pcs_akta_artifact.schema.json")
-    assert manifest["schema_version"] == "akta-record-v0.4"
+    assert manifest["schema_version"] == "akta-record-v0.5"
+    assert "file_hashes" in manifest
     assert (out / "akta_record.json").exists()
     assert (out / "akta_decision.json").exists()
 
