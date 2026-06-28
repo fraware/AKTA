@@ -7,15 +7,18 @@
   "decision": "blocked",
   "decision_reason_hash": "sha256:69149a4f1f4d64fb8d9a145327ca0a46c71b0d1fcee93cc0a553adfa719d70c6",
   "blocked_tools": [
+    "freezer_inventory.release",
+    "freezer_inventory.reserve",
     "lab_scheduler.defer",
     "lab_scheduler.prioritize",
     "reagent_inventory.allocate",
-    "robot_queue.submit"
+    "robot_queue.submit",
+    "sample_tracker.transfer"
   ],
   "allowed_tools": [],
   "max_responsibility_level": "R6_resource_allocation",
   "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
-  "tool_registry_hash": "sha256:90746b4b61b236802bf9762b6755e966a676c6294e83fd3606ce0826f1aff50a",
+  "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8",
   "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
   "scope_grant_ref": null,
   "review_trigger_id": null,
@@ -26,10 +29,13 @@
     "require_review_before_tool_call": false,
     "require_authorization_before_tool_call": false,
     "blocked_tools": [
+      "freezer_inventory.release",
+      "freezer_inventory.reserve",
       "lab_scheduler.defer",
       "lab_scheduler.prioritize",
       "reagent_inventory.allocate",
-      "robot_queue.submit"
+      "robot_queue.submit",
+      "sample_tracker.transfer"
     ],
     "allowed_tools": [],
     "log_all_tool_calls": false
@@ -42,5 +48,5 @@
   ],
   "required_review_role": null,
   "consequentiality": true,
-  "obligation_hash": "sha256:91c8045f20a687506be850aee36d6c1790d8b2c91f1d0f44ccb65065f41de200"
+  "obligation_hash": "sha256:a9e7022c5c24539d3dbfd8bbe5e3d0bfba1b223796533ee6f665ef3a2391ec5c"
 }
