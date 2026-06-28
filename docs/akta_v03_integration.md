@@ -1,5 +1,7 @@
 # AKTA v0.3 Integration Summary
 
+> **Current release:** v0.7.1 adds grant-exact re-gating (`prior_review_allowed_tools`), SCOPE `akta-review-cli` mode, live SCOPE verification, and reconstructable experiment Cases A/B/C. This document retains the v0.3 contract summary; see [integration_guide.md](integration_guide.md) and [scope_bridge.md](scope_bridge.md) for current adapter modes.
+
 AKTA v0.3 hardens the bridge to SCOPE, PF-Core, and PCS-Core. This document summarizes how the reference kernel connects to downstream systems and where authority boundaries sit.
 
 ## System roles
