@@ -13,6 +13,7 @@ pytest tests/contracts/ tests/integration/ -v
 | `test_scope_trigger_contract.py` | SCOPE review trigger shape, `requested_scope`, ID aliases |
 | `test_pf_obligation_contract.py` | PF-Core obligation schema and enforcement fields |
 | `test_pcs_manifest_contract.py` | PCS manifest schema, review trigger inclusion |
+| `test_pcs_full_chain_tamper.py` | PCS v0.5 full-chain tamper detection (all artifacts) |
 | `test_pcs_contract.py` (integration) | Round-trip PCS export from live gate |
 
 Fixtures live in `tests/contracts/fixtures/`. Regenerate pinned hashes after intentional schema bumps:
@@ -34,17 +35,19 @@ $env:SCOPE_CLI = "scope"   # SCOPE CLI on PATH, or full path
 pytest tests/contracts/ tests/integration/ -v
 ```
 
-### SCOPE subprocess mode
+### SCOPE CLI mode (v0.5)
 
-When `SCOPE_CLI` or `SCOPE_REPO_PATH` is set, `adapters/scope/client.py` invokes:
+When `SCOPE_CLI` is set (without `SCOPE_REPO_PATH`), `adapters/scope/client.py` invokes:
 
 ```text
-scope review --stdin [--repo <SCOPE_REPO_PATH>]
+scope packet create --trigger <trigger.json> [--record <record.json>] --out <packet.json>
+scope decision submit --packet <packet.json> --grant-scope <scope> --reviewer <id> --out <decision.json>
+scope grant issue --decision <decision.json> --out <grant.json>
 ```
 
-stdin JSON: `{"trigger": {...}, "grant_scope": "...", "reviewer_id": "..."}`
+### SCOPE python-import mode
 
-stdout JSON: `{"review_packet": {...}, "grant": {...}, "decision": {...}}`
+When `SCOPE_REPO_PATH` is set, the adapter imports `ScopeEngine` (or compat aliases) from the sibling repo. Expected methods are documented in `adapters/scope/engine_protocol.py`.
 
 See [docs/scope_bridge.md](../../docs/scope_bridge.md) for trigger fields and anti-patterns.
 
