@@ -16,6 +16,7 @@ from akta.policy_integrity import is_production_mode
 OVERLAY_ALIASES = {
     "generic_lab_v0": "generic_lab_v0.yaml",
     "materials_v0": "materials_v0.yaml",
+    "materials_expert_v0": "materials_expert_v0.yaml",
     "computational_science_v0": "computational_science_v0.yaml",
     "biology_v0": "biology_v0.yaml",
     "chemistry_v0": "chemistry_v0.yaml",
