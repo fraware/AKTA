@@ -1,10 +1,10 @@
 {
   "artifact_type": "akta_scientific_action_record",
-  "schema_version": "akta-record-v0.2",
-  "record_hash": "sha256:f79dc3916776f4986e3900739696b4b5e7bcdc33ff27ed11587f714c96bd4120",
-  "policy_hash": "sha256:0430016c6b03d5ab038208784ba502d00e6c7b7e344fcea0e4c6a4cedef1809f",
-  "domain_overlay_hash": "sha256:e299198a20a8d57c3b5f890eba0f57383a8151b1a9db2629677cc0ed0bf2f2c6",
-  "tool_registry_hash": "sha256:d4a9e0330c43ee6661a9248fde0b2f452be22bbc95179c2fc96e2f4e3cc14b40",
+  "schema_version": "akta-record-v0.4",
+  "record_hash": "sha256:03e1b5ce977bdd5c16124bb3ee4da60912c15f6d3ed1451b52ab7c847689054d",
+  "policy_hash": "sha256:e0951ca2ff63b3fce9b3c841b324c3bf23d0f2e4b062c0c3dd5a057f7af5944d",
+  "domain_overlay_hash": "sha256:67d13db14ede89da9ffbd5592e7f081b209d25a03bc3942e7a7f1feac1d4eaab",
+  "tool_registry_hash": "sha256:106f428d42b42d5f0f459d8e65da25f1f9ee237efb6a3b27fe880f83d7bc604c",
   "decision_id": "AKTA-DEC-DEMO0001",
   "files": [
     "akta_record.json",
@@ -14,5 +14,5 @@
     "tool_registry_hash.txt",
     "manifest.json"
   ],
-  "manifest_hash": "sha256:f0f843c2acacc66159c1283d5b5cd1221f59977fdb7b3619bb5c4af283a89537"
+  "manifest_hash": "sha256:ee5a0865491a7aad736e4c39270099fef82b0d43420ae88d43b350bd39f7daa9"
 }
