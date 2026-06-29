@@ -35,6 +35,18 @@ def pcs_bench_repo() -> Path | None:
     return repo_path("PCS_BENCH_REPO_PATH")
 
 
+def vsa_repo() -> Path | None:
+    return repo_path("VSA_REPO_PATH")
+
+
+def memory_repo() -> Path | None:
+    return repo_path("MEMORY_REPO_PATH")
+
+
+def labtrust_repo() -> Path | None:
+    return repo_path("LABTRUST_REPO_PATH")
+
+
 def try_import_validator(
     repo: Path,
     module_candidates: list[str],
@@ -93,6 +105,26 @@ def validate_pf_obligation_live(obligation: dict[str, Any]) -> str | None:
                 Path(tmp_path).unlink(missing_ok=True)
         return "PF-Core validator not found; skipped live validation"
     validator(obligation)
+    return None
+
+
+def validate_vsa_report_live(report: dict[str, Any]) -> str | None:
+    """Validate VSA report against sibling VSA if available."""
+    repo = vsa_repo()
+    if repo is None:
+        return "VSA_REPO_PATH not set"
+
+    src = repo / "src"
+    if src.is_dir() and str(src) not in sys.path:
+        sys.path.insert(0, str(src))
+    validator = try_import_validator(
+        repo,
+        ["vsa.validate.engine", "vsa.engine"],
+        attr="validate_report",
+    )
+    if validator is None:
+        return "VSA validate_report not found; skipped live validation"
+    validator(report)
     return None
 
 
