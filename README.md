@@ -16,7 +16,7 @@
 
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![CI](https://img.shields.io/badge/CI-make%20ci-lightgrey)](#for-contributors)
+[![CI](https://github.com/fraware/AKTA/actions/workflows/ci.yml/badge.svg)](https://github.com/fraware/AKTA/actions/workflows/ci.yml)
 
 ---
 
