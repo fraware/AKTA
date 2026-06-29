@@ -4,6 +4,27 @@ All notable changes to AKTA are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.0] - 2026-06-29
+
+### Added
+
+- Release gate CI workflow (`.github/workflows/release-gate.yml`) with mandatory SCOPE live gate
+- Explicit grant override policy (`policy/scope_grant_override_rules.yaml`) wired into `evaluate_with_grant()`
+- SCOPE fixture auto-sync (`scripts/sync_scope_contract_fixtures.py`)
+- PF runtime proof demo, PCS-Core live ingest, VSA/Memory round-trip contract tests
+- AKTA-Bench v1 corpora: 100+ oracle, 30–50 holdout, 50+ LabTrust imports, classifier edge cases
+- Behavioral eval runner (`evals/behavioral_runner.py`), inter-rater protocol docs
+- Session grant store and LangGraph middleware persistence
+- Policy bundle `akta-core-v1.0`, institutional overlay example, ~80 tool registry
+- Unified release verifier (`scripts/verify_v1_release.py`, `make verify-v1-release`)
+- Protocol v1.0 documentation package (`docs/PROTOCOL_v1.0.md`, `CITATION.cff`)
+
+### Changed
+
+- SCOPE contract pinned to `akta-scope-contract-v0.9` with runtime compat map
+- REST/MCP structured request IDs and error codes
+- README release-gate CI badge
+
 ## [0.8.1] - 2026-06-29
 
 ### Added

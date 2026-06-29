@@ -58,7 +58,7 @@ def build_quality_report(
     pcs_dir: Path,
 ) -> dict[str, Any]:
     """Pilot QA checks: IAL/SAL, tools, hash linkage, adapter_mode."""
-    from akta.scope_contract import get_fixture_contract_version
+    from akta.scope_contract import AKTA_SCOPE_CONTRACT_VERSION, get_fixture_contract_version
 
     demo = _load_demo_module()
     _linkage_report = demo._linkage_report
@@ -131,12 +131,12 @@ def build_quality_report(
     contract_version = get_fixture_contract_version()
     _check(
         "scope.fixture_contract_version",
-        contract_version == "akta-scope-contract-v0.8.1",
+        contract_version == AKTA_SCOPE_CONTRACT_VERSION,
         contract_version,
     )
 
     return {
-        "pilot_bundle_version": "akta-pilot-v0.8.1",
+        "pilot_bundle_version": "akta-pilot-v1.0",
         "adapter_mode": adapter_mode,
         "scope_fixture_contract_version": contract_version,
         "summary_origin": origin,
@@ -149,7 +149,7 @@ def build_quality_report(
 
 def run_pilot_bundle(*, require_live_scope: bool = False) -> int:
     from adapters.scope.client import ADAPTER_MODE_SIMULATED, detect_adapter_mode
-    from akta.scope_contract import get_fixture_contract_version, validate_scope_runtime_contract
+    from akta.scope_contract import AKTA_SCOPE_CONTRACT_VERSION, get_fixture_contract_version, validate_scope_runtime_contract
 
     adapter_mode = detect_adapter_mode()
     if require_live_scope and adapter_mode == ADAPTER_MODE_SIMULATED:
@@ -222,7 +222,7 @@ def run_pilot_bundle(*, require_live_scope: bool = False) -> int:
         recon_md += (
             f"\n## SCOPE fixture contract_version\n\n"
             f"- AKTA fixture contract_version: `{contract_version}`\n"
-            f"- Pilot bundle version: `akta-pilot-v0.8.1`\n"
+            f"- Pilot bundle version: `akta-pilot-v1.0`\n"
             f"- SCOPE adapter mode: `{adapter_mode}`\n"
         )
         recon_path.write_text(recon_md, encoding="utf-8")

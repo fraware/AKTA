@@ -30,7 +30,7 @@ def test_pilot_bundle_structure(clean_pilot_dir: Path) -> None:
         assert (clean_pilot_dir / name).exists(), f"Missing pilot artifact: {name}"
 
     quality = json.loads((clean_pilot_dir / "14_quality_report.json").read_text(encoding="utf-8"))
-    assert quality["pilot_bundle_version"] == "akta-pilot-v0.8.1"
+    assert quality["pilot_bundle_version"] == "akta-pilot-v1.0"
     assert "checks" in quality
     assert quality.get("identity_assurance_level") in ("IAL0", "IAL1", "IAL2", "IAL3", "IAL4")
     assert quality.get("signing_assurance_level") in ("SAL0", "SAL1", "SAL2", "SAL3", "SAL4")

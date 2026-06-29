@@ -429,10 +429,14 @@ def run_demo(*, cross_repo: bool | None = None, pilot: bool = False) -> int:
     linkage = _linkage_report(artifact_paths)
     summary_checks = _summary_contract_checks(scope_summary, trigger)
 
+    try:
+        out_rel = str(out_dir.relative_to(ROOT))
+    except ValueError:
+        out_rel = str(out_dir)
     readme = (
         "# Reconstructable Experiment (AKTA v0.8)\n\n"
         "Regenerate: `python scripts/demo_reconstructable_experiment.py`\n\n"
-        f"Output directory: `{out_dir.relative_to(ROOT)}`\n"
+        f"Output directory: `{out_rel}`\n"
         f"SCOPE adapter mode: {adapter_mode}\n"
         f"Policy integrity mode: {gate.policy.integrity_mode}\n"
     )
