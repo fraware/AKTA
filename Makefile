@@ -1,4 +1,4 @@
-.PHONY: install test eval-canonical eval-public eval-public-100 eval-oracle eval-holdout eval-v06 eval-bench-v1 demo-weak-evidence demo-akta-weak-evidence demo-akta-scope-protocol-drift demo-reconstructable demo-reconstructable-cross-repo verify-reconstructable-cross-repo demo-pilot-bundle verify-pilot-bundle ci ci-pilot verify-v1-release sync-scope-fixtures
+.PHONY: install test eval-canonical eval-public eval-public-100 eval-oracle eval-holdout eval-v06 eval-bench-v1 demo-weak-evidence demo-akta-weak-evidence demo-akta-scope-protocol-drift demo-reconstructable demo-reconstructable-cross-repo verify-reconstructable-cross-repo demo-pilot-bundle verify-pilot-bundle ci ci-pilot verify-v1-release sync-scope-fixtures import-labtrust-scenarios
 
 PYTHON ?= python
 
@@ -45,6 +45,9 @@ verify-pilot-bundle:
 
 sync-scope-fixtures:
 	$(PYTHON) scripts/sync_scope_contract_fixtures.py
+
+import-labtrust-scenarios:
+	$(PYTHON) scripts/import_labtrust_scenarios.py
 
 ci-pilot: sync-scope-fixtures demo-reconstructable-cross-repo verify-reconstructable-cross-repo demo-pilot-bundle verify-pilot-bundle
 

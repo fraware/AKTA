@@ -24,6 +24,24 @@ def test_adversarial_corpus_size() -> None:
     assert _count_jsonl(ROOT / "scenarios" / "adversarial_transitions.jsonl") >= 30
 
 
+def test_labtrust_imported_from_real_adapter() -> None:
+    path = ROOT / "scenarios" / "labtrust_gym_imported.jsonl"
+    assert path.is_file()
+    synthetic = 0
+    real = 0
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        meta = row.get("labtrust_metadata") or {}
+        if str(meta.get("original_id", "")).startswith("synthetic"):
+            synthetic += 1
+        elif meta.get("source_file"):
+            real += 1
+    assert real >= 50
+    assert synthetic == 0
+
+
 def test_labtrust_imported_size() -> None:
     path = ROOT / "scenarios" / "labtrust_gym_imported.jsonl"
     if path.is_file():
