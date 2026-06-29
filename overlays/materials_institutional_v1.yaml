@@ -1,5 +1,7 @@
 name: materials_institutional_v1
 version: materials-overlay-v1.0
+tier: institutional_deployment_overlay
+domain: materials
 status: institutional_reference
 maintainer_signoff:
   role: materials_safety_officer

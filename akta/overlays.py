@@ -25,6 +25,7 @@ OVERLAY_ALIASES = {
     "biology_placeholder": "biology_v0.yaml",
     "chemistry_placeholder": "chemistry_v0.yaml",
     "clinical_placeholder": "clinical_v0.yaml",
+    "materials_institutional_v1": "materials_institutional_v1.yaml",
 }
 
 OVERLAY_TIERS = frozenset({
