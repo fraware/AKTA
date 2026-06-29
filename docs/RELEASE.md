@@ -1,4 +1,4 @@
-# Public release verification (v0.8.0)
+# Public release verification (v0.8.1)
 
 Use this checklist before tagging a public release of the AKTA reference implementation. AKTA is an open protocol with a reference kernel — not a safety certification.
 
@@ -30,6 +30,10 @@ Set `SCOPE_REPO_PATH` to a SCOPE v0.8+ checkout, then:
 |------|---------|----------|
 | Cross-repo demo | `make demo-reconstructable-cross-repo` | Live chain under `dist/reconstructable_cross_repo/` including `04_scope_review_summary.json` |
 | Cross-repo verify | `make verify-reconstructable-cross-repo` | All required artifacts present; PCS bundle includes `scope_review_summary.json`; post-grant decision stays blocked |
+| Pilot bundle (live SCOPE) | `make demo-pilot-bundle` | Frozen chain under `dist/pilot_bundle/` with `14_quality_report.json` |
+| Pilot verify | `make verify-pilot-bundle` | Pilot mode: real summary, IAL/SAL, rejects simulated adapter |
+
+Pilot mode requires live SCOPE (`SCOPE_REPO_PATH` or `SCOPE_CLI`). Set `AKTA_STRICT_SCOPE_CONTRACT=1` to hard-fail fixture/runtime version mismatch.
 
 ## Optional (live SCOPE sibling)
 
@@ -73,7 +77,7 @@ Experimental domain overlays (biology, chemistry, clinical) must be refused in p
 
 ## Documentation sanity
 
-- README acceptance tables include v0.8.0 through v0.1
+- README acceptance tables include v0.8.1 through v0.1
 - Cross-repo release gate documented in README (`demo-reconstructable-cross-repo`, `verify-reconstructable-cross-repo`)
 - [limitations.md](limitations.md) states non-certification and authority boundary
 - CHANGELOG includes the release version and date
