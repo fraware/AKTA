@@ -1,0 +1,25 @@
+{
+  "fixture_version": "akta-scope-contract-v0.8",
+  "valid_narrowing_pairs": [
+    {
+      "requested_scope": "active_protocol_update",
+      "granted_scope": "protocol_draft",
+      "rationale": "Protocol owner may approve draft-only changes instead of active update"
+    },
+    {
+      "requested_scope": "single_validation_plan",
+      "granted_scope": "protocol_draft",
+      "rationale": "Validation plan request narrowed to protocol draft only"
+    },
+    {
+      "requested_scope": "single_run_queue_priority",
+      "granted_scope": "single_validation_plan",
+      "rationale": "Queue priority narrowed to validation planning"
+    },
+    {
+      "requested_scope": "robot_queue_submission",
+      "granted_scope": "single_run_queue_priority",
+      "rationale": "Robot submission narrowed to queue prioritization only"
+    }
+  ]
+}
