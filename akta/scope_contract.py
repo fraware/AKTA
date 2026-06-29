@@ -20,11 +20,19 @@ SCOPE_APPROVAL_SCOPES = frozenset(VALID_REQUESTED_SCOPES)
 _AKTA_ROOT = Path(__file__).resolve().parent.parent
 _DEFAULT_FIXTURES_DIR = _AKTA_ROOT / "tests" / "fixtures"
 
-AKTA_SCOPE_CONTRACT_VERSION = "akta-scope-contract-v0.8.1"
+AKTA_SCOPE_CONTRACT_VERSION = "akta-scope-contract-v0.9"
 
 # AKTA fixture contract versions compatible with a given SCOPE runtime core version.
 SCOPE_RUNTIME_CONTRACT_COMPAT: dict[str, frozenset[str]] = {
-    "scope-core-v0.8": frozenset({"akta-scope-contract-v0.8", "akta-scope-contract-v0.8.1"}),
+    "scope-core-v0.8": frozenset({
+        "akta-scope-contract-v0.8",
+        "akta-scope-contract-v0.8.1",
+        "akta-scope-contract-v0.9",
+    }),
+    "scope-core-v0.9": frozenset({
+        "akta-scope-contract-v0.9",
+        "akta-scope-contract-v0.8.1",
+    }),
 }
 
 # v0.2 review_scope vocabulary -> v0.3 requested_scope (compat for SCOPE simulator).
