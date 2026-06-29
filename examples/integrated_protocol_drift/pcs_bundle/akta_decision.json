@@ -91,7 +91,7 @@
     "allowed_next_steps": [],
     "approval_effect": "Allows scoped next step only; not global permission.",
     "default_expiration": "single_run",
-    "expires_at": "2026-06-28T18:43:32Z",
+    "expires_at": "2026-06-29T09:46:46Z",
     "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
     "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8",
     "classifier_confidence": 0.98,
@@ -105,6 +105,6 @@
     },
     "review_route": "active_protocol_review",
     "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
-    "review_trigger_hash": "sha256:8651c9ab953b986db9fb96d63575ffb9fd4303d0b97376d675e0ba1b33c93d93"
+    "review_trigger_hash": "sha256:2b2cf6146ac445f4a89c28e489bdc6bb71da80e284d77a5d485a359b074687f5"
   }
 }
