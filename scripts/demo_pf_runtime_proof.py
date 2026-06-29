@@ -154,6 +154,10 @@ def run_pf_runtime_proof(*, out_dir: Path | None = None) -> dict[str, Any]:
     pf_repo = os.environ.get("PF_CORE_REPO_PATH", "").strip()
     if pf_repo:
         checks["pf_core_validated"] = certificate.get("pf_core_validated") is True
+        if not checks["pf_core_validated"]:
+            raise RuntimeError(
+                "PF_CORE_REPO_PATH is set but PF-Core sibling did not validate trace certificate"
+            )
     report = {
         "passed": all(checks.values()),
         "checks": checks,

@@ -52,6 +52,11 @@ def _run(
 def verify_v1_release(*, skip_ci: bool = False) -> dict[str, Any]:
     from akta.sibling_repos import apply_sibling_env_defaults
 
+    if skip_ci and not os.environ.get("AKTA_ALLOW_SKIP_CI"):
+        raise RuntimeError(
+            "--skip-ci requires AKTA_ALLOW_SKIP_CI=1 (not permitted for release tags)"
+        )
+
     discovered = apply_sibling_env_defaults()
     report: dict[str, Any] = {"steps": [], "passed": False, "sibling_discovery": discovered}
 
@@ -139,19 +144,25 @@ def verify_v1_release(*, skip_ci: bool = False) -> dict[str, Any]:
         optional=not os.environ.get("MEMORY_REPO_PATH"),
     ))
     step("pcs_bench_live", lambda: _run(
-        [
-            sys.executable,
-            "-c",
-            "from adapters.pcs_bench.runner import run_pcs_bench_suite; "
-            "from pathlib import Path; import json; "
-            "r=run_pcs_bench_suite('scenarios/canonical_5.jsonl','scenarios/expected_decisions.jsonl'); "
-            "Path('evals/reports').mkdir(parents=True, exist_ok=True); "
-            "Path('evals/reports/pcs_bench_live.json').write_text(json.dumps(r, indent=2)); "
-            "assert r.get('passed'), r",
-        ],
+        [sys.executable, "-m", "adapters.pcs_bench.external_harness"],
         require_repo="PCS_BENCH_REPO_PATH",
         optional=not os.environ.get("PCS_BENCH_REPO_PATH"),
     ))
+
+    if os.environ.get("VSA_REPO_PATH"):
+        step("vsa_pilot_bundle", lambda: _run(
+            [
+                sys.executable,
+                "-c",
+                "import json; from pathlib import Path; "
+                "from tests.contracts.cross_repo_helpers import validate_vsa_report_live; "
+                "p=Path('dist/pilot_bundle/00_vsa_report.json'); "
+                "assert p.is_file(), 'pilot VSA report missing'; "
+                "r=json.loads(p.read_text(encoding='utf-8')); "
+                "skip=validate_vsa_report_live(r); assert skip is None, skip",
+            ],
+            require_repo="VSA_REPO_PATH",
+        ))
 
     if os.name == "nt":
         step("eval_bench_v1", lambda: _run(
@@ -169,7 +180,11 @@ def verify_v1_release(*, skip_ci: bool = False) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Verify AKTA v1.0 release readiness")
-    parser.add_argument("--skip-ci", action="store_true", help="Skip make ci (not for release tags)")
+    parser.add_argument(
+        "--skip-ci",
+        action="store_true",
+        help="Skip make ci (requires AKTA_ALLOW_SKIP_CI=1; not for release tags)",
+    )
     parser.add_argument("--out", type=Path, default=ROOT / "evals" / "reports" / "verify_v1_release.json")
     args = parser.parse_args(argv)
 
