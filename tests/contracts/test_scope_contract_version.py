@@ -73,11 +73,11 @@ def test_strict_mode_accepts_compatible_scope_runtime(
     scope_dir = tmp_path / "scope"
     scope_dir.mkdir()
     (scope_dir / "integration_versions.py").write_text(
-        'SCOPE_CORE_VERSION = "scope-core-v0.8"\n',
+        'SCOPE_CORE_VERSION = "scope-core-v1.0"\n',
         encoding="utf-8",
     )
     monkeypatch.setenv("AKTA_STRICT_SCOPE_CONTRACT", "1")
     monkeypatch.setenv("SCOPE_REPO_PATH", str(tmp_path))
 
     runtime = validate_scope_runtime_contract(strict=True)
-    assert runtime == "scope-core-v0.8"
+    assert runtime == "scope-core-v1.0"

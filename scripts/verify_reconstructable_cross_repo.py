@@ -31,8 +31,23 @@ REQUIRED_ARTIFACTS = [
     "reconstruction_report.md",
 ]
 
-PILOT_EXTRA_ARTIFACTS = [
+PILOT_ARTIFACTS = [
+    "00_vsa_report.json",
+    "01_akta_decision_pre_grant.json",
+    "02_akta_record.json",
+    "03_review_trigger.json",
+    "04_scope_review_summary.json",
+    "05_scope_packet.json",
+    "06_scope_decision.json",
+    "07_scope_grant.json",
+    "08_akta_decision_after_grant.json",
+    "09_pf_obligation.json",
+    "10_pf_trace_certificate.json",
+    "11_pcs_bundle",
+    "12_scientific_memory_import.json",
+    "13_pcs_bench_report.json",
     "14_quality_report.json",
+    "reconstruction_report.md",
 ]
 
 REQUIRED_PCS_FILES = [
@@ -67,9 +82,14 @@ def _find_simulated_markers(out_dir: Path) -> list[str]:
 
 def verify(out_dir: Path = CROSS_REPO_OUT_DIR, *, pilot_mode: bool = False) -> int:
     errors: list[str] = []
-    required = list(REQUIRED_ARTIFACTS)
     if pilot_mode:
-        required.extend(PILOT_EXTRA_ARTIFACTS)
+        required = list(PILOT_ARTIFACTS)
+        post_grant_name = "08_akta_decision_after_grant.json"
+        pcs_dir_name = "11_pcs_bundle"
+    else:
+        required = list(REQUIRED_ARTIFACTS)
+        post_grant_name = "01_akta_decision_after_grant.json"
+        pcs_dir_name = "10_pcs_bundle"
 
     if not out_dir.is_dir():
         errors.append(f"Missing output directory: {out_dir}")
@@ -83,7 +103,7 @@ def verify(out_dir: Path = CROSS_REPO_OUT_DIR, *, pilot_mode: bool = False) -> i
     simulated = _find_simulated_markers(out_dir)
     errors.extend(simulated)
 
-    post_grant_path = out_dir / "01_akta_decision_after_grant.json"
+    post_grant_path = out_dir / post_grant_name
     if post_grant_path.is_file():
         post_grant = _load_json(post_grant_path)
         admissibility = post_grant.get("admissibility")
@@ -94,9 +114,9 @@ def verify(out_dir: Path = CROSS_REPO_OUT_DIR, *, pilot_mode: bool = False) -> i
         if admissibility not in ("blocked", "review_required", "authorization_required"):
             errors.append(f"Unexpected post-grant admissibility: {admissibility}")
     else:
-        errors.append("Missing post-grant decision: 01_akta_decision_after_grant.json")
+        errors.append(f"Missing post-grant decision: {post_grant_name}")
 
-    pcs_dir = out_dir / "10_pcs_bundle"
+    pcs_dir = out_dir / pcs_dir_name
     if pcs_dir.is_dir():
         for fname in REQUIRED_PCS_FILES:
             if not (pcs_dir / fname).exists():
@@ -109,7 +129,7 @@ def verify(out_dir: Path = CROSS_REPO_OUT_DIR, *, pilot_mode: bool = False) -> i
         except ValueError as exc:
             errors.append(f"PCS bundle validation failed: {exc}")
     else:
-        errors.append("Missing PCS bundle: 10_pcs_bundle")
+        errors.append(f"Missing PCS bundle: {pcs_dir_name}")
 
     summary_path = out_dir / "04_scope_review_summary.json"
     if summary_path.is_file():
@@ -150,7 +170,7 @@ def verify(out_dir: Path = CROSS_REPO_OUT_DIR, *, pilot_mode: bool = False) -> i
         quality_path = out_dir / "14_quality_report.json"
         if quality_path.is_file():
             quality = _load_json(quality_path)
-            if not quality.get("all_checks_passed"):
+            if not quality.get("all_ok") and not quality.get("all_checks_passed"):
                 errors.append("14_quality_report.json reports all_checks_passed=false")
         else:
             errors.append("Missing pilot quality report: 14_quality_report.json")
