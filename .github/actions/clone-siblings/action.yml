@@ -1,0 +1,65 @@
+name: Clone AKTA sibling repositories
+description: >-
+  Clone trust-stack sibling repos when clone URLs or secrets are set.
+  Exports SCOPE_REPO_PATH, PF_CORE_REPO_PATH, PCS_CORE_REPO_PATH,
+  PCS_BENCH_REPO_PATH, VSA_REPO_PATH, and MEMORY_REPO_PATH to GITHUB_ENV.
+inputs:
+  workspace:
+    description: GitHub workspace directory
+    required: true
+  scope_repo_url:
+    description: SCOPE clone URL (secret or public default)
+    required: false
+    default: https://github.com/fraware/SCOPE.git
+  pf_core_repo_url:
+    description: PF-Core clone URL
+    required: false
+    default: ""
+  pcs_core_repo_url:
+    description: PCS-Core clone URL
+    required: false
+    default: ""
+  pcs_bench_repo_url:
+    description: PCS-Bench clone URL
+    required: false
+    default: ""
+  vsa_repo_url:
+    description: VSA clone URL
+    required: false
+    default: ""
+  memory_repo_url:
+    description: Scientific Memory clone URL
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Clone sibling repositories
+      shell: bash
+      run: |
+        set -euo pipefail
+        WS="${{ inputs.workspace }}"
+
+        clone_repo() {
+          local name="$1"
+          local url="$2"
+          local env_var="$3"
+          if [ -z "$url" ]; then
+            return 0
+          fi
+          local dest="$WS/${name}-sibling"
+          echo "Cloning ${name} from ${url} -> ${dest}"
+          git clone --depth 1 "$url" "$dest"
+          echo "${env_var}=${dest}" >> "$GITHUB_ENV"
+        }
+
+        SCOPE_URL="${{ inputs.scope_repo_url }}"
+        if [ -z "$SCOPE_URL" ]; then
+          SCOPE_URL="https://github.com/fraware/SCOPE.git"
+        fi
+        clone_repo "scope" "$SCOPE_URL" "SCOPE_REPO_PATH"
+        clone_repo "pf-core" "${{ inputs.pf_core_repo_url }}" "PF_CORE_REPO_PATH"
+        clone_repo "pcs-core" "${{ inputs.pcs_core_repo_url }}" "PCS_CORE_REPO_PATH"
+        clone_repo "pcs-bench" "${{ inputs.pcs_bench_repo_url }}" "PCS_BENCH_REPO_PATH"
+        clone_repo "vsa" "${{ inputs.vsa_repo_url }}" "VSA_REPO_PATH"
+        clone_repo "memory" "${{ inputs.memory_repo_url }}" "MEMORY_REPO_PATH"

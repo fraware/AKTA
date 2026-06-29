@@ -16,39 +16,38 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Clone trust-stack siblings
+        uses: ./.github/actions/clone-siblings
+        with:
+          workspace: ${{ github.workspace }}
+          scope_repo_url: ${{ secrets.SCOPE_REPO_URL || vars.SCOPE_PUBLIC_REPO_URL || 'https://github.com/fraware/SCOPE.git' }}
+          pf_core_repo_url: ${{ secrets.PF_CORE_REPO_URL || vars.PF_CORE_PUBLIC_REPO_URL }}
+          pcs_core_repo_url: ${{ secrets.PCS_CORE_REPO_URL || vars.PCS_CORE_PUBLIC_REPO_URL }}
+          pcs_bench_repo_url: ${{ secrets.PCS_BENCH_REPO_URL || vars.PCS_BENCH_PUBLIC_REPO_URL }}
+          vsa_repo_url: ${{ secrets.VSA_REPO_URL || vars.VSA_PUBLIC_REPO_URL }}
+          memory_repo_url: ${{ secrets.MEMORY_REPO_URL || vars.MEMORY_PUBLIC_REPO_URL }}
       - name: Install dependencies
         run: pip install -e ".[dev,security]"
-      - name: Optional SCOPE sibling checkout
-        if: ${{ secrets.SCOPE_REPO_URL != '' }}
-        env:
-          SCOPE_REPO_URL: ${{ secrets.SCOPE_REPO_URL }}
+      - name: Require SCOPE sibling path
         run: |
-          git clone --depth 1 "$SCOPE_REPO_URL" scope-sibling
-          echo "SCOPE_REPO_PATH=$GITHUB_WORKSPACE/scope-sibling" >> $GITHUB_ENV
+          if [ -z "${SCOPE_REPO_PATH:-}" ]; then
+            echo "FAIL: SCOPE_REPO_PATH not set after clone (release gate requires live SCOPE)"
+            exit 1
+          fi
       - name: Sync SCOPE contract fixtures
         env:
-          SCOPE_REPO_PATH: ${{ env.SCOPE_REPO_PATH || vars.SCOPE_REPO_PATH }}
-        run: |
-          if [ -n "$SCOPE_REPO_PATH" ]; then
-            python scripts/sync_scope_contract_fixtures.py --scope-repo "$SCOPE_REPO_PATH"
-          else
-            echo "SCOPE_REPO_PATH not set; using pinned fixtures"
-          fi
+          SCOPE_REPO_PATH: ${{ env.SCOPE_REPO_PATH }}
+        run: python scripts/sync_scope_contract_fixtures.py --scope-repo "$SCOPE_REPO_PATH"
       - name: SCOPE live chain (python-import)
         env:
-          SCOPE_REPO_PATH: ${{ env.SCOPE_REPO_PATH || vars.SCOPE_REPO_PATH }}
-        run: |
-          if [ -z "$SCOPE_REPO_PATH" ]; then
-            echo "SKIP: SCOPE_REPO_PATH not configured"
-            exit 0
-          fi
-          python scripts/verify_scope_live_chain.py --scope-repo "$SCOPE_REPO_PATH" --mode python-import
+          SCOPE_REPO_PATH: ${{ env.SCOPE_REPO_PATH }}
+        run: python scripts/verify_scope_live_chain.py --scope-repo "$SCOPE_REPO_PATH" --mode python-import
       - name: SCOPE live chain (cli)
         env:
           SCOPE_CLI: scope
         run: |
           if ! command -v scope >/dev/null 2>&1; then
-            echo "SKIP: scope CLI not installed"
+            echo "WARN: scope CLI not installed; skipping CLI mode (python-import is mandatory)"
             exit 0
           fi
           python scripts/verify_scope_live_chain.py --mode cli
@@ -58,25 +57,21 @@ jobs:
           SCOPE_CLI_MODE: akta-review
         run: |
           if ! command -v scope >/dev/null 2>&1; then
-            echo "SKIP: scope CLI not installed"
+            echo "WARN: scope CLI not installed; skipping akta-review mode"
             exit 0
           fi
           python scripts/verify_scope_live_chain.py --mode akta-review
       - name: Pilot bundle generate and verify
         env:
-          SCOPE_REPO_PATH: ${{ env.SCOPE_REPO_PATH || vars.SCOPE_REPO_PATH }}
+          SCOPE_REPO_PATH: ${{ env.SCOPE_REPO_PATH }}
         run: |
           make demo-pilot-bundle
           make verify-pilot-bundle
       - name: Strict SCOPE contract cross-repo demo
         env:
-          SCOPE_REPO_PATH: ${{ env.SCOPE_REPO_PATH || vars.SCOPE_REPO_PATH }}
+          SCOPE_REPO_PATH: ${{ env.SCOPE_REPO_PATH }}
           AKTA_STRICT_SCOPE_CONTRACT: "1"
         run: |
-          if [ -z "$SCOPE_REPO_PATH" ]; then
-            echo "SKIP: strict cross-repo requires SCOPE_REPO_PATH"
-            exit 0
-          fi
           make demo-reconstructable-cross-repo
           make verify-reconstructable-cross-repo
       - name: Upload pilot bundle artifact
@@ -88,64 +83,93 @@ jobs:
 
   sibling-live-matrix:
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request' || vars.PF_CORE_REPO_PATH != ''
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Clone trust-stack siblings
+        uses: ./.github/actions/clone-siblings
+        with:
+          workspace: ${{ github.workspace }}
+          scope_repo_url: ${{ secrets.SCOPE_REPO_URL || vars.SCOPE_PUBLIC_REPO_URL || 'https://github.com/fraware/SCOPE.git' }}
+          pf_core_repo_url: ${{ secrets.PF_CORE_REPO_URL || vars.PF_CORE_PUBLIC_REPO_URL }}
+          pcs_core_repo_url: ${{ secrets.PCS_CORE_REPO_URL || vars.PCS_CORE_PUBLIC_REPO_URL }}
+          pcs_bench_repo_url: ${{ secrets.PCS_BENCH_REPO_URL || vars.PCS_BENCH_PUBLIC_REPO_URL }}
+          vsa_repo_url: ${{ secrets.VSA_REPO_URL || vars.VSA_PUBLIC_REPO_URL }}
+          memory_repo_url: ${{ secrets.MEMORY_REPO_URL || vars.MEMORY_PUBLIC_REPO_URL }}
       - name: Install dependencies
         run: pip install -e ".[dev,security]"
       - name: PF runtime proof
         env:
-          PF_CORE_REPO_PATH: ${{ vars.PF_CORE_REPO_PATH }}
+          PF_CORE_REPO_PATH: ${{ env.PF_CORE_REPO_PATH || vars.PF_CORE_REPO_PATH }}
         run: |
           if [ -n "$PF_CORE_REPO_PATH" ]; then
             python scripts/demo_pf_runtime_proof.py
+          elif [ -n "${{ vars.PF_CORE_REPO_PATH }}" ]; then
+            echo "FAIL: PF_CORE_REPO_PATH var set but clone/path missing"
+            exit 1
           else
-            echo "SKIP: PF_CORE_REPO_PATH not set"
+            echo "PF_CORE_REPO_PATH not configured; optional on PR without sibling vars"
           fi
       - name: PCS-Core live ingest
         env:
-          PCS_CORE_REPO_PATH: ${{ vars.PCS_CORE_REPO_PATH }}
+          PCS_CORE_REPO_PATH: ${{ env.PCS_CORE_REPO_PATH || vars.PCS_CORE_REPO_PATH }}
         run: |
-          pytest tests/contracts/test_pcs_core_live_ingest.py -v -m integration || \
+          if [ -n "$PCS_CORE_REPO_PATH" ]; then
+            pytest tests/contracts/test_pcs_core_live_ingest.py -v -m integration
+          elif [ -n "${{ vars.PCS_CORE_REPO_PATH }}" ]; then
+            echo "FAIL: PCS_CORE_REPO_PATH var set but clone/path missing"
+            exit 1
+          else
             pytest tests/contracts/test_pcs_core_live_ingest.py -v
+          fi
       - name: PCS-Bench external harness
         env:
-          PCS_BENCH_REPO_PATH: ${{ vars.PCS_BENCH_REPO_PATH }}
+          PCS_BENCH_REPO_PATH: ${{ env.PCS_BENCH_REPO_PATH || vars.PCS_BENCH_REPO_PATH }}
         run: |
-          if [ -z "$PCS_BENCH_REPO_PATH" ]; then
-            echo "SKIP: PCS_BENCH_REPO_PATH not set"
-            exit 0
+          if [ -n "$PCS_BENCH_REPO_PATH" ]; then
+            python -m adapters.pcs_bench.external_harness
+          elif [ -n "${{ vars.PCS_BENCH_REPO_PATH }}" ]; then
+            echo "FAIL: PCS_BENCH_REPO_PATH var set but clone/path missing"
+            exit 1
+          else
+            echo "PCS_BENCH_REPO_PATH not configured; skipping external harness"
           fi
-          python -c "
-          from adapters.pcs_bench.runner import run_pcs_bench_suite
-          from pathlib import Path
-          import json
-          report = run_pcs_bench_suite('scenarios/canonical_5.jsonl', 'scenarios/expected_decisions.jsonl')
-          Path('evals/reports').mkdir(parents=True, exist_ok=True)
-          Path('evals/reports/pcs_bench_live.json').write_text(json.dumps(report, indent=2))
-          assert report.get('passed'), report
-          "
       - name: VSA contract validation
         env:
-          VSA_REPO_PATH: ${{ vars.VSA_REPO_PATH }}
+          VSA_REPO_PATH: ${{ env.VSA_REPO_PATH || vars.VSA_REPO_PATH }}
         run: |
-          if [ -z "$VSA_REPO_PATH" ]; then
-            echo "SKIP: VSA_REPO_PATH not set"
-            exit 0
+          if [ -n "$VSA_REPO_PATH" ]; then
+            pytest tests/contracts/test_vsa_live_contract.py -v -m integration
+            python -c "
+          import json, os
+          from pathlib import Path
+          from tests.contracts.cross_repo_helpers import validate_vsa_report_live
+          pilot = Path('dist/pilot_bundle/00_vsa_report.json')
+          if pilot.is_file():
+              report = json.loads(pilot.read_text(encoding='utf-8'))
+              skip = validate_vsa_report_live(report)
+              assert skip is None, skip
+          "
+          elif [ -n "${{ vars.VSA_REPO_PATH }}" ]; then
+            echo "FAIL: VSA_REPO_PATH var set but clone/path missing"
+            exit 1
+          else
+            echo "VSA_REPO_PATH not configured; skipping VSA live validation"
           fi
-          pytest tests/contracts/test_vsa_live_contract.py -v -m integration
       - name: Scientific Memory round-trip
         env:
-          MEMORY_REPO_PATH: ${{ vars.MEMORY_REPO_PATH }}
+          MEMORY_REPO_PATH: ${{ env.MEMORY_REPO_PATH || vars.MEMORY_REPO_PATH }}
         run: |
-          if [ -z "$MEMORY_REPO_PATH" ]; then
-            echo "SKIP: MEMORY_REPO_PATH not set"
-            exit 0
+          if [ -n "$MEMORY_REPO_PATH" ]; then
+            pytest tests/contracts/test_scientific_memory_roundtrip.py -v -m integration
+          elif [ -n "${{ vars.MEMORY_REPO_PATH }}" ]; then
+            echo "FAIL: MEMORY_REPO_PATH var set but clone/path missing"
+            exit 1
+          else
+            echo "MEMORY_REPO_PATH not configured; skipping memory round-trip"
           fi
-          pytest tests/contracts/test_scientific_memory_roundtrip.py -v -m integration
 
   eval-bench-v1:
     runs-on: ubuntu-latest
