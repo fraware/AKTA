@@ -115,6 +115,10 @@ jobs:
         env:
           PCS_BENCH_REPO_PATH: ${{ vars.PCS_BENCH_REPO_PATH }}
         run: |
+          if [ -z "$PCS_BENCH_REPO_PATH" ]; then
+            echo "SKIP: PCS_BENCH_REPO_PATH not set"
+            exit 0
+          fi
           python -c "
           from adapters.pcs_bench.runner import run_pcs_bench_suite
           from pathlib import Path
@@ -127,15 +131,24 @@ jobs:
       - name: VSA contract validation
         env:
           VSA_REPO_PATH: ${{ vars.VSA_REPO_PATH }}
-        run: pytest tests/contracts/test_vsa_live_contract.py -v || echo "SKIP VSA live"
+        run: |
+          if [ -z "$VSA_REPO_PATH" ]; then
+            echo "SKIP: VSA_REPO_PATH not set"
+            exit 0
+          fi
+          pytest tests/contracts/test_vsa_live_contract.py -v -m integration
       - name: Scientific Memory round-trip
         env:
           MEMORY_REPO_PATH: ${{ vars.MEMORY_REPO_PATH }}
-        run: pytest tests/contracts/test_scientific_memory_roundtrip.py -v || echo "SKIP Memory live"
+        run: |
+          if [ -z "$MEMORY_REPO_PATH" ]; then
+            echo "SKIP: MEMORY_REPO_PATH not set"
+            exit 0
+          fi
+          pytest tests/contracts/test_scientific_memory_roundtrip.py -v -m integration
 
   eval-bench-v1:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
