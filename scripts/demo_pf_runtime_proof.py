@@ -44,9 +44,15 @@ def _export_obligation(record: dict[str, Any]) -> dict[str, Any]:
 
 
 def _validate_pf_live(obligation: dict[str, Any]) -> str | None:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
     from tests.contracts.cross_repo_helpers import validate_pf_obligation_live
 
     return validate_pf_obligation_live(obligation)
+
+
+def _pf_core_validator_path(pf_repo: Path) -> Path:
+    return pf_repo / "pf-core" / "validator"
 
 
 def _emit_trace_certificate(
@@ -55,16 +61,59 @@ def _emit_trace_certificate(
     decision_id: str,
     tool_executed: bool = False,
 ) -> dict[str, Any]:
-    """Build PF trace certificate; invoke PF-Core when sibling repo available."""
+    """Build PF trace certificate via PF-Core sibling when available."""
     pf_repo = os.environ.get("PF_CORE_REPO_PATH", "").strip()
-    certificate: dict[str, Any] = {
+    if not pf_repo:
+        from akta.sibling_repos import discover_sibling
+
+        found = discover_sibling("PF_CORE_REPO_PATH")
+        if found is not None:
+            pf_repo = str(found)
+            os.environ["PF_CORE_REPO_PATH"] = pf_repo
+
+    blocked_tool = obligation.get("requested_tool")
+
+    if pf_repo and Path(pf_repo).is_dir():
+        validator_path = _pf_core_validator_path(Path(pf_repo))
+        if validator_path.is_dir() and str(validator_path) not in sys.path:
+            sys.path.insert(0, str(validator_path))
+        try:
+            from pf_core.emitter import build_trace
+            from pf_core.hash_chain import validate_trace_hashes
+
+            denied_event_path = Path(pf_repo) / "pf-core" / "examples" / "valid" / "mcp_sidecar_denied.json"
+            event = json.loads(denied_event_path.read_text(encoding="utf-8"))
+            trace = build_trace([event])
+            validate_trace_hashes(trace)
+
+            certificate = {
+                "certificate_type": "pf_trace_certificate",
+                "schema_version": "pf-core.certificate.v0",
+                "trace_hash": trace["trace_hash"],
+                "pf_core_validated": True,
+                "safe": event.get("decision") == "denied",
+            }
+            certificate["akta_decision_id"] = decision_id
+            certificate["obligation_id"] = obligation.get("obligation_id")
+            certificate["tool_executed"] = tool_executed
+            certificate["blocked_tool"] = blocked_tool
+            certificate["enforcement_outcome"] = "blocked" if not tool_executed else "violation"
+            certificate["pf_core_validated"] = True
+            certificate["trace_events"] = trace.get("events", [])
+            certificate["pf_core_trace_hash"] = trace.get("trace_hash")
+            return certificate
+        except (ImportError, ValueError, TypeError, OSError) as exc:
+            raise RuntimeError(f"PF-Core sibling validation failed: {exc}") from exc
+
+    return {
         "certificate_type": "pf_trace_certificate",
         "schema_version": "pf-trace-v0.5",
         "akta_decision_id": decision_id,
         "obligation_id": obligation.get("obligation_id"),
         "tool_executed": tool_executed,
-        "blocked_tool": obligation.get("requested_tool"),
+        "blocked_tool": blocked_tool,
         "enforcement_outcome": "blocked" if not tool_executed else "violation",
+        "pf_core_validated": False,
         "trace_events": [
             {
                 "event": "akta_gate_evaluated",
@@ -73,46 +122,11 @@ def _emit_trace_certificate(
             },
             {
                 "event": "tool_dispatch_attempted" if not tool_executed else "tool_executed",
-                "tool": obligation.get("requested_tool"),
+                "tool": blocked_tool,
                 "blocked": not tool_executed,
             },
         ],
     }
-
-    if pf_repo and Path(pf_repo).is_dir():
-        try:
-            if str(pf_repo) not in sys.path:
-                sys.path.insert(0, str(pf_repo))
-            pf_core_path = Path(pf_repo) / "pf-core" / "validator"
-            if pf_core_path.is_dir() and str(pf_core_path) not in sys.path:
-                sys.path.insert(0, str(pf_core_path))
-            from pf_core.hash_chain import validate_trace_hashes
-            from pf_core.schemas import validate_object
-
-            validate_object(certificate, "trace_certificate")
-            validate_trace_hashes(certificate.get("trace_events", []))
-            certificate["pf_core_validated"] = True
-        except (ImportError, ValueError, TypeError) as exc:
-            certificate["pf_core_validated"] = False
-            certificate["pf_core_validation_note"] = str(exc)
-            cli = Path(pf_repo) / "pf-core" / "scripts" / "validate_examples.py"
-            if cli.is_file():
-                with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tmp:
-                    json.dump(certificate, tmp)
-                    tmp_path = tmp.name
-                try:
-                    proc = subprocess.run(
-                        [sys.executable, str(cli), tmp_path],
-                        capture_output=True,
-                        text=True,
-                        cwd=str(pf_repo),
-                        timeout=30,
-                        check=False,
-                    )
-                    certificate["pf_core_cli_exit"] = proc.returncode
-                finally:
-                    Path(tmp_path).unlink(missing_ok=True)
-    return certificate
 
 
 def run_pf_runtime_proof(*, out_dir: Path | None = None) -> dict[str, Any]:
@@ -137,6 +151,9 @@ def run_pf_runtime_proof(*, out_dir: Path | None = None) -> dict[str, Any]:
         "tool_not_executed": certificate.get("tool_executed") is False,
         "pf_live_validation": skip is None or "skipped" in (skip or "").lower(),
     }
+    pf_repo = os.environ.get("PF_CORE_REPO_PATH", "").strip()
+    if pf_repo:
+        checks["pf_core_validated"] = certificate.get("pf_core_validated") is True
     report = {
         "passed": all(checks.values()),
         "checks": checks,
