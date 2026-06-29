@@ -41,7 +41,7 @@ class PolicyBundle:
     evidence_to_action_rules: dict[str, Any]
     tool_registry: dict[str, Any]
     tool_to_requested_scope: dict[str, Any]
-    version: str = "akta-core-v0.5"
+    version: str = "akta-core-v1.0"
     policy_hash: str = ""
     tool_registry_hash: str = ""
     integrity_mode: str = "dev_unsigned"

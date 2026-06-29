@@ -1,0 +1,27 @@
+name: materials_institutional_v1
+version: materials-overlay-v1.0
+status: institutional_reference
+maintainer_signoff:
+  role: materials_safety_officer
+  institution: Example Materials Research Institute
+  signed_at: "2026-06-29T00:00:00Z"
+  note: Reference overlay for v1.0 governance documentation — not production certification
+minimum_evidence_for:
+  protocol_modification: E4_internally_consistent_evidence
+  queue_prioritization: E5_internally_replicated_evidence
+  execution_adjacent: E6_independently_reproduced_evidence
+blocked_actions:
+  - A9_execution_adjacent_or_external_action
+tool_restrictions:
+  pyrophoric_handler.submit:
+    decision: authorization_required
+  pressure_vessel.pressurize:
+    decision: blocked
+hazard_triggers:
+  - condition: pyrophoric
+    decision: authorization_required
+  - condition: pressure_vessel
+    decision: blocked
+required_review_roles:
+  queue_prioritization: materials_safety_officer
+  execution_adjacent: principal_investigator

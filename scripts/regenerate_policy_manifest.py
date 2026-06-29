@@ -27,6 +27,7 @@ MANIFEST_FILES = [
     "admissibility_matrix.yaml",
     "evidence_to_action_matrix.yaml",
     "evidence_to_action_rules.yaml",
+    "scope_grant_override_rules.yaml",
     "default_tool_registry.yaml",
     "tool_to_requested_scope.yaml",
 ]
@@ -53,8 +54,8 @@ def build_manifest(*, algorithm: str = "auto") -> dict:
         files[name] = hash_file_content(path.read_text(encoding="utf-8"))
 
     manifest: dict = {
-        "version": "akta-policy-manifest-v0.6",
-        "bundle_version": "akta-core-v0.6",
+        "version": "akta-policy-manifest-v1.0",
+        "bundle_version": "akta-core-v1.0",
         "files": files,
     }
 
