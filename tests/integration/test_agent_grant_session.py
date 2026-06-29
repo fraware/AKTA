@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -50,3 +51,45 @@ def test_middleware_multi_turn_grant_persistence(gate: AKTAGate) -> None:
     first = mw.retry_with_grant(grant, "protocol_editor.draft_change", "draft")
     second = mw.evaluate_tool("protocol_editor.draft_change", "draft")
     assert second.admissibility == first.admissibility
+
+
+def test_middleware_three_turn_grant_expiry_f14_block(gate: AKTAGate) -> None:
+    """Three tool calls with grant expiring before the third invocation (F14)."""
+    mw = AKTALangGraphMiddleware(
+        policy_dir=str(ROOT / "policy"),
+        overlays_dir=str(ROOT / "overlays"),
+        deployment_profile="P4_protocol_drafting_assistant",
+        domain_overlay="generic_lab_v0",
+    )
+    grant = {
+        "authorization": {"approved_scope": "protocol_draft"},
+        "source": {"requested_scope": "protocol_draft"},
+        "expires_at": "2030-06-01T00:00:00Z",
+    }
+    ctx = {"evidence_state": "E4_internally_consistent_evidence"}
+    tool = "protocol_editor.draft_change"
+    action = "draft_timing"
+
+    executed: list[bool] = []
+
+    def _stub(**kwargs: Any) -> dict[str, Any]:
+        executed.append(True)
+        return {"ok": True}
+
+    mw.retry_with_grant(grant, tool, action, ai_output={"summary": "Draft 1."}, context=ctx)
+    gated = mw.wrap_tool(_stub, tool, action)
+    gated(ai_output={"summary": "Draft 1."}, context=ctx)
+    gated(ai_output={"summary": "Draft 2."}, context=ctx)
+
+    expired_ctx = {
+        **ctx,
+        "metadata": {
+            "prior_review_expires_at": "2020-01-01T00:00:00Z",
+            "prior_review_expired": True,
+        },
+    }
+    mw.invalidate_grant()
+    with pytest.raises(PermissionError, match="grant expired|blocked|review"):
+        gated(ai_output={"summary": "Draft 3 after expiry."}, context=expired_ctx)
+
+    assert len(executed) == 2

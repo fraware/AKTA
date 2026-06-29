@@ -19,6 +19,14 @@ def _run_with_wrap_tool(
 ) -> dict[str, Any]:
     """Execute scenario through middleware.wrap_tool and assert runtime enforcement."""
     executed = {"value": False}
+    wrap_invoked = {"value": False}
+    original_wrap = middleware.wrap_tool
+
+    def _tracking_wrap(*args: Any, **kwargs: Any):
+        wrap_invoked["value"] = True
+        return original_wrap(*args, **kwargs)
+
+    middleware.wrap_tool = _tracking_wrap  # type: ignore[method-assign]
 
     def _stub_tool(**kwargs: Any) -> dict[str, Any]:
         executed["value"] = True
@@ -63,8 +71,9 @@ def _run_with_wrap_tool(
         "tool_executed": executed["value"],
         "expect_tool_executed": expect_executed,
         "runtime_error": runtime_error,
-        "behavioral_ok": behavioral_ok,
-        "passed": behavioral_ok,
+        "middleware_wrap_invoked": wrap_invoked["value"],
+        "behavioral_ok": behavioral_ok and wrap_invoked["value"],
+        "passed": behavioral_ok and wrap_invoked["value"],
     }
 
 
