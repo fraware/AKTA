@@ -126,6 +126,7 @@ def test_scope_akta_review_cli_validates_summary(monkeypatch: pytest.MonkeyPatch
         "review_trigger_id": "AKTA-REVTRIG-AKTA-REVIEW02",
         "requested_scope": "single_run_queue_priority",
     }
+    record = {"record_id": "AKTA-SAR-AKTA-REVIEW02", "review_trigger": trigger}
     monkeypatch.setenv("SCOPE_CLI", "scope")
     monkeypatch.setenv("SCOPE_CLI_MODE", SCOPE_CLI_MODE_AKTA_REVIEW)
     monkeypatch.delenv("SCOPE_REPO_PATH", raising=False)
@@ -142,7 +143,11 @@ def test_scope_akta_review_cli_validates_summary(monkeypatch: pytest.MonkeyPatch
         return proc
 
     with patch("adapters.scope.client.subprocess.run", side_effect=bad_summary_run):
-        result = submit_review_trigger(trigger, grant_scope="single_run_queue_priority")
+        result = submit_review_trigger(
+            trigger,
+            record=record,
+            grant_scope="single_run_queue_priority",
+        )
 
     assert result.adapter_mode == ADAPTER_MODE_AKTA_REVIEW_CLI
     assert result.error is not None
