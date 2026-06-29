@@ -49,7 +49,7 @@ def test_health(server_url: str) -> None:
     data = _get(server_url, "/v0/health")
     assert data["status"] == "ok"
     assert data["api_version"] == "v0.6"
-    assert data["version"] == "0.7.1"
+    assert data["version"] == "0.8.0"
 
 
 def test_policy(server_url: str) -> None:

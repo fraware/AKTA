@@ -37,6 +37,7 @@ class ScopeAdapterResult:
     review_packet: dict[str, Any] | None = None
     grant: dict[str, Any] | None = None
     decision: dict[str, Any] | None = None
+    summary: dict[str, Any] | None = None
     error: str | None = None
 
 
@@ -176,7 +177,7 @@ def _decision_input_for_grant(granted: str, trigger: dict[str, Any]) -> dict[str
     requested = trigger.get("requested_scope", "protocol_draft")
     if granted == requested:
         return {
-            "type": "approve_scope",
+            "type": "approve",
             "approved_scope": granted,
             "rationale": "Approved at requested scope.",
         }
@@ -255,6 +256,13 @@ def _python_import_scope(
         review_packet=packet,
         grant=grant,
         decision=decision,
+        summary=_synthesize_scope_summary(
+            adapter_mode=ADAPTER_MODE_PYTHON_IMPORT,
+            trigger=trigger,
+            packet=packet,
+            decision=decision,
+            grant=grant,
+        ),
     )
 
 
@@ -296,12 +304,51 @@ def _validate_akta_review_summary(summary: dict[str, Any]) -> None:
     validate_against_schema(summary, "scope_akta_review_summary.schema.json")
 
 
+def _synthesize_scope_summary(
+    *,
+    adapter_mode: str,
+    trigger: dict[str, Any],
+    packet: dict[str, Any],
+    decision: dict[str, Any],
+    grant: dict[str, Any],
+) -> dict[str, Any]:
+    """Build summary.json-compatible contract for non-akta-review adapter modes."""
+    auth = grant.get("authorization") or {}
+    approved = auth.get("approved_scope") or grant.get("granted_scope") or ""
+    requested = (
+        grant.get("requested_scope")
+        or (grant.get("source") or {}).get("requested_scope")
+        or trigger.get("requested_scope")
+        or ""
+    )
+    return {
+        "status": "completed",
+        "approved_scope": approved,
+        "requested_scope": requested,
+        "allowed_tools": list(auth.get("allowed_tools") or grant.get("allowed_tools") or []),
+        "blocked_tools": list(auth.get("blocked_tools") or grant.get("blocked_tools") or []),
+        "adapter_contract_version": "scope-akta-review-v0.8",
+        "identity_assurance_level": "IAL0",
+        "signing_assurance_level": "SAL1",
+        "adapter_mode": adapter_mode,
+        "packet_id": packet.get("packet_id"),
+        "decision_id": decision.get("decision_id"),
+        "grant_id": grant.get("grant_id"),
+    }
+
+
 def _akta_review_cli_scope(
     trigger: dict[str, Any],
     record: dict[str, Any] | None,
     granted: str,
     reviewer_id: str,
 ) -> ScopeAdapterResult:
+    if record is None:
+        return ScopeAdapterResult(
+            adapter_mode=ADAPTER_MODE_AKTA_REVIEW_CLI,
+            error="SCOPE akta-review CLI mode requires an AKTA record.",
+        )
+
     cli = os.environ.get("SCOPE_CLI", "scope")
     with tempfile.TemporaryDirectory(prefix="akta-scope-akta-review-") as tmp:
         tmp_path = Path(tmp)
@@ -388,6 +435,7 @@ def _akta_review_cli_scope(
         review_packet=packet,
         grant=grant,
         decision=decision,
+        summary=summary,
     )
 
 
@@ -492,6 +540,13 @@ def _cli_scope(
         review_packet=packet,
         grant=grant,
         decision=decision,
+        summary=_synthesize_scope_summary(
+            adapter_mode=ADAPTER_MODE_CLI,
+            trigger=trigger,
+            packet=packet,
+            decision=decision,
+            grant=grant,
+        ),
     )
 
 
@@ -532,6 +587,13 @@ def _simulated_scope(
         review_packet=packet,
         grant=grant,
         decision=decision,
+        summary=_synthesize_scope_summary(
+            adapter_mode=ADAPTER_MODE_SIMULATED,
+            trigger=trigger,
+            packet=packet,
+            decision=decision,
+            grant=grant,
+        ),
     )
 
 

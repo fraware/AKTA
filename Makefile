@@ -1,4 +1,4 @@
-.PHONY: install test eval-canonical eval-public eval-public-100 eval-oracle eval-holdout eval-v06 demo-weak-evidence demo-akta-weak-evidence demo-akta-scope-protocol-drift demo-reconstructable ci
+.PHONY: install test eval-canonical eval-public eval-public-100 eval-oracle eval-holdout eval-v06 demo-weak-evidence demo-akta-weak-evidence demo-akta-scope-protocol-drift demo-reconstructable demo-reconstructable-cross-repo verify-reconstructable-cross-repo ci
 
 PYTHON ?= python
 
@@ -25,6 +25,13 @@ eval-v06:
 
 demo-reconstructable:
 	$(PYTHON) scripts/demo_reconstructable_experiment.py
+
+demo-reconstructable-cross-repo:
+	$(PYTHON) -c "import os,sys; ok=bool(os.environ.get('SCOPE_REPO_PATH') or os.environ.get('SCOPE_CLI')); (print('Set SCOPE_REPO_PATH or SCOPE_CLI for live SCOPE') if not ok else None); sys.exit(0 if ok else 1)"
+	$(PYTHON) scripts/demo_reconstructable_experiment.py --cross-repo
+
+verify-reconstructable-cross-repo:
+	$(PYTHON) scripts/verify_reconstructable_cross_repo.py
 
 demo-weak-evidence:
 	$(PYTHON) scripts/demo_weak_evidence.py

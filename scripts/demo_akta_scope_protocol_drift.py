@@ -146,6 +146,7 @@ def run_demo() -> int:
     scope_packet = scope_result.review_packet or {}
     scope_grant = scope_result.grant or {}
     scope_decision = scope_result.decision or {}
+    scope_summary = scope_result.summary or {}
     (demo_dir / "scope_review_packet.json").write_text(
         json.dumps(scope_packet, indent=2), encoding="utf-8"
     )
@@ -198,6 +199,7 @@ def run_demo() -> int:
         AKTARecord(active_record),
         pcs_dir,
         decision=active_d,
+        scope_review_summary=scope_summary,
         scope_review_packet=scope_packet,
         scope_decision=scope_decision,
         scope_grant=scope_grant,

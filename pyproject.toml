@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "akta-protocol"
-version = "0.7.1"
+version = "0.8.0"
 description = "Open protocol for deciding when AI-generated scientific outputs are admissible to shape what science does next"
 readme = "README.md"
 license = { text = "MIT" }

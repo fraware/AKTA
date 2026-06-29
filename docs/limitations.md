@@ -1,5 +1,19 @@
 # AKTA Limitations
 
+## v0.8
+
+AKTA v0.8 adds fixture-driven SCOPE narrowing validation, first-class `summary.json` integration contract, and cross-repo reconstructable release gates. It explicitly does not:
+
+- Permit `akta-review-cli` without an AKTA record (both `--akta-trigger` and `--akta-record` required)
+- Accept grant narrowing pairs outside the pinned fixture contract (unless SCOPE repo exposes updated fixtures via `SCOPE_REPO_PATH`)
+- Treat simulated SCOPE artifacts as valid in cross-repo release verification
+
+### v0.8 integration limits
+
+- **SCOPE summary contract**: `04_scope_review_summary.json` mirrors `scope akta review` `summary.json`; synthesized in simulated/python-import/CLI modes
+- **Cross-repo demo**: `dist/reconstructable_cross_repo/` when `SCOPE_REPO_PATH` or `SCOPE_CLI` is set; `make verify-reconstructable-cross-repo` rejects simulated adapter markers
+- **Narrowing fixtures**: `tests/fixtures/scope_valid_narrowing.json` is source of truth when SCOPE repo does not expose narrowing rules
+
 ## v0.7.1
 
 AKTA v0.7.1 tightens grant-exact re-gating after SCOPE authorization. It explicitly does not:

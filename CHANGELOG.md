@@ -4,6 +4,23 @@ All notable changes to AKTA are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.0] - 2026-06-29
+
+### Added
+
+- `akta-review-cli` mode requires AKTA record before subprocess (`--akta-record`); fails closed with clear error
+- First-class `04_scope_review_summary.json` artifact in reconstructable demo; PCS bundle includes `scope_review_summary.json`
+- Fixture-driven SCOPE narrowing: `tests/fixtures/scope_scope_order.json`, `scope_valid_narrowing.json`
+- Makefile targets: `demo-reconstructable-cross-repo`, `verify-reconstructable-cross-repo`
+- Tests: `test_akta_review_requires_record.py`, `test_reconstructable_summary_artifact.py`, `test_scope_narrowing_fixture.py`
+
+### Changed
+
+- `validate_approval_grant()` uses fixture narrowing pairs instead of hard-coded `active_protocol_update` → `protocol_draft` only
+- Reconstructable demo artifact numbering 00–12 with `10_pcs_bundle/`; cross-repo output at `dist/reconstructable_cross_repo/`
+- `reconstruction_report.md` cites `summary.json` contract and checks assurance levels and tool lists
+- `ScopeAdapterResult` includes `summary` for all adapter modes
+
 ## [0.7.1] - 2026-06-28
 
 ### Added

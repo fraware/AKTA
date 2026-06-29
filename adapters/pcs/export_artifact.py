@@ -31,6 +31,7 @@ def build_pcs_manifest(
     *,
     file_hashes: dict[str, str] | None = None,
     include_review_trigger: bool = False,
+    include_scope_summary: bool = False,
     include_scope_packet: bool = False,
     include_scope_decision: bool = False,
     include_scope_grant: bool = False,
@@ -42,6 +43,8 @@ def build_pcs_manifest(
     files = list(CORE_FILES)
     if include_review_trigger:
         files.append("review_trigger.json")
+    if include_scope_summary:
+        files.append("scope_review_summary.json")
     if include_scope_packet:
         files.append("scope_review_packet.json")
     if include_scope_decision:
@@ -107,6 +110,7 @@ def validate_pcs_bundle(bundle_dir: str | Path) -> None:
         json.loads((bundle_dir / "akta_decision.json").read_text(encoding="utf-8")),
         file_hashes=file_hashes,
         include_review_trigger=(bundle_dir / "review_trigger.json").exists(),
+        include_scope_summary=(bundle_dir / "scope_review_summary.json").exists(),
         include_scope_packet=(bundle_dir / "scope_review_packet.json").exists(),
         include_scope_decision=(bundle_dir / "scope_decision.json").exists(),
         include_scope_grant=(bundle_dir / "scope_grant.json").exists(),
@@ -122,6 +126,7 @@ def export_pcs_bundle(
     out_dir: str | Path,
     *,
     decision: dict[str, Any] | None = None,
+    scope_review_summary: dict[str, Any] | None = None,
     scope_review_packet: dict[str, Any] | None = None,
     scope_decision: dict[str, Any] | None = None,
     scope_grant: dict[str, Any] | None = None,
@@ -190,6 +195,10 @@ def export_pcs_bundle(
     if review_trigger:
         _write("review_trigger.json", json.dumps(review_trigger, indent=2))
 
+    has_scope_summary = scope_review_summary is not None
+    if scope_review_summary is not None:
+        _write("scope_review_summary.json", json.dumps(scope_review_summary, indent=2))
+
     has_scope_packet = scope_review_packet is not None
     if scope_review_packet is not None:
         _write("scope_review_packet.json", json.dumps(scope_review_packet, indent=2))
@@ -220,6 +229,7 @@ def export_pcs_bundle(
         decision_payload,
         file_hashes=artifacts,
         include_review_trigger=has_review_trigger,
+        include_scope_summary=has_scope_summary,
         include_scope_packet=has_scope_packet,
         include_scope_decision=has_scope_decision,
         include_scope_grant=has_scope_grant,

@@ -36,6 +36,15 @@ def _full_chain_bundle(tmp_path: Path) -> Path:
         AKTARecord(record),
         out,
         decision=d,
+        scope_review_summary={
+            "status": "completed",
+            "approved_scope": "protocol_draft",
+            "requested_scope": "active_protocol_update",
+            "identity_assurance_level": "IAL0",
+            "signing_assurance_level": "SAL1",
+            "allowed_tools": [],
+            "blocked_tools": [],
+        },
         scope_review_packet={"packet_type": "scope_review_packet"},
         scope_decision={"status": "granted", "granted_scope": "protocol_draft"},
         scope_grant={
@@ -54,7 +63,8 @@ def test_pcs_full_chain_fixture_validates() -> None:
     validate_pcs_bundle(bundle)
     manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["schema_version"] == "akta-record-v0.5"
-    assert len(manifest["file_hashes"]) == 10
+    assert len(manifest["file_hashes"]) == 11
+    assert "scope_review_summary.json" in manifest.get("files", [])
 
 
 @pytest.mark.parametrize(
@@ -66,6 +76,7 @@ def test_pcs_full_chain_fixture_validates() -> None:
         "domain_overlay_hash.txt",
         "tool_registry_hash.txt",
         "review_trigger.json",
+        "scope_review_summary.json",
         "scope_review_packet.json",
         "scope_decision.json",
         "scope_grant.json",

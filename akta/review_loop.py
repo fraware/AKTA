@@ -17,21 +17,36 @@ from akta.review_decision import (
     enforce_grant_expiry,
     is_review_expired,
 )
-from akta.scope_contract import _scope_grant_approved_scope, _scope_grant_requested_scope
+from akta.scope_contract import (
+    _scope_grant_approved_scope,
+    _scope_grant_requested_scope,
+    is_valid_narrowing_grant,
+    scope_rank,
+)
 from akta.scope_mapping import VALID_REQUESTED_SCOPES
 
 SCOPE_RANK_ORDER: dict[str, int] = {
-    "protocol_draft": 1,
-    "active_protocol_update": 2,
-    "single_validation_plan": 3,
-    "single_validation_run_draft": 3,
-    "single_run_queue_priority": 4,
-    "robot_queue_submission": 5,
-    "execution_payload_preparation": 5,
-    "publication_claim": 6,
-    "scientific_memory_import": 4,
-    "draft_only": 0,
+    scope: scope_rank(scope)
+    for scope in (
+        "protocol_draft",
+        "active_protocol_update",
+        "single_validation_plan",
+        "single_validation_run_draft",
+        "single_run_queue_priority",
+        "robot_queue_submission",
+        "execution_payload_preparation",
+        "publication_claim",
+        "scientific_memory_import",
+        "draft_only",
+    )
 }
+
+
+def _scope_rank(scope: str) -> int:
+    try:
+        return scope_rank(scope)
+    except FileNotFoundError:
+        return SCOPE_RANK_ORDER.get(scope, 99)
 
 
 def _evidence_rank(evidence_state: str) -> int:
@@ -40,15 +55,11 @@ def _evidence_rank(evidence_state: str) -> int:
     return 0
 
 
-def _scope_rank(scope: str) -> int:
-    return SCOPE_RANK_ORDER.get(scope, 99)
-
-
 def grant_scope_covers_action(granted_scope: str, requested_scope: str) -> bool:
     """Return True when granted scope covers the requested scope (narrow grants only)."""
     if granted_scope == requested_scope:
         return True
-    if requested_scope == "active_protocol_update" and granted_scope == "protocol_draft":
+    if is_valid_narrowing_grant(granted_scope=granted_scope, requested_scope=requested_scope):
         return True
     return _scope_rank(granted_scope) >= _scope_rank(requested_scope)
 
