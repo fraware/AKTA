@@ -1,0 +1,14 @@
+{
+  "status": "completed",
+  "approved_scope": "protocol_draft",
+  "requested_scope": "active_protocol_update",
+  "allowed_tools": [],
+  "blocked_tools": [],
+  "adapter_contract_version": "scope-akta-review-v0.8",
+  "identity_assurance_level": "IAL0",
+  "signing_assurance_level": "SAL1",
+  "adapter_mode": "simulated",
+  "packet_id": null,
+  "decision_id": null,
+  "grant_id": "SCOPE-GRANT-AKTA-REVTRIG-DRIFT0001"
+}
