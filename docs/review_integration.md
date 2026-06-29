@@ -43,7 +43,14 @@ Grant fields mapped to context metadata:
 | `authorization.approved_scope` | `prior_review_scope` | Out-of-scope tools blocked (F14) |
 | Grant expiry | `prior_review_expired` | Expired grants require new review (F14) |
 
-**Grant vs policy:** Weak evidence under `P2_analysis_assistant` may still block queue prioritization after a narrow SCOPE grant. SCOPE authorization does not automatically override AKTA evidence or profile matrices.
+**Grant vs policy:** Weak evidence under `P2_analysis_assistant` may still block queue prioritization after a narrow SCOPE grant. SCOPE authorization does not automatically override AKTA evidence or profile matrices unless explicitly allowed by `policy/scope_grant_override_rules.yaml`.
+
+| Profile | Evidence min | Grant may satisfy evidence layer |
+|---------|--------------|----------------------------------|
+| `P2_analysis_assistant` | any | no (Case C stays blocked) |
+| `P5_review_gated_experimental_planner` | E4+ | yes (scoped re-gate positive control) |
+
+Override rules are applied in `evaluate_with_grant()` after grant tool lists are bound and before the admissibility matrix is composed (`akta/review_loop.py`, `akta/grant_override.py`).
 
 See `akta/review_loop.py`, `examples/reconstructable_experiment/reconstruction_report.md`, and [limitations.md](limitations.md).
 

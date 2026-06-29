@@ -235,6 +235,7 @@ class AKTAGate:
                 scope_grant=scope_grant,
                 record=record,
                 trigger=trigger,
+                deployment_profile=deployment_profile,
             )
             ctx_dict = grant_state.context
 

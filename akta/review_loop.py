@@ -23,6 +23,7 @@ from akta.scope_contract import (
     is_valid_narrowing_grant,
     scope_rank,
 )
+from akta.grant_override import apply_grant_override_metadata
 from akta.scope_mapping import VALID_REQUESTED_SCOPES
 
 SCOPE_RANK_ORDER: dict[str, int] = {
@@ -180,6 +181,7 @@ def prepare_grant_context(
     scope_grant: dict[str, Any],
     record: dict[str, Any] | None = None,
     trigger: dict[str, Any] | None = None,
+    deployment_profile: str | None = None,
 ) -> GrantLoopState:
     """Apply SCOPE grant to context and detect invalidation before re-gate."""
     ctx_dict = context.to_dict() if isinstance(context, AKTAContext) else dict(context)
@@ -199,6 +201,22 @@ def prepare_grant_context(
         metadata.setdefault("bound_protocol_version", bounds["bound_protocol_version"])
     ctx_dict["metadata"] = metadata
     ctx_dict = enforce_grant_expiry(ctx_dict)
+
+    profile = (
+        deployment_profile
+        or str(ctx_dict.get("deployment_profile") or "")
+        or str((record or {}).get("deployment_profile") or "P2_analysis_assistant")
+    )
+    evidence_state = str(
+        ctx_dict.get("evidence_state")
+        or (record or {}).get("classification", {}).get("evidence_state")
+        or ""
+    )
+    ctx_dict = apply_grant_override_metadata(
+        ctx_dict,
+        deployment_profile=profile,
+        evidence_state=evidence_state,
+    )
 
     granted = _scope_grant_approved_scope(scope_grant) or ""
     requested = _scope_grant_requested_scope(scope_grant, record, trigger) or ""

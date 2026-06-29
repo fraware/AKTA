@@ -1,0 +1,15 @@
+version: akta-scope-grant-override-v1.0
+default: evidence_and_profile_not_satisfied_by_grant
+rules:
+  - profile: P5_review_gated_experimental_planner
+    evidence_min: E4_internally_consistent_evidence
+    grant_may_satisfy_evidence_layer: true
+  - profile: P6_authorized_closed_loop_lab_agent
+    evidence_min: E5_internally_replicated_evidence
+    grant_may_satisfy_evidence_layer: true
+  - profile: P2_analysis_assistant
+    evidence_min: E2_preliminary_signal
+    grant_may_satisfy_evidence_layer: false
+  - profile: P4_protocol_drafting_assistant
+    evidence_min: E3_noisy_or_conflicting_evidence
+    grant_may_satisfy_evidence_layer: false
