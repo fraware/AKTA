@@ -1,0 +1,23 @@
+version: akta-structured-action-v1.0
+mutating_tools_require_declaration: true
+required_fields:
+  - tool_name
+  - action_intent
+  - target_resource
+optional_fields:
+  - parameters
+  - negation_detected
+  - hedging_detected
+  - authority_transfer_detected
+negation_patterns:
+  - "(?i)\\bdo not\\b"
+  - "(?i)\\bnever\\b"
+  - "(?i)\\bwithout approval\\b"
+hedging_patterns:
+  - "(?i)\\bmight\\b"
+  - "(?i)\\bperhaps\\b"
+  - "(?i)\\bconsider\\b"
+authority_transfer_patterns:
+  - "(?i)\\bon behalf of\\b"
+  - "(?i)\\bas authorized by\\b"
+  - "(?i)\\bper grant\\b"

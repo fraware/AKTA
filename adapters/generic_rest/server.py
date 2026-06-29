@@ -8,6 +8,7 @@ import logging
 import os
 import tempfile
 import time
+import uuid
 from collections import defaultdict
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -85,16 +86,20 @@ class AKTARESTHandler(BaseHTTPRequestHandler):
             raise ValueError("JSON body must be an object.")
         return data
 
+    def _request_id(self) -> str:
+        return self.headers.get("X-Request-ID") or str(uuid.uuid4())
+
     def _send_json(self, status: int, payload: dict[str, Any]) -> None:
-        body = json.dumps(payload, indent=2).encode("utf-8")
+        envelope = {"request_id": self._request_id(), **payload}
+        body = json.dumps(envelope, indent=2).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
 
-    def _send_error_json(self, status: int, message: str, detail: str | None = None) -> None:
-        payload: dict[str, Any] = {"error": message}
+    def _send_error_json(self, status: int, code: str, detail: str | None = None) -> None:
+        payload: dict[str, Any] = {"error_code": code, "error": code}
         if detail:
             payload["detail"] = detail
         self._send_json(status, payload)
