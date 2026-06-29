@@ -80,6 +80,29 @@ export AKTA_POLICY_PUBLIC_KEY=<base64-public-key>
 
 Key rotation: include retired public keys in manifest `public_keys` or set `AKTA_POLICY_PREVIOUS_PUBLIC_KEYS` when regenerating.
 
+## v1.0 Ed25519 release ceremony
+
+Reference releases (`akta-core-v1.0`) use `release_ed25519_signed` integrity mode on PCS exports.
+
+1. Generate an Ed25519 keypair offline (32-byte seed); store the private key in a secrets manager — never commit it.
+2. Record the public key in `policy/release_keys.yaml` with maintainer sign-off metadata.
+3. Regenerate the manifest with Ed25519:
+   ```bash
+   pip install akta-protocol[security]
+   export AKTA_POLICY_SIGNING_KEY=<32-byte-hex-private-key>
+   python scripts/regenerate_policy_manifest.py --algorithm Ed25519
+   ```
+4. Verify locally before tagging:
+   ```bash
+   export AKTA_REQUIRE_SIGNED_POLICY=1
+   export AKTA_POLICY_PUBLIC_KEY=<base64-public-key>
+   python -m pytest tests/test_policy_signing_modes.py -v
+   ```
+5. Tag `v1.0.0` only after `make verify-v1-release` passes on `main` with signed policy enabled.
+6. Publish the public key alongside the GitHub Release; retain the private key for the next policy bump only.
+
+This ceremony is **reference governance** — not regulatory certification.
+
 v0.5 separates dev and production verification:
 
 | Mode | Env | Behavior |
