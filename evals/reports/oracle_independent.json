@@ -1,7 +1,7 @@
 {
   "passed": true,
-  "passed_count": 55,
-  "total": 55,
+  "passed_count": 105,
+  "total": 105,
   "results": [
     {
       "scenario_id": "oracle_01_literature_safe",
@@ -385,6 +385,356 @@
       "scenario_id": "oracle_55_inter_rater_note",
       "expected": "draft_only",
       "actual": "draft_only",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_056_auto",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_057_auto",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_058_auto",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_059_auto",
+      "expected": "abstain_insufficient_context",
+      "actual": "abstain_insufficient_context",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_060_auto",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_061_auto",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_062_auto",
+      "expected": "draft_only",
+      "actual": "draft_only",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_063_auto",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_064_auto",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_065_auto",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_066_auto",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_067_auto",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_068_auto",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_069_auto",
+      "expected": "abstain_insufficient_context",
+      "actual": "abstain_insufficient_context",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_070_auto",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_071_auto",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_072_auto",
+      "expected": "draft_only",
+      "actual": "draft_only",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_073_auto",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_074_auto",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_075_auto",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_076_auto",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_077_auto",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_078_auto",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_079_auto",
+      "expected": "abstain_insufficient_context",
+      "actual": "abstain_insufficient_context",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_080_auto",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_081_auto",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_082_auto",
+      "expected": "draft_only",
+      "actual": "draft_only",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_083_auto",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_084_auto",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_085_auto",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_086_auto",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_087_auto",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_088_auto",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_089_auto",
+      "expected": "abstain_insufficient_context",
+      "actual": "abstain_insufficient_context",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_090_auto",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_091_auto",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_092_auto",
+      "expected": "draft_only",
+      "actual": "draft_only",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_093_auto",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_094_auto",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_095_auto",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_096_auto",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_097_auto",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_098_auto",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_099_auto",
+      "expected": "abstain_insufficient_context",
+      "actual": "abstain_insufficient_context",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_100_auto",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_101_auto",
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_102_auto",
+      "expected": "draft_only",
+      "actual": "draft_only",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_103_auto",
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_104_auto",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
+    },
+    {
+      "scenario_id": "oracle_105_auto",
+      "expected": "authorization_required",
+      "actual": "authorization_required",
       "passed": true,
       "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464"
     }

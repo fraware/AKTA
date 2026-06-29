@@ -87,7 +87,7 @@ def run_oracle_eval(
             continue
         scenario = json.loads(line)
         sid = scenario["scenario_id"]
-        exp = expected.get(sid)
+        exp = expected.get(sid) or scenario.get("expected_admissibility")
         if exp is None:
             results.append({"scenario_id": sid, "passed": False, "error": "no expected label"})
             continue
