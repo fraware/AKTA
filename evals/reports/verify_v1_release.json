@@ -1,0 +1,201 @@
+{
+  "steps": [
+    {
+      "name": "make_ci",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe -m pytest tests/ -q --tb=no",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "..s..................................................................... [ 19%]\n........................................................................ [ 39%]\n........................................................................ [ 58%]\n........................................................................ [ 78%]\n........................................................................ [ 97%]\n.........                                                                [100%]\n368 passed, 1 skipped in 132.07s (0:02:12)\n",
+        "stderr_tail": "C:\\Users\\mateo\\miniconda3\\Lib\\site-packages\\pytest_asyncio\\plugin.py:208: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n"
+      }
+    },
+    {
+      "name": "scope_live_python-import",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe scripts/verify_scope_live_chain.py --mode python-import --scope-repo C:\\Users\\mateo\\SCOPE",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "{\n  \"mode\": \"python-import\",\n  \"passed\": true,\n  \"checks\": [\n    {\n      \"name\": \"adapter_mode_not_simulated\",\n      \"passed\": true,\n      \"detail\": \"python-import\"\n    },\n    {\n      \"name\": \"packet_not_synthetic\",\n      \"passed\": true,\n      \"detail\": \"packet_id present and not simulated\"\n    },\n    {\n      \"name\": \"decision_has_decision_id\",\n      \"passed\": true,\n      \"detail\": \"SCOPE-DEC-DA85EC\"\n    },\n    {\n      \"name\": \"grant_has_authorization_approved_scope\",\n      \"passed\": true,\n      \"detail\": \"protocol_draft\"\n    },\n    {\n      \"name\": \"grant_not_synthetic\",\n      \"passed\": true\n    },\n    {\n      \"name\": \"pcs_export_accepts_narrow_grant\",\n      \"passed\": true,\n      \"detail\": null\n    },\n    {\n      \"name\": \"pcs_export_rejects_overbroad_grant\",\n      \"passed\": true,\n      \"detail\": \"Invalid SCOPE grant blocks PCS export: grant scope robot_queue_submission does not cover requested_scope active_protocol_update\"\n    }\n  ],\n  \"adapter_mode\": \"python-import\"\n}\n",
+        "stderr_tail": "Policy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\n"
+      }
+    },
+    {
+      "name": "scope_live_cli",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe scripts/verify_scope_live_chain.py --mode cli",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "{\n  \"mode\": \"cli\",\n  \"passed\": true,\n  \"checks\": [\n    {\n      \"name\": \"adapter_mode_not_simulated\",\n      \"passed\": true,\n      \"detail\": \"cli\"\n    },\n    {\n      \"name\": \"packet_not_synthetic\",\n      \"passed\": true,\n      \"detail\": \"packet_id present and not simulated\"\n    },\n    {\n      \"name\": \"decision_has_decision_id\",\n      \"passed\": true,\n      \"detail\": \"SCOPE-DEC-325539\"\n    },\n    {\n      \"name\": \"grant_has_authorization_approved_scope\",\n      \"passed\": true,\n      \"detail\": \"protocol_draft\"\n    },\n    {\n      \"name\": \"grant_not_synthetic\",\n      \"passed\": true\n    },\n    {\n      \"name\": \"pcs_export_accepts_narrow_grant\",\n      \"passed\": true,\n      \"detail\": null\n    },\n    {\n      \"name\": \"pcs_export_rejects_overbroad_grant\",\n      \"passed\": true,\n      \"detail\": \"Invalid SCOPE grant blocks PCS export: grant scope robot_queue_submission does not cover requested_scope active_protocol_update\"\n    }\n  ],\n  \"adapter_mode\": \"cli\"\n}\n",
+        "stderr_tail": "Policy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\n"
+      }
+    },
+    {
+      "name": "scope_live_akta-review",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe scripts/verify_scope_live_chain.py --mode akta-review",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "{\n  \"mode\": \"akta-review\",\n  \"passed\": true,\n  \"checks\": [\n    {\n      \"name\": \"adapter_mode_not_simulated\",\n      \"passed\": true,\n      \"detail\": \"akta-review-cli\"\n    },\n    {\n      \"name\": \"packet_not_synthetic\",\n      \"passed\": true,\n      \"detail\": \"packet_id present and not simulated\"\n    },\n    {\n      \"name\": \"decision_has_decision_id\",\n      \"passed\": true,\n      \"detail\": \"SCOPE-DEC-10B54A\"\n    },\n    {\n      \"name\": \"grant_has_authorization_approved_scope\",\n      \"passed\": true,\n      \"detail\": \"protocol_draft\"\n    },\n    {\n      \"name\": \"grant_not_synthetic\",\n      \"passed\": true\n    },\n    {\n      \"name\": \"pcs_export_accepts_narrow_grant\",\n      \"passed\": true,\n      \"detail\": null\n    },\n    {\n      \"name\": \"pcs_export_rejects_overbroad_grant\",\n      \"passed\": true,\n      \"detail\": \"Invalid SCOPE grant blocks PCS export: grant scope robot_queue_submission does not cover requested_scope active_protocol_update\"\n    }\n  ],\n  \"adapter_mode\": \"akta-review-cli\"\n}\n",
+        "stderr_tail": "Policy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\n"
+      }
+    },
+    {
+      "name": "strict_contract",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe -c from akta.scope_contract import validate_scope_runtime_contract; validate_scope_runtime_contract(strict=True)",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "",
+        "stderr_tail": ""
+      }
+    },
+    {
+      "name": "sync_scope_fixtures",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe scripts/sync_scope_contract_fixtures.py --scope-repo C:\\Users\\mateo\\SCOPE",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "{\n  \"contract_version\": \"akta-scope-contract-v1.0\",\n  \"scope_repo\": \"C:\\\\Users\\\\mateo\\\\SCOPE\",\n  \"updated\": [],\n  \"unchanged\": [\n    \"scope_scope_order.json\",\n    \"scope_valid_narrowing.json\"\n  ]\n}\n",
+        "stderr_tail": ""
+      }
+    },
+    {
+      "name": "demo_pilot_bundle",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe scripts/generate_pilot_bundle.py",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "=== AKTA v0.8 Demo: Reconstructable Experiment Chain ===\nOutput: C:\\Users\\mateo\\AKTA\\dist\\pilot_bundle\nSCOPE adapter: python-import\n\nCase A (pre-grant): blocked\nCase B (SCOPE grant): single_run_queue_priority\nCase C (post-grant re-gate): blocked \u2014 Profile P2_analysis_assistant matrix decision for A7_resource_or_queue_prioritization is blocked. Evidence rule E2_preli\nDecision:       blocked\nPost-grant:     blocked\nVSA claims:     1\nPCS bundle:     C:\\Users\\mateo\\AKTA\\dist\\pilot_bundle\\10_pcs_bundle\\manifest.json\nMemory import:  C:\\Users\\mateo\\AKTA\\dist\\pilot_bundle\\11_scientific_memory_import.json\nPCS-Bench:      1/1 passed\nLinkage:        OK\nSummary checks: OK\n\nArtifacts in C:\\Users\\mateo\\AKTA\\dist\\pilot_bundle\nPilot bundle written to C:\\Users\\mateo\\AKTA\\dist\\pilot_bundle\nQuality report: all_ok=True\n",
+        "stderr_tail": "Policy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\n"
+      }
+    },
+    {
+      "name": "verify_pilot_bundle",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe scripts/verify_reconstructable_cross_repo.py --pilot-mode",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "verify-pilot-bundle: OK (C:\\Users\\mateo\\AKTA\\dist\\pilot_bundle)\n",
+        "stderr_tail": ""
+      }
+    },
+    {
+      "name": "strict_cross_repo",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe scripts/demo_reconstructable_experiment.py --cross-repo",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "=== AKTA v0.8 Demo: Reconstructable Experiment Chain ===\nOutput: C:\\Users\\mateo\\AKTA\\dist\\reconstructable_cross_repo\nSCOPE adapter: python-import\n\nCase A (pre-grant): blocked\nCase B (SCOPE grant): single_run_queue_priority\nCase C (post-grant re-gate): blocked \u2014 Profile P2_analysis_assistant matrix decision for A7_resource_or_queue_prioritization is blocked. Evidence rule E2_preli\nDecision:       blocked\nPost-grant:     blocked\nVSA claims:     1\nPCS bundle:     C:\\Users\\mateo\\AKTA\\dist\\reconstructable_cross_repo\\10_pcs_bundle\\manifest.json\nMemory import:  C:\\Users\\mateo\\AKTA\\dist\\reconstructable_cross_repo\\11_scientific_memory_import.json\nPCS-Bench:      1/1 passed\nLinkage:        OK\nSummary checks: OK\n\nArtifacts in C:\\Users\\mateo\\AKTA\\dist\\reconstructable_cross_repo\n",
+        "stderr_tail": "Policy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\n"
+      }
+    },
+    {
+      "name": "pf_runtime_proof",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe scripts/demo_pf_runtime_proof.py",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "{\n  \"passed\": true,\n  \"checks\": {\n    \"decision_blocked\": true,\n    \"certificate_references_decision\": true,\n    \"tool_not_executed\": true,\n    \"pf_live_validation\": true,\n    \"pf_core_validated\": true\n  },\n  \"pf_validation_skip\": \"PF-Core validator not found; skipped live validation\",\n  \"out_dir\": \"C:\\\\Users\\\\mateo\\\\AKTA\\\\dist\\\\pf_runtime_proof\"\n}\n",
+        "stderr_tail": "Policy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\n"
+      }
+    },
+    {
+      "name": "pcs_core_ingest",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe -m pytest tests/contracts/test_pcs_core_live_ingest.py -v -m integration",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "============================= test session starts =============================\nplatform win32 -- Python 3.13.11, pytest-8.3.5, pluggy-1.5.0 -- C:\\Users\\mateo\\miniconda3\\python.exe\ncachedir: .pytest_cache\nhypothesis profile 'default'\nrootdir: C:\\Users\\mateo\\AKTA\nconfigfile: pyproject.toml\nplugins: anyio-4.12.1, hydra-core-1.3.2, hypothesis-6.151.6, langsmith-0.7.16, asyncio-0.24.0, cov-6.3.0, mock-3.15.1, timeout-2.4.0, respx-0.23.1\nasyncio: mode=Mode.STRICT, default_loop_scope=None\ncollecting ... collected 3 items / 1 deselected / 2 selected\n\ntests/contracts/test_pcs_core_live_ingest.py::test_pcs_core_rejects_invalid_bundle PASSED [ 50%]\ntests/contracts/test_pcs_core_live_ingest.py::test_pcs_core_live_ingest PASSED [100%]\n\n======================= 2 passed, 1 deselected in 3.16s =======================\n",
+        "stderr_tail": "C:\\Users\\mateo\\miniconda3\\Lib\\site-packages\\pytest_asyncio\\plugin.py:208: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n"
+      }
+    },
+    {
+      "name": "vsa_live",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe -m pytest tests/contracts/test_vsa_live_contract.py -v -m integration",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "============================= test session starts =============================\nplatform win32 -- Python 3.13.11, pytest-8.3.5, pluggy-1.5.0 -- C:\\Users\\mateo\\miniconda3\\python.exe\ncachedir: .pytest_cache\nhypothesis profile 'default'\nrootdir: C:\\Users\\mateo\\AKTA\nconfigfile: pyproject.toml\nplugins: anyio-4.12.1, hydra-core-1.3.2, hypothesis-6.151.6, langsmith-0.7.16, asyncio-0.24.0, cov-6.3.0, mock-3.15.1, timeout-2.4.0, respx-0.23.1\nasyncio: mode=Mode.STRICT, default_loop_scope=None\ncollecting ... collected 2 items / 1 deselected / 1 selected\n\ntests/contracts/test_vsa_live_contract.py::test_vsa_sibling_validate_report PASSED [100%]\n\n======================= 1 passed, 1 deselected in 2.91s =======================\n",
+        "stderr_tail": "C:\\Users\\mateo\\miniconda3\\Lib\\site-packages\\pytest_asyncio\\plugin.py:208: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n"
+      }
+    },
+    {
+      "name": "memory_roundtrip",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe -m pytest tests/contracts/test_scientific_memory_roundtrip.py -v -m integration",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "============================= test session starts =============================\nplatform win32 -- Python 3.13.11, pytest-8.3.5, pluggy-1.5.0 -- C:\\Users\\mateo\\miniconda3\\python.exe\ncachedir: .pytest_cache\nhypothesis profile 'default'\nrootdir: C:\\Users\\mateo\\AKTA\nconfigfile: pyproject.toml\nplugins: anyio-4.12.1, hydra-core-1.3.2, hypothesis-6.151.6, langsmith-0.7.16, asyncio-0.24.0, cov-6.3.0, mock-3.15.1, timeout-2.4.0, respx-0.23.1\nasyncio: mode=Mode.STRICT, default_loop_scope=None\ncollecting ... collected 2 items / 1 deselected / 1 selected\n\ntests/contracts/test_scientific_memory_roundtrip.py::test_memory_sibling_round_trip PASSED [100%]\n\n======================= 1 passed, 1 deselected in 8.05s =======================\n",
+        "stderr_tail": "C:\\Users\\mateo\\miniconda3\\Lib\\site-packages\\pytest_asyncio\\plugin.py:208: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n"
+      }
+    },
+    {
+      "name": "pcs_bench_live",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe -m adapters.pcs_bench.external_harness",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "{\n  \"passed\": true,\n  \"harness\": \"import_fallback\"\n}\n",
+        "stderr_tail": "Policy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\n"
+      }
+    },
+    {
+      "name": "vsa_pilot_bundle",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe -c import json; from pathlib import Path; from tests.contracts.cross_repo_helpers import validate_vsa_report_live; p=Path('dist/pilot_bundle/00_vsa_report.json'); assert p.is_file(), 'pilot VSA report missing'; r=json.loads(p.read_text(encoding='utf-8')); skip=validate_vsa_report_live(r); assert skip is None, skip",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "",
+        "stderr_tail": ""
+      }
+    },
+    {
+      "name": "eval_bench_v1",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe -m pytest tests/test_eval_bench_v1.py -v",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "============================= test session starts =============================\nplatform win32 -- Python 3.13.11, pytest-8.3.5, pluggy-1.5.0 -- C:\\Users\\mateo\\miniconda3\\python.exe\ncachedir: .pytest_cache\nhypothesis profile 'default'\nrootdir: C:\\Users\\mateo\\AKTA\nconfigfile: pyproject.toml\nplugins: anyio-4.12.1, hydra-core-1.3.2, hypothesis-6.151.6, langsmith-0.7.16, asyncio-0.24.0, cov-6.3.0, mock-3.15.1, timeout-2.4.0, respx-0.23.1\nasyncio: mode=Mode.STRICT, default_loop_scope=None\ncollecting ... collected 8 items\n\ntests/test_eval_bench_v1.py::test_oracle_corpus_size PASSED              [ 12%]\ntests/test_eval_bench_v1.py::test_holdout_corpus_size PASSED             [ 25%]\ntests/test_eval_bench_v1.py::test_adversarial_corpus_size PASSED         [ 37%]\ntests/test_eval_bench_v1.py::test_labtrust_imported_from_real_adapter PASSED [ 50%]\ntests/test_eval_bench_v1.py::test_behavioral_middleware_corpus_size PASSED [ 62%]\ntests/test_eval_bench_v1.py::test_labtrust_imported_size PASSED          [ 75%]\ntests/test_eval_bench_v1.py::test_classifier_edge_cases_size PASSED      [ 87%]\ntests/test_eval_bench_v1.py::test_inter_rater_metadata_coverage PASSED   [100%]\n\n============================== 8 passed in 0.42s ==============================\n",
+        "stderr_tail": "C:\\Users\\mateo\\miniconda3\\Lib\\site-packages\\pytest_asyncio\\plugin.py:208: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n"
+      }
+    },
+    {
+      "name": "behavioral_smoke",
+      "passed": true,
+      "detail": {
+        "command": "C:\\Users\\mateo\\miniconda3\\python.exe evals/behavioral_runner.py",
+        "returncode": 0,
+        "passed": true,
+        "stdout_tail": "{\n  \"passed\": true,\n  \"total\": 20\n}\n",
+        "stderr_tail": "Policy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\nPolicy HMAC verified with dev key; set AKTA_POLICY_HMAC_KEY for production\n"
+      }
+    }
+  ],
+  "passed": true,
+  "sibling_discovery": {
+    "SCOPE_REPO_PATH": "C:\\Users\\mateo\\SCOPE",
+    "PF_CORE_REPO_PATH": "C:\\Users\\mateo\\provability-fabric-core",
+    "PCS_CORE_REPO_PATH": "C:\\Users\\mateo\\pcs-core",
+    "PCS_BENCH_REPO_PATH": "C:\\Users\\mateo\\pcs-bench",
+    "VSA_REPO_PATH": "C:\\Users\\mateo\\verified-science-agent",
+    "MEMORY_REPO_PATH": "C:\\Users\\mateo\\scientific-memory",
+    "LABTRUST_REPO_PATH": "C:\\Users\\mateo\\LabTrust-Gym"
+  }
+}
