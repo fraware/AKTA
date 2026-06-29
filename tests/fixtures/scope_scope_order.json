@@ -1,0 +1,14 @@
+{
+  "fixture_version": "akta-scope-contract-v0.8",
+  "scope_order": [
+    "protocol_draft",
+    "active_protocol_update",
+    "single_validation_plan",
+    "single_validation_run_draft",
+    "single_run_queue_priority",
+    "scientific_memory_import",
+    "robot_queue_submission",
+    "execution_payload_preparation",
+    "publication_claim"
+  ]
+}
