@@ -78,7 +78,7 @@
         "evidence_state": "E4_internally_consistent_evidence",
         "validation_status": "V3_preliminary_experimental_support",
         "requested_scope": "active_protocol_update",
-        "review_trigger_id": "AKTA-REVTRIG-B796CE52",
+        "review_trigger_id": "AKTA-REVTRIG-085A0E53",
         "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
         "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8",
         "next_admissible_steps": []
