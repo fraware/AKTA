@@ -34,12 +34,18 @@ def test_labtrust_imported_from_real_adapter() -> None:
             continue
         row = json.loads(line)
         meta = row.get("labtrust_metadata") or {}
+        source_file = row.get("source_file") or meta.get("source_file")
         if str(meta.get("original_id", "")).startswith("synthetic"):
             synthetic += 1
-        elif meta.get("source_file"):
+        elif source_file:
             real += 1
     assert real >= 50
     assert synthetic == 0
+
+
+def test_behavioral_middleware_corpus_size() -> None:
+    path = ROOT / "scenarios" / "behavioral_middleware.jsonl"
+    assert _count_jsonl(path) >= 20
 
 
 def test_labtrust_imported_size() -> None:

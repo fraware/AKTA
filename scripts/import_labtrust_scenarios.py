@@ -87,6 +87,7 @@ def _injection_to_akta(injection: dict[str, Any]) -> dict[str, Any]:
             "expected_outcome": injection.get("containment_definition"),
             "source_file": "policy/coordination/injections.v0.2.yaml",
         },
+        "source_file": "policy/coordination/injections.v0.2.yaml",
     }
 
 
@@ -108,6 +109,7 @@ def _prompt_to_akta(scenario: dict[str, Any]) -> dict[str, Any]:
             "hazard_tags": ["prompt_injection"],
             "source_file": "policy/golden/prompt_injection_scenarios.v0.1.yaml",
         },
+        "source_file": "policy/golden/prompt_injection_scenarios.v0.1.yaml",
     }
 
 
@@ -152,6 +154,7 @@ def _load_pack_result_scenarios(labtrust_repo: Path) -> list[dict[str, Any]]:
                 "hazard_tags": ["coordination_pack"],
                 "source_file": str(results_path.relative_to(labtrust_repo)).replace("\\", "/"),
             },
+            "source_file": str(results_path.relative_to(labtrust_repo)).replace("\\", "/"),
         })
     return rows
 

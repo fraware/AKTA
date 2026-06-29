@@ -25,6 +25,7 @@ eval-v06:
 
 eval-bench-v1: eval-oracle eval-holdout eval-v06
 	$(PYTHON) evals/behavioral_runner.py --out evals/reports/behavioral_v1.json
+	$(PYTHON) evals/run_public_gate_derived.py --out evals/reports/public_gate_derived_eval.json
 	$(PYTHON) -m pytest tests/test_eval_bench_v1.py -v
 
 demo-reconstructable:
