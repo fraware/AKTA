@@ -18,7 +18,7 @@
   "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
   "scope_grant_ref": null,
   "review_trigger_id": "AKTA-REVTRIG-DRIFT0001",
-  "expires_at": "2026-06-29T22:01:10Z",
+  "expires_at": "2026-06-29T22:50:19Z",
   "enforcement_mode": "review_gate",
   "required_runtime_behavior": {
     "block_execution": false,
@@ -35,5 +35,5 @@
   "next_admissible_steps": [],
   "required_review_role": "protocol_owner",
   "consequentiality": true,
-  "obligation_hash": "sha256:a3d5c9c9b47f5ec9f6885f2b00f2b799fea7c9651fd8822fa00abef754f73fd0"
+  "obligation_hash": "sha256:11309a2830d99fad69f62203619b1709b92cee47c6e5ee4744f17353c1fc12dc"
 }
