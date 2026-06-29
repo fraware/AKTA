@@ -426,10 +426,19 @@ def run_demo(*, cross_repo: bool | None = None) -> int:
     linkage = _linkage_report(artifact_paths)
     summary_checks = _summary_contract_checks(scope_summary, trigger)
 
+    from akta.scope_contract import get_fixture_contract_version
+
+    fixture_contract_version = get_fixture_contract_version()
+
+    try:
+        out_rel = out_dir.relative_to(ROOT)
+    except ValueError:
+        out_rel = out_dir
+
     readme = (
         "# Reconstructable Experiment (AKTA v0.8)\n\n"
         "Regenerate: `python scripts/demo_reconstructable_experiment.py`\n\n"
-        f"Output directory: `{out_dir.relative_to(ROOT)}`\n"
+        f"Output directory: `{out_rel}`\n"
         f"SCOPE adapter mode: {adapter_mode}\n"
         f"Policy integrity mode: {gate.policy.integrity_mode}\n"
     )
@@ -448,6 +457,8 @@ def run_demo(*, cross_repo: bool | None = None) -> int:
         detail = f" ({check['detail']})" if check.get("detail") else ""
         recon_md += f"- {check['field']}: {status}{detail}\n"
     recon_md += f"- All summary checks passed: {summary_checks['all_ok']}\n\n"
+    recon_md += "## SCOPE fixture contract_version\n\n"
+    recon_md += f"- AKTA fixture contract_version: `{fixture_contract_version}`\n\n"
 
     recon_md += "## SCOPE grant vs AKTA policy layers\n\n"
     recon_md += (
