@@ -571,6 +571,17 @@ def evaluate_admissibility(
     if mandatory_layer:
         layers.append(mandatory_layer)
 
+    from akta.structured_action_policy import structured_action_requirement_decision
+
+    structured_layer = structured_action_requirement_decision(
+        tool_spec,
+        requested_tool,
+        context,
+        policy_dir=policy.policy_dir,
+    )
+    if structured_layer:
+        layers.append(structured_layer)
+
     handoff_layer = handoff_escalation_decision(context)
     if handoff_layer:
         layers.append(handoff_layer)
