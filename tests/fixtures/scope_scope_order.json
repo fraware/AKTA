@@ -1,5 +1,5 @@
 {
-  "contract_version": "akta-scope-contract-v0.9",
+  "contract_version": "akta-scope-contract-v1.0",
   "scope_order": [
     "protocol_draft",
     "single_validation_plan",
@@ -11,5 +11,5 @@
     "publication_claim",
     "scientific_memory_import"
   ],
-  "source_scope_core": "scope-core-v0.9"
+  "source_scope_core": "scope-core-v1.0"
 }

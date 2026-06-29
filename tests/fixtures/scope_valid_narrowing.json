@@ -1,5 +1,5 @@
 {
-  "contract_version": "akta-scope-contract-v0.9",
+  "contract_version": "akta-scope-contract-v1.0",
   "valid_narrowing_pairs": [
     {
       "requested_scope": "active_protocol_update",
