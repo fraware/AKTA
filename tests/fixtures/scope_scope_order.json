@@ -1,4 +1,5 @@
 {
+  "contract_version": "akta-scope-contract-v0.8.1",
   "fixture_version": "akta-scope-contract-v0.8",
   "scope_order": [
     "protocol_draft",
