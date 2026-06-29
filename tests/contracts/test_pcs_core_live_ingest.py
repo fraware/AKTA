@@ -25,6 +25,25 @@ def test_pcs_bundle_local_validation(pilot_pcs_bundle: Path) -> None:
 
 
 @pytest.mark.integration
+def test_pcs_core_rejects_invalid_bundle(tmp_path: Path) -> None:
+    from tests.contracts.cross_repo_helpers import pcs_core_repo, validate_pcs_bundle_live
+
+    repo = pcs_core_repo()
+    if repo is None:
+        pytest.skip("PCS_CORE_REPO_PATH not set")
+
+    invalid = tmp_path / "invalid_bundle"
+    invalid.mkdir()
+    (invalid / "manifest.json").write_text('{"files": {}}', encoding="utf-8")
+
+    with pytest.raises((ValueError, AssertionError, Exception)):
+        skip = validate_pcs_bundle_live(invalid)
+        if skip and "skipped" in skip.lower():
+            pytest.fail(f"PCS-Core should reject invalid bundle, got skip: {skip}")
+        pytest.fail("PCS-Core accepted invalid bundle")
+
+
+@pytest.mark.integration
 def test_pcs_core_live_ingest(pilot_pcs_bundle: Path) -> None:
     from tests.contracts.cross_repo_helpers import validate_pcs_bundle_live
 

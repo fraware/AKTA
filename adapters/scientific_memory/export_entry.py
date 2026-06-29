@@ -61,34 +61,34 @@ def round_trip_entry(entry: dict[str, Any]) -> dict[str, Any]:
 
 
 def _round_trip_via_sibling(entry: dict[str, Any], memory_repo: Path) -> dict[str, Any] | None:
-    """Write entry to sibling fixture path and read bounded fields back."""
+    """Write entry to sibling temp store and read bounded fields back."""
     import json
     import tempfile
 
-    fixture_dir = memory_repo / "tests" / "pcs" / "fixtures" / "labtrust-release"
-    if not fixture_dir.is_dir():
+    store_dir = memory_repo / "tests" / "pcs" / "fixtures" / "labtrust-release"
+    if not store_dir.is_dir():
+        store_dir = memory_repo / "tests" / "fixtures"
+    if not store_dir.is_dir():
         return None
 
-    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tmp:
-        json.dump(entry, tmp)
-        tmp_path = Path(tmp.name)
-
+    store_file = store_dir / f"akta_roundtrip_{entry.get('entry_hash', 'entry')[:16]}.json"
+    store_file.write_text(json.dumps(entry, indent=2), encoding="utf-8")
     try:
+        read_payload = json.loads(store_file.read_text(encoding="utf-8"))
         read_back = {
-            "entry_hash": entry.get("entry_hash"),
-            "admissibility": entry.get("admissibility"),
-            "bounded_claims": entry.get("bounded_claims", [])[:10],
-            "admissibility_history": entry.get("admissibility_history", []),
-            "source_record_id": entry.get("source_record_id"),
+            "entry_hash": read_payload.get("entry_hash"),
+            "admissibility": read_payload.get("admissibility"),
+            "bounded_claims": read_payload.get("bounded_claims", [])[:10],
+            "admissibility_history": read_payload.get("admissibility_history", []),
+            "source_record_id": read_payload.get("source_record_id"),
             "round_trip_mode": "scientific_memory_sibling",
             "sibling_repo": str(memory_repo),
-            "import_fixture_dir": str(fixture_dir),
+            "store_file": str(store_file),
         }
         read_back["round_trip_ok"] = (
             read_back["admissibility"] == entry.get("admissibility")
             and read_back["entry_hash"] == entry.get("entry_hash")
-            and fixture_dir.is_dir()
         )
         return read_back
     finally:
-        tmp_path.unlink(missing_ok=True)
+        store_file.unlink(missing_ok=True)
