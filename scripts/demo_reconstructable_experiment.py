@@ -12,6 +12,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUT_DIR = ROOT / "dist" / "reconstructable_experiment"
 CROSS_REPO_OUT_DIR = ROOT / "dist" / "reconstructable_cross_repo"
+PILOT_OUT_DIR = ROOT / "dist" / "pilot_bundle"
 
 DEMO_TIMESTAMP = "2026-06-28T14:00:00Z"
 DEMO_DECISION_ID = "AKTA-DEC-RECON0001"
@@ -22,8 +23,10 @@ SCOPE_QUEUE_REVIEWER_ROLE = "lab_operations_lead"
 SCOPE_QUEUE_REVIEWER_ID = "lol1"
 
 
-def resolve_out_dir(*, cross_repo: bool | None = None) -> Path:
-    """Select output directory: cross-repo when live SCOPE env is set or forced."""
+def resolve_out_dir(*, cross_repo: bool | None = None, pilot: bool = False) -> Path:
+    """Select output directory: pilot bundle, cross-repo, or in-repo demo."""
+    if pilot:
+        return PILOT_OUT_DIR
     if cross_repo is None:
         cross_repo = bool(os.environ.get("SCOPE_REPO_PATH") or os.environ.get("SCOPE_CLI"))
     return CROSS_REPO_OUT_DIR if cross_repo else DEFAULT_OUT_DIR
@@ -162,7 +165,7 @@ def _linkage_report(artifacts: dict[str, Path]) -> dict[str, Any]:
     return {"linkage": links, "all_linked": all(l["ok"] for l in links)}
 
 
-def run_demo(*, cross_repo: bool | None = None) -> int:
+def run_demo(*, cross_repo: bool | None = None, pilot: bool = False) -> int:
     from akta import AKTAGate, AKTAContext
     from akta.records import AKTARecord
     from adapters.labtrust_gym.import_scenario import convert_labtrust_scenario
@@ -174,7 +177,7 @@ def run_demo(*, cross_repo: bool | None = None) -> int:
     from adapters.scientific_memory.import_memory import export_memory_entry, import_from_pcs_bundle
     from adapters.vsa.import_report import import_vsa_report, validate_vsa_report
 
-    out_dir = resolve_out_dir(cross_repo=cross_repo)
+    out_dir = resolve_out_dir(cross_repo=cross_repo if cross_repo is not None else pilot, pilot=pilot)
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -426,19 +429,10 @@ def run_demo(*, cross_repo: bool | None = None) -> int:
     linkage = _linkage_report(artifact_paths)
     summary_checks = _summary_contract_checks(scope_summary, trigger)
 
-    from akta.scope_contract import get_fixture_contract_version
-
-    fixture_contract_version = get_fixture_contract_version()
-
-    try:
-        out_rel = out_dir.relative_to(ROOT)
-    except ValueError:
-        out_rel = out_dir
-
     readme = (
         "# Reconstructable Experiment (AKTA v0.8)\n\n"
         "Regenerate: `python scripts/demo_reconstructable_experiment.py`\n\n"
-        f"Output directory: `{out_rel}`\n"
+        f"Output directory: `{out_dir.relative_to(ROOT)}`\n"
         f"SCOPE adapter mode: {adapter_mode}\n"
         f"Policy integrity mode: {gate.policy.integrity_mode}\n"
     )
@@ -457,8 +451,6 @@ def run_demo(*, cross_repo: bool | None = None) -> int:
         detail = f" ({check['detail']})" if check.get("detail") else ""
         recon_md += f"- {check['field']}: {status}{detail}\n"
     recon_md += f"- All summary checks passed: {summary_checks['all_ok']}\n\n"
-    recon_md += "## SCOPE fixture contract_version\n\n"
-    recon_md += f"- AKTA fixture contract_version: `{fixture_contract_version}`\n\n"
 
     recon_md += "## SCOPE grant vs AKTA policy layers\n\n"
     recon_md += (
@@ -477,7 +469,7 @@ def run_demo(*, cross_repo: bool | None = None) -> int:
     for link in linkage["linkage"]:
         recon_md += f"- {link['from']} -> {link['to']} ({link['field']}): {'OK' if link['ok'] else 'FAIL'}\n"
     recon_md += f"- PCS-Bench: {bench_result['passed_count']}/{bench_result['total']} passed\n"
-    if adapter_mode == ADAPTER_MODE_SIMULATED and out_dir == CROSS_REPO_OUT_DIR:
+    if adapter_mode == ADAPTER_MODE_SIMULATED and out_dir in (CROSS_REPO_OUT_DIR, PILOT_OUT_DIR):
         recon_md += "\n**Warning:** cross-repo output dir with simulated SCOPE adapter.\n"
     (out_dir / "reconstruction_report.md").write_text(recon_md, encoding="utf-8")
 
@@ -497,9 +489,28 @@ def run_demo(*, cross_repo: bool | None = None) -> int:
         and summary_checks["all_ok"]
         and bench_result.get("passed", False)
     )
+
+    if pilot:
+        quality_report = {
+            "pilot_bundle_version": "akta-pilot-v1.0",
+            "adapter_mode": adapter_mode,
+            "policy_integrity_mode": gate.policy.integrity_mode,
+            "summary_contract_checks": summary_checks,
+            "linkage": linkage,
+            "pcs_bench": bench_result,
+            "case_a_admissibility": d["admissibility"],
+            "case_b_approved_scope": approved_scope,
+            "case_c_admissibility": (
+                post_grant_decision.get("admissibility") if post_grant_decision else None
+            ),
+            "all_checks_passed": ok,
+        }
+        _write_json(out_dir / "14_quality_report.json", quality_report)
+
     return 0 if ok else 1
 
 
 if __name__ == "__main__":
     cross_repo = "--cross-repo" in sys.argv
-    sys.exit(run_demo(cross_repo=cross_repo if cross_repo else None))
+    pilot = "--pilot" in sys.argv
+    sys.exit(run_demo(cross_repo=cross_repo if cross_repo else None, pilot=pilot))

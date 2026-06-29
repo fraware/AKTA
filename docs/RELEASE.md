@@ -1,4 +1,4 @@
-# Public release verification (v0.8.1)
+# Public release verification (v1.0)
 
 Use this checklist before tagging a public release of the AKTA reference implementation. AKTA is an open protocol with a reference kernel — not a safety certification.
 
@@ -8,7 +8,7 @@ Use this checklist before tagging a public release of the AKTA reference impleme
 pip install -e ".[dev,security]"
 ```
 
-## Required (in-repo)
+## Required (in-repo) — every PR
 
 | Step | Command | Expected |
 |------|---------|----------|
@@ -22,43 +22,37 @@ pip install -e ".[dev,security]"
 | Protocol-drift demo | `make demo-akta-scope-protocol-drift` | Artifacts under `examples/integrated_protocol_drift/` |
 | Reconstructable chain | `make demo-reconstructable` | Canonical chain under `dist/reconstructable_experiment/` |
 
-## Required when SCOPE sibling is available (v0.8 cross-repo gate)
+## Required on release gate (SCOPE live) — PR + main
 
-Set `SCOPE_REPO_PATH` to a SCOPE v0.8+ checkout, then:
+Set `SCOPE_REPO_PATH` to a SCOPE v0.9+ checkout, then:
 
 | Step | Command | Expected |
 |------|---------|----------|
-| Cross-repo demo | `make demo-reconstructable-cross-repo` | Live chain under `dist/reconstructable_cross_repo/` including `04_scope_review_summary.json` |
-| Cross-repo verify | `make verify-reconstructable-cross-repo` | All required artifacts present; PCS bundle includes `scope_review_summary.json`; post-grant decision stays blocked |
-| Pilot bundle (live SCOPE) | `make demo-pilot-bundle` | Frozen chain under `dist/pilot_bundle/` with `14_quality_report.json` |
-| Pilot verify | `make verify-pilot-bundle` | Pilot mode: real summary, IAL/SAL, rejects simulated adapter |
+| Fixture sync | `make sync-scope-fixtures` | Fixtures match live SCOPE contract |
+| Cross-repo demo | `make demo-reconstructable-cross-repo` | Live chain under `dist/reconstructable_cross_repo/` |
+| Cross-repo verify | `make verify-reconstructable-cross-repo` | All required artifacts present |
+| Pilot bundle | `make demo-pilot-bundle` + `make verify-pilot-bundle` | Quality report `all_ok=true` when live SCOPE |
+| Maintainer chain | `make ci-pilot` | Chains cross-repo + pilot verify |
 
-Pilot mode requires live SCOPE (`SCOPE_REPO_PATH` or `SCOPE_CLI`). Set `AKTA_STRICT_SCOPE_CONTRACT=1` to hard-fail fixture/runtime version mismatch.
+Release gate CI (`.github/workflows/release-gate.yml`) runs these steps automatically when `SCOPE_REPO_URL` secret or `SCOPE_REPO_PATH` variable is configured.
 
-## Optional (live SCOPE sibling)
+## Required on tag v* only
 
-When a SCOPE v0.5+ checkout is available:
-
-```bash
-# python-import
-SCOPE_REPO_PATH=/path/to/SCOPE python scripts/verify_scope_live_chain.py --mode python-import
-
-# three-step CLI
-SCOPE_CLI=scope python scripts/verify_scope_live_chain.py --mode cli
-
-# unified akta review CLI
-SCOPE_CLI=scope SCOPE_CLI_MODE=akta-review python scripts/verify_scope_live_chain.py --mode akta-review
-```
-
-The verifier must report `adapter_mode=python-import`, `cli`, or `akta-review-cli` — never `simulated`.
+| Step | Command | Expected |
+|------|---------|----------|
+| AKTA-Bench v1 | `make eval-bench-v1` | Oracle 100%, holdout pass, behavioral smoke |
+| Full v1.0 verifier | `make verify-v1-release` | All orchestrated steps pass |
+| Pilot artifact | GitHub Release upload | `dist/pilot_bundle/` from release-gate workflow |
 
 ## Optional (cross-repo siblings)
 
-Set repository variables per [.github/CROSS_REPO_CI.md](../.github/CROSS_REPO_CI.md), then:
+Set repository variables per [.github/CROSS_REPO_CI.md](../.github/CROSS_REPO_CI.md):
 
-```bash
-pytest tests/contracts/ tests/integration/ -v -m integration
-```
+- `PF_CORE_REPO_PATH` — PF runtime proof
+- `PCS_CORE_REPO_PATH` — PCS bundle ingest
+- `PCS_BENCH_REPO_PATH` — external benchmark harness
+- `VSA_REPO_PATH` — VSA report validation
+- `MEMORY_REPO_PATH` — Scientific Memory round-trip
 
 ## Production policy integrity smoke test
 
@@ -73,12 +67,12 @@ akta gate --output examples/weak_evidence/ai_output.json \
   --out /tmp/akta_decision.json
 ```
 
-Experimental domain overlays (biology, chemistry, clinical) must be refused in production mode.
+Ed25519 release ceremony: see [policy_integrity.md](policy_integrity.md).
 
 ## Documentation sanity
 
-- README acceptance tables include v0.8.1 through v0.1
-- Cross-repo release gate documented in README (`demo-reconstructable-cross-repo`, `verify-reconstructable-cross-repo`)
+- README distinguishes reference kernel, field benchmark v1, live trust stack, protocol v1.0
+- [PROTOCOL_v1.0.md](PROTOCOL_v1.0.md) schema freeze declaration
 - [limitations.md](limitations.md) states non-certification and authority boundary
 - CHANGELOG includes the release version and date
 - `pyproject.toml` version matches the tag

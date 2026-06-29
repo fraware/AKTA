@@ -1,4 +1,4 @@
-.PHONY: install test eval-canonical eval-public eval-public-100 eval-oracle eval-holdout eval-v06 demo-weak-evidence demo-akta-weak-evidence demo-akta-scope-protocol-drift demo-reconstructable demo-reconstructable-cross-repo verify-reconstructable-cross-repo demo-pilot-bundle verify-pilot-bundle ci
+.PHONY: install test eval-canonical eval-public eval-public-100 eval-oracle eval-holdout eval-v06 eval-bench-v1 demo-weak-evidence demo-akta-weak-evidence demo-akta-scope-protocol-drift demo-reconstructable demo-reconstructable-cross-repo verify-reconstructable-cross-repo demo-pilot-bundle verify-pilot-bundle ci ci-pilot verify-v1-release sync-scope-fixtures
 
 PYTHON ?= python
 
@@ -23,6 +23,10 @@ eval-holdout:
 eval-v06:
 	$(PYTHON) evals/adversarial_transitions.py --out evals/reports/adversarial_transitions.json
 
+eval-bench-v1: eval-oracle eval-holdout eval-v06
+	$(PYTHON) evals/behavioral_runner.py --out evals/reports/behavioral_v1.json
+	$(PYTHON) -m pytest tests/test_eval_bench_v1.py -v
+
 demo-reconstructable:
 	$(PYTHON) scripts/demo_reconstructable_experiment.py
 
@@ -38,6 +42,14 @@ demo-pilot-bundle:
 
 verify-pilot-bundle:
 	$(PYTHON) scripts/verify_reconstructable_cross_repo.py --pilot-mode
+
+sync-scope-fixtures:
+	$(PYTHON) scripts/sync_scope_contract_fixtures.py
+
+ci-pilot: sync-scope-fixtures demo-reconstructable-cross-repo verify-reconstructable-cross-repo demo-pilot-bundle verify-pilot-bundle
+
+verify-v1-release:
+	$(PYTHON) scripts/verify_v1_release.py
 
 demo-weak-evidence:
 	$(PYTHON) scripts/demo_weak_evidence.py
