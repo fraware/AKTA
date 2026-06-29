@@ -1,4 +1,4 @@
-"""Behavioral eval runner — assert tool blocked/allowed after grant (v1.0)."""
+"""Behavioral eval runner — assert tool blocked/allowed via LangGraph middleware (v1.0)."""
 
 from __future__ import annotations
 
@@ -7,58 +7,77 @@ import json
 from pathlib import Path
 from typing import Any
 
-from akta import AKTAGate, AKTAContext
 from adapters.langgraph.middleware import AKTALangGraphMiddleware
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def run_behavioral_scenario(
+def _run_with_wrap_tool(
     scenario: dict[str, Any],
     *,
-    gate: AKTAGate | None = None,
-    middleware: AKTALangGraphMiddleware | None = None,
+    middleware: AKTALangGraphMiddleware,
 ) -> dict[str, Any]:
-    gate = gate or AKTAGate.from_policy_dir(ROOT / "policy", overlays_dir=ROOT / "overlays")
-    mw = middleware or AKTALangGraphMiddleware()
+    """Execute scenario through middleware.wrap_tool and assert runtime enforcement."""
+    executed = {"value": False}
+
+    def _stub_tool(**kwargs: Any) -> dict[str, Any]:
+        executed["value"] = True
+        return {"ok": True}
 
     tool = scenario["requested_tool"]
     action = scenario.get("requested_action", tool)
     ctx = scenario.get("context", {})
-
-    pre = mw.evaluate_tool(tool, action, ai_output=scenario.get("ai_output", ""), context=ctx)
-    result: dict[str, Any] = {
-        "scenario_id": scenario["scenario_id"],
-        "pre_grant_admissibility": pre.admissibility,
-        "pre_grant_allowed": pre.allowed,
-    }
+    profile = scenario.get("deployment_profile", "P2_analysis_assistant")
+    middleware.deployment_profile = profile
+    middleware.domain_overlay = scenario.get("domain_overlay")
+    middleware.reset_state()
 
     grant = scenario.get("scope_grant")
+    ai_output = scenario.get("ai_output", "")
     if grant:
-        post = mw.retry_with_grant(
-            grant, tool, action,
-            ai_output=scenario.get("ai_output", ""),
-            context=ctx,
-        )
-        result["post_grant_admissibility"] = post.admissibility
-        result["post_grant_allowed"] = post.allowed
-
-        expected_blocked = scenario.get("expect_tool_blocked_after_grant")
-        if expected_blocked is not None:
-            result["behavioral_ok"] = post.allowed != expected_blocked
+        pre = middleware.evaluate_tool(tool, action, ai_output=ai_output, context=ctx)
+        if pre.admissibility == "review_required" and pre.review_trigger:
+            middleware.retry_with_grant(grant, tool, action, ai_output=ai_output, context=ctx)
+        elif pre.admissibility == "review_required":
+            middleware.apply_scope_grant(grant)
         else:
-            expected_adm = scenario.get("expected_post_grant_admissibility")
-            result["behavioral_ok"] = (
-                expected_adm is None or post.admissibility == expected_adm
-            )
-    else:
-        expected_adm = scenario.get("expected_admissibility")
-        result["behavioral_ok"] = (
-            expected_adm is None or pre.admissibility == expected_adm
-        )
+            middleware.apply_scope_grant(grant)
 
-    result["passed"] = result.get("behavioral_ok", True)
-    return result
+    gated = middleware.wrap_tool(_stub_tool, tool, action)
+    runtime_error: str | None = None
+    try:
+        gated(ai_output=ai_output, context=ctx)
+    except (PermissionError, Exception) as exc:
+        runtime_error = f"{type(exc).__name__}: {exc}"
+
+    expect_executed = scenario.get("expect_tool_executed")
+    if expect_executed is None:
+        expected_adm = scenario.get("expected_admissibility")
+        pre = middleware.evaluate_tool(tool, action, ai_output=ai_output, context=ctx)
+        behavioral_ok = expected_adm is None or pre.admissibility == expected_adm
+    else:
+        behavioral_ok = executed["value"] == expect_executed
+
+    return {
+        "scenario_id": scenario["scenario_id"],
+        "tool_executed": executed["value"],
+        "expect_tool_executed": expect_executed,
+        "runtime_error": runtime_error,
+        "behavioral_ok": behavioral_ok,
+        "passed": behavioral_ok,
+    }
+
+
+def run_behavioral_scenario(
+    scenario: dict[str, Any],
+    *,
+    middleware: AKTALangGraphMiddleware | None = None,
+) -> dict[str, Any]:
+    mw = middleware or AKTALangGraphMiddleware(
+        policy_dir=str(ROOT / "policy"),
+        overlays_dir=str(ROOT / "overlays"),
+    )
+    return _run_with_wrap_tool(scenario, middleware=mw)
 
 
 def run_behavioral_suite(scenarios_path: Path) -> dict[str, Any]:
@@ -71,6 +90,7 @@ def run_behavioral_suite(scenarios_path: Path) -> dict[str, Any]:
     passed = sum(1 for r in results if r.get("passed"))
     return {
         "suite": "behavioral_v1",
+        "scenarios_path": str(scenarios_path),
         "total": len(results),
         "passed_count": passed,
         "passed": passed == len(results) and len(results) > 0,
@@ -83,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--scenarios",
         type=Path,
-        default=ROOT / "scenarios" / "adversarial_transitions.jsonl",
+        default=ROOT / "scenarios" / "behavioral_middleware.jsonl",
     )
     parser.add_argument("--out", type=Path, default=ROOT / "evals" / "reports" / "behavioral_v1.json")
     args = parser.parse_args(argv)

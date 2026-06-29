@@ -59,6 +59,11 @@ class AKTALangGraphMiddleware:
         self.state.invalidated = True
         self.state.scope_grant = None
 
+    def reset_state(self) -> None:
+        """Clear session grant state for a new agent turn."""
+        self.state = MiddlewareState()
+        self.grant_store.clear(self._session_id)
+
     def apply_scope_grant(self, scope_grant: dict[str, Any]) -> None:
         """Store SCOPE grant for scoped retry."""
         self.state.scope_grant = scope_grant
