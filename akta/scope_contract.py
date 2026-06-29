@@ -7,11 +7,18 @@ review triggers and review packets.
 
 from __future__ import annotations
 
+import json
+import os
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from akta.scope_mapping import VALID_REQUESTED_SCOPES
 
 SCOPE_APPROVAL_SCOPES = frozenset(VALID_REQUESTED_SCOPES)
+
+_AKTA_ROOT = Path(__file__).resolve().parent.parent
+_DEFAULT_FIXTURES_DIR = _AKTA_ROOT / "tests" / "fixtures"
 
 # v0.2 review_scope vocabulary -> v0.3 requested_scope (compat for SCOPE simulator).
 LEGACY_REVIEW_SCOPE_MAP: dict[str, str] = {
@@ -32,6 +39,72 @@ LEGACY_REVIEW_SCOPE_MAP: dict[str, str] = {
     "publication_claim": "publication_claim",
     "scientific_memory_import": "scientific_memory_import",
 }
+
+
+def _fixture_candidates(basename: str) -> list[Path]:
+    """Resolve fixture path: SCOPE repo (live contract) then AKTA tests/fixtures."""
+    candidates: list[Path] = []
+    scope_repo = os.environ.get("SCOPE_REPO_PATH", "").strip()
+    if scope_repo:
+        root = Path(scope_repo)
+        for sub in ("schemas", "tests/fixtures", "fixtures"):
+            candidates.append(root / sub / basename)
+            candidates.append(root / sub / basename.replace(".json", ".fixture.json"))
+    candidates.append(_DEFAULT_FIXTURES_DIR / basename)
+    return candidates
+
+
+def _load_fixture_json(basename: str) -> dict[str, Any]:
+    for path in _fixture_candidates(basename):
+        if path.is_file():
+            return json.loads(path.read_text(encoding="utf-8"))
+    raise FileNotFoundError(
+        f"SCOPE contract fixture not found: {basename} "
+        f"(checked SCOPE_REPO_PATH and {_DEFAULT_FIXTURES_DIR})"
+    )
+
+
+@lru_cache(maxsize=1)
+def load_scope_order() -> tuple[str, ...]:
+    """Ordered SCOPE approval scopes (narrowest to broadest) from fixture contract."""
+    data = _load_fixture_json("scope_scope_order.json")
+    order = data.get("scope_order")
+    if not isinstance(order, list) or not order:
+        raise ValueError("scope_scope_order.json missing non-empty scope_order list")
+    return tuple(str(s) for s in order)
+
+
+@lru_cache(maxsize=1)
+def load_valid_narrowing_pairs() -> frozenset[tuple[str, str]]:
+    """Valid (requested_scope, granted_scope) narrowing pairs from fixture contract."""
+    data = _load_fixture_json("scope_valid_narrowing.json")
+    pairs = data.get("valid_narrowing_pairs")
+    if not isinstance(pairs, list):
+        raise ValueError("scope_valid_narrowing.json missing valid_narrowing_pairs list")
+    result: set[tuple[str, str]] = set()
+    for entry in pairs:
+        if not isinstance(entry, dict):
+            continue
+        requested = entry.get("requested_scope")
+        granted = entry.get("granted_scope")
+        if requested and granted:
+            result.add((str(requested), str(granted)))
+    return frozenset(result)
+
+
+def scope_rank(scope: str) -> int:
+    """Return 1-based rank from fixture scope order; unknown scopes rank last."""
+    try:
+        return load_scope_order().index(scope) + 1
+    except ValueError:
+        return 99
+
+
+def is_valid_narrowing_grant(*, granted_scope: str, requested_scope: str) -> bool:
+    """True when granted scope equals or validly narrows requested scope per fixture."""
+    if granted_scope == requested_scope:
+        return True
+    return (requested_scope, granted_scope) in load_valid_narrowing_pairs()
 
 
 def resolve_trigger_requested_scope(trigger: dict[str, Any]) -> str | None:
@@ -120,14 +193,15 @@ def validate_approval_grant(
     if granted_scope not in SCOPE_APPROVAL_SCOPES:
         raise ValueError(f"invalid granted_scope: {granted_scope}")
 
-    scope_ok = granted_scope == requested_scope or (
-        requested_scope == "active_protocol_update" and granted_scope == "protocol_draft"
-    )
-    if not scope_ok:
+    if not is_valid_narrowing_grant(
+        granted_scope=granted_scope,
+        requested_scope=requested_scope,
+    ):
         raise ValueError(
             f"grant scope {granted_scope} does not cover requested_scope {requested_scope}"
         )
 
+    narrowed = granted_scope != requested_scope
     return {
         "granted_scope": granted_scope,
         "requested_scope": requested_scope,
@@ -135,8 +209,11 @@ def validate_approval_grant(
         "blocked_tools": blocked_tools or [],
         "scope_covered": granted_scope == requested_scope,
         "narrow_draft_grant": (
-            requested_scope == "active_protocol_update" and granted_scope == "protocol_draft"
+            narrowed
+            and requested_scope == "active_protocol_update"
+            and granted_scope == "protocol_draft"
         ),
+        "narrow_grant": narrowed,
     }
 
 
