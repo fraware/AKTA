@@ -1,4 +1,4 @@
-# Public release verification (v0.7.1)
+# Public release verification (v0.8.0)
 
 Use this checklist before tagging a public release of the AKTA reference implementation. AKTA is an open protocol with a reference kernel — not a safety certification.
 
@@ -21,6 +21,15 @@ pip install -e ".[dev,security]"
 | Weak-evidence demo | `make demo-akta-weak-evidence` | Artifacts under `examples/integrated_weak_evidence/` |
 | Protocol-drift demo | `make demo-akta-scope-protocol-drift` | Artifacts under `examples/integrated_protocol_drift/` |
 | Reconstructable chain | `make demo-reconstructable` | Canonical chain under `dist/reconstructable_experiment/` |
+
+## Required when SCOPE sibling is available (v0.8 cross-repo gate)
+
+Set `SCOPE_REPO_PATH` to a SCOPE v0.8+ checkout, then:
+
+| Step | Command | Expected |
+|------|---------|----------|
+| Cross-repo demo | `make demo-reconstructable-cross-repo` | Live chain under `dist/reconstructable_cross_repo/` including `04_scope_review_summary.json` |
+| Cross-repo verify | `make verify-reconstructable-cross-repo` | All required artifacts present; PCS bundle includes `scope_review_summary.json`; post-grant decision stays blocked |
 
 ## Optional (live SCOPE sibling)
 
@@ -64,7 +73,8 @@ Experimental domain overlays (biology, chemistry, clinical) must be refused in p
 
 ## Documentation sanity
 
-- README acceptance tables include v0.7.1 through v0.1
+- README acceptance tables include v0.8.0 through v0.1
+- Cross-repo release gate documented in README (`demo-reconstructable-cross-repo`, `verify-reconstructable-cross-repo`)
 - [limitations.md](limitations.md) states non-certification and authority boundary
 - CHANGELOG includes the release version and date
 - `pyproject.toml` version matches the tag
