@@ -1,7 +1,7 @@
 {
   "artifact_type": "akta_scientific_action_record",
   "schema_version": "akta-record-v0.5",
-  "record_hash": "sha256:36c699d013726137e6a1b206a2ac323ae07622284ffbe0702aa76c4d3357a68c",
+  "record_hash": "sha256:ab30e276b5b5d7984ea0d3bfa02efb67f20ed5f1c9b66d2c51cc777eedda7f99",
   "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
   "integrity_mode": "deployment_hmac_attested",
   "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
@@ -22,17 +22,17 @@
     "tool_registry_hash.txt"
   ],
   "file_hashes": {
-    "akta_decision.json": "sha256:65af64d7296a9b8bd38b02d4493e737ee5e0a122ee5700afa470048a62a04215",
-    "akta_record.json": "sha256:c4d3704f786845a06bbbddeedd7610588fedadd5552f31a714a07a663a6f6bd7",
+    "akta_decision.json": "sha256:796ed7c60148169d172e4a597fe77f477027a6452103e07f76edb294215b3a4c",
+    "akta_record.json": "sha256:b54b2004adde41eec8f39a8f587a1a442680db7261583b6346a18515d80f8332",
     "domain_overlay_hash.txt": "sha256:aff97a5c94f9f99549b9f4043617ba8dcfce973312fde13d63101d173bcb0860",
-    "pf_obligation.json": "sha256:06fff27744d04dde6a9134c52c02b8c610ea8cab70543ee48b52c735a46ab56d",
+    "pf_obligation.json": "sha256:91d6ca58c3bdb44ca22f2d98292001b3b7251986c87b53902b313945ff2a0d64",
     "policy_hash.txt": "sha256:918d683b234533a1c7da8178e581eff636b2786f9b7cc373873ea805994b15ff",
-    "review_trigger.json": "sha256:fd324c1bc32416788b863ee738a8fb0492540ddb14ca2545f6de8bec6fa42bb8",
+    "review_trigger.json": "sha256:412ff66516e5e8653bcd12d6a2c2b22c1e172654cc43e06d869e5297b67b61e9",
     "scope_decision.json": "sha256:59ce03995c2b8c0685e82eed1efa992d7bf76e1fcce25bea0ffb43b78d2ad572",
     "scope_grant.json": "sha256:82295bc191264da408db4389909f051852aedbf649983d0821ea11783dcf3c1d",
     "scope_review_packet.json": "sha256:f18ef6c084047e2af76b31c40864279ba537edbc6e3742c9b78e75ca6d9eb15f",
     "scope_review_summary.json": "sha256:0270bf60f176b1a97d71d5e179a05703500cc0ccf5d6970335b7678bfce457b2",
     "tool_registry_hash.txt": "sha256:a5e313d4198cc3479985a6db476f6f330c8f45024c42580cff52ab7ee0c1f371"
   },
-  "manifest_hash": "sha256:34732e9635c8e5d4d49770a53ee170e0b8b59bbba4bb753b9860296e178cfaa1"
+  "manifest_hash": "sha256:377525f5709f10bb245769e1989585acf97d0bbcc76b4adec7cad2ceeaae9267"
 }
