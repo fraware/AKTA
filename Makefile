@@ -1,4 +1,4 @@
-.PHONY: install test eval-canonical eval-public eval-public-100 eval-oracle eval-holdout eval-v06 demo-weak-evidence demo-akta-weak-evidence demo-akta-scope-protocol-drift demo-reconstructable demo-reconstructable-cross-repo verify-reconstructable-cross-repo ci
+.PHONY: install test eval-canonical eval-public eval-public-100 eval-oracle eval-holdout eval-v06 demo-weak-evidence demo-akta-weak-evidence demo-akta-scope-protocol-drift demo-reconstructable demo-reconstructable-cross-repo verify-reconstructable-cross-repo demo-pilot-bundle verify-pilot-bundle ci
 
 PYTHON ?= python
 
@@ -32,6 +32,12 @@ demo-reconstructable-cross-repo:
 
 verify-reconstructable-cross-repo:
 	$(PYTHON) scripts/verify_reconstructable_cross_repo.py
+
+demo-pilot-bundle:
+	$(PYTHON) scripts/generate_pilot_bundle.py
+
+verify-pilot-bundle:
+	$(PYTHON) scripts/verify_reconstructable_cross_repo.py --pilot-mode
 
 demo-weak-evidence:
 	$(PYTHON) scripts/demo_weak_evidence.py

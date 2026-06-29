@@ -6,8 +6,9 @@
   "blocked_tools": [],
   "adapter_contract_version": "scope-akta-review-v0.8",
   "identity_assurance_level": "IAL0",
-  "signing_assurance_level": "SAL1",
+  "signing_assurance_level": "SAL0",
   "adapter_mode": "simulated",
+  "summary_origin": "akta_simulated",
   "packet_id": null,
   "decision_id": null,
   "grant_id": "SCOPE-GRANT-AKTA-REVTRIG-DRIFT0001"

@@ -135,7 +135,7 @@ REST API, MCP server, and batch evaluation are available for integrators — see
 | **PF-Core** | Runtime proof obligations tied to admissibility decisions | [PF-Core bridge](docs/pf_core_bridge.md) |
 | **PCS** | Packages decisions, records, and hashes for release verification | [PCS export](docs/pcs_export.md) |
 
-SCOPE connects in several modes — offline simulation (default), Python import from a sibling checkout, subprocess CLI, or a one-shot review command (`scope akta review` requires both AKTA trigger and record). Reconstructable cross-repo demo: `make demo-reconstructable-cross-repo` then `make verify-reconstructable-cross-repo`. Details: [scope_live_conformance.md](docs/scope_live_conformance.md).
+SCOPE connects in several modes — offline simulation (default), Python import from a sibling checkout, subprocess CLI, or a one-shot review command (`scope akta review` requires both AKTA trigger and record). Reconstructable cross-repo demo: `make demo-reconstructable-cross-repo` then `make verify-reconstructable-cross-repo`. Pilot bundle (live SCOPE): `make demo-pilot-bundle` then `make verify-pilot-bundle`. Details: [scope_live_conformance.md](docs/scope_live_conformance.md).
 
 Cross-repo environment variables for optional CI jobs: [.github/CROSS_REPO_CI.md](.github/CROSS_REPO_CI.md).
 
@@ -200,7 +200,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for pull-request expectations, [GOVERNAN
 
 ## Project status
 
-**v0.8.0** (`akta-protocol`) is the current reference kernel. Biology, chemistry, and clinical domain overlays are experimental and not deployment-ready without institutional governance. Fully autonomous scientific operator profiles are defined for taxonomy only and are not supported at runtime. AKTA is a reference implementation under the MIT license, not a safety certification. Known gaps and non-goals: [docs/limitations.md](docs/limitations.md).
+**v0.8.1** (`akta-protocol`) is the current reference kernel. Biology, chemistry, and clinical domain overlays are experimental and not deployment-ready without institutional governance. Fully autonomous scientific operator profiles are defined for taxonomy only and are not supported at runtime. AKTA is a reference implementation under the MIT license, not a safety certification. Known gaps and non-goals: [docs/limitations.md](docs/limitations.md).
 
 ---
 
