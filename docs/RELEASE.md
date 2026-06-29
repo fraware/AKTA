@@ -34,7 +34,19 @@ Set `SCOPE_REPO_PATH` to a SCOPE v0.9+ checkout, then:
 | Pilot bundle | `make demo-pilot-bundle` + `make verify-pilot-bundle` | Quality report `all_ok=true` when live SCOPE |
 | Maintainer chain | `make ci-pilot` | Chains cross-repo + pilot verify |
 
-Release gate CI (`.github/workflows/release-gate.yml`) runs these steps automatically when `SCOPE_REPO_URL` secret or `SCOPE_REPO_PATH` variable is configured.
+Release gate CI (`.github/workflows/release-gate.yml`) runs SCOPE live verification, pilot bundle checks, AKTA-Bench v1 (`make eval-bench-v1`), and optional sibling matrix steps automatically. SCOPE uses the public clone URL when `SCOPE_REPO_URL` is not configured.
+
+### Branch protection (main)
+
+Require these GitHub Actions checks before merge:
+
+| Check | Workflow job |
+|-------|----------------|
+| CI | `ci` |
+| Release Gate — SCOPE live | `Release Gate / scope-live-gate` |
+| Release Gate — Bench v1 | `Release Gate / eval-bench-v1` |
+
+When sibling repository variables are configured, also require `Release Gate / sibling-live-matrix`. See [.github/CROSS_REPO_CI.md](../.github/CROSS_REPO_CI.md).
 
 ## Required on tag v* only
 

@@ -43,6 +43,7 @@
     "admissibility": "review_required",
     "decision_reason": "Evidence rule E4_internally_consistent_evidence+A5_protocol_modification constrains to review_required (resolved from draft_only_or_review_required). Tool registry default permission for protocol_editor.update_active_protocol is review_required.",
     "blocked_tools": [
+      "chromatography.submit_method",
       "collaboration.share_protocol",
       "protocol_editor.update_active_protocol"
     ],
@@ -57,7 +58,7 @@
     "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
     "domain_overlay_version": "generic_lab_v0.2",
     "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
-    "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8",
+    "tool_registry_hash": "sha256:cba4cdc66bd1574063c1915be40e9d4ec89e075f72d045d2ea44a5478bf8f5be",
     "integrity_mode": "deployment_hmac_attested"
   },
   "integrations": {
@@ -95,15 +96,16 @@
       "next_admissible_steps"
     ],
     "blocked_tools": [
+      "chromatography.submit_method",
       "collaboration.share_protocol",
       "protocol_editor.update_active_protocol"
     ],
     "allowed_next_steps": [],
     "approval_effect": "Allows scoped next step only; not global permission.",
     "default_expiration": "single_run",
-    "expires_at": "2026-06-29T20:30:05Z",
+    "expires_at": "2026-06-29T22:01:11Z",
     "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
-    "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8",
+    "tool_registry_hash": "sha256:cba4cdc66bd1574063c1915be40e9d4ec89e075f72d045d2ea44a5478bf8f5be",
     "classifier_confidence": 0.98,
     "classification_rationale": "tool registry maps protocol_editor.update_active_protocol to A5_protocol_modification",
     "consequentiality": true,
@@ -115,7 +117,7 @@
     },
     "review_route": "active_protocol_review",
     "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
-    "review_trigger_hash": "sha256:02ba4909b9bc0420e37b44066ae132ff54e33d855a924fc73f05d32ef820825b"
+    "review_trigger_hash": "sha256:a0900985af5c95d14beeef3c7b895f3bb06e836715a421c086ebda0e5905c407"
   },
-  "record_hash": "sha256:ab30e276b5b5d7984ea0d3bfa02efb67f20ed5f1c9b66d2c51cc777eedda7f99"
+  "record_hash": "sha256:1a75fd8eacda147a9c3c17b84bf16a502464d09f46a92bb50df95f159e1b99f6"
 }

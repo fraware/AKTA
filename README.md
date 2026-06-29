@@ -201,7 +201,16 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for pull-request expectations, [GOVERNAN
 
 ## Project status
 
-**v0.8.0** (`akta-protocol`) is the current reference kernel. Biology, chemistry, and clinical domain overlays are experimental and not deployment-ready without institutional governance. Fully autonomous scientific operator profiles are defined for taxonomy only and are not supported at runtime. AKTA is a reference implementation under the MIT license, not a safety certification. Known gaps and non-goals: [docs/limitations.md](docs/limitations.md).
+**v1.0.0** (`akta-protocol`) is the current reference kernel on `release/v1.0`.
+
+| Claim | What CI proves | What requires local siblings |
+|-------|----------------|------------------------------|
+| Reference kernel + policy v1.0 | `make ci` on every PR (359+ tests, evals, demos) | — |
+| AKTA-Bench v1 | `make eval-bench-v1` in release-gate (105 oracle scenarios, holdout, behavioral middleware) | — |
+| Live SCOPE pilot gate | Release-gate clones public SCOPE and runs python-import + pilot bundle | SCOPE CLI / akta-review modes need `scope` on runner |
+| PF / PCS / VSA / Memory / PCS-Bench matrix | Release-gate sibling job when clone URLs or `*_REPO_PATH` vars set | Full matrix locally: `python scripts/verify_v1_release.py` |
+
+Biology, chemistry, and clinical domain overlays remain experimental unless upgraded to institutional or expert-reviewed tiers. P7 autonomous operator profiles are taxonomy-only and refused at runtime. AKTA is a reference implementation — not a safety certification. See [docs/limitations.md](docs/limitations.md) and [docs/PROTOCOL_v1.0.md](docs/PROTOCOL_v1.0.md).
 
 ---
 

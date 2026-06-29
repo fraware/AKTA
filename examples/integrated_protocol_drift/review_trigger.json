@@ -27,15 +27,16 @@
     "next_admissible_steps"
   ],
   "blocked_tools": [
+    "chromatography.submit_method",
     "collaboration.share_protocol",
     "protocol_editor.update_active_protocol"
   ],
   "allowed_next_steps": [],
   "approval_effect": "Allows scoped next step only; not global permission.",
   "default_expiration": "single_run",
-  "expires_at": "2026-06-29T20:30:05Z",
+  "expires_at": "2026-06-29T22:01:10Z",
   "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
-  "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8",
+  "tool_registry_hash": "sha256:cba4cdc66bd1574063c1915be40e9d4ec89e075f72d045d2ea44a5478bf8f5be",
   "classifier_confidence": 0.98,
   "classification_rationale": "tool registry maps protocol_editor.update_active_protocol to A5_protocol_modification",
   "consequentiality": true,
@@ -47,5 +48,5 @@
   },
   "review_route": "active_protocol_review",
   "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
-  "review_trigger_hash": "sha256:02ba4909b9bc0420e37b44066ae132ff54e33d855a924fc73f05d32ef820825b"
+  "review_trigger_hash": "sha256:5baafccaace3a5c3c00f5a3ad53e72336bf893afaf9ad1ae713802a315a1006d"
 }

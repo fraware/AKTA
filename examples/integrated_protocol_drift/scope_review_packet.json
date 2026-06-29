@@ -9,12 +9,13 @@
     "review_route": "active_protocol_review",
     "required_review_role": "protocol_owner",
     "blocked_tools": [
+      "chromatography.submit_method",
       "collaboration.share_protocol",
       "protocol_editor.update_active_protocol"
     ],
     "allowed_next_steps": [],
     "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
-    "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8"
+    "tool_registry_hash": "sha256:cba4cdc66bd1574063c1915be40e9d4ec89e075f72d045d2ea44a5478bf8f5be"
   },
   "packet_mode": "trigger_only"
 }

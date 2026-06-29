@@ -7,23 +7,25 @@
   "decision": "review_required",
   "decision_reason_hash": "sha256:24c91bb03ef39f5f31307b9c0e338df1ae28965f62984ca015674f4d9ef01635",
   "blocked_tools": [
+    "chromatography.submit_method",
     "collaboration.share_protocol",
     "protocol_editor.update_active_protocol"
   ],
   "allowed_tools": [],
   "max_responsibility_level": "R4_methodological_modification",
   "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
-  "tool_registry_hash": "sha256:9c712243ab9fd22c3308df161ca78b03cae0b8e697034eb0f54f8ddfaf18f4e8",
+  "tool_registry_hash": "sha256:cba4cdc66bd1574063c1915be40e9d4ec89e075f72d045d2ea44a5478bf8f5be",
   "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
   "scope_grant_ref": null,
   "review_trigger_id": "AKTA-REVTRIG-DRIFT0001",
-  "expires_at": "2026-06-29T20:30:05Z",
+  "expires_at": "2026-06-29T22:01:10Z",
   "enforcement_mode": "review_gate",
   "required_runtime_behavior": {
     "block_execution": false,
     "require_review_before_tool_call": true,
     "require_authorization_before_tool_call": false,
     "blocked_tools": [
+      "chromatography.submit_method",
       "collaboration.share_protocol",
       "protocol_editor.update_active_protocol"
     ],
@@ -33,5 +35,5 @@
   "next_admissible_steps": [],
   "required_review_role": "protocol_owner",
   "consequentiality": true,
-  "obligation_hash": "sha256:604c07be36795a1bd00ab59da7e60b32ff8ba33e6a7e318e764ff7a839781ae3"
+  "obligation_hash": "sha256:a3d5c9c9b47f5ec9f6885f2b00f2b799fea7c9651fd8822fa00abef754f73fd0"
 }
