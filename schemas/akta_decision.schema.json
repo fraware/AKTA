@@ -68,7 +68,40 @@
     "review_trigger": { "type": ["object", "null"] },
     "classifier_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
     "classification_rationale": { "type": "string" },
-    "classification": { "type": "object" }
+    "classification": { "type": "object" },
+    "policy": {
+      "type": "object",
+      "description": "Effective policy provenance binding (directive §5)",
+      "required": [
+        "bundle_version",
+        "effective_policy_hash",
+        "manifest_hash",
+        "integrity_mode"
+      ],
+      "properties": {
+        "bundle_version": { "type": "string" },
+        "effective_policy_hash": { "type": "string", "pattern": "^sha256:" },
+        "manifest_hash": { "type": "string", "pattern": "^sha256:" },
+        "integrity_mode": { "type": "string" },
+        "signing_key_id": { "type": ["string", "null"] },
+        "file_versions": { "type": "object", "additionalProperties": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "grant_layer_satisfaction": {
+      "type": "object",
+      "description": "Explicit layer satisfaction after SCOPE grant re-gate. Grants may satisfy human_review/authorization only; never evidence.",
+      "properties": {
+        "satisfied_layers": { "type": "array", "items": { "type": "object" } },
+        "unsatisfied_layers": { "type": "array", "items": { "type": "object" } },
+        "evidence_never_satisfied_by_grant": { "type": "boolean", "const": true },
+        "forbidden_transitions": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "capability_envelope": { "type": "object" },
+    "review_satisfied": { "type": "boolean" },
+    "authorization_satisfied": { "type": "boolean" }
   },
   "additionalProperties": true
 }
