@@ -51,16 +51,10 @@ def test_strict_mode_rejects_mismatched_fixture_version(
 
 def test_strict_mode_rejects_unknown_scope_runtime(
     monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
 ) -> None:
-    scope_dir = tmp_path / "scope"
-    scope_dir.mkdir()
-    (scope_dir / "integration_versions.py").write_text(
-        'SCOPE_CORE_VERSION = "scope-core-v99.0"\n',
-        encoding="utf-8",
-    )
     monkeypatch.setenv("AKTA_STRICT_SCOPE_CONTRACT", "1")
-    monkeypatch.setenv("SCOPE_REPO_PATH", str(tmp_path))
+    monkeypatch.setenv("SCOPE_CORE_VERSION", "scope-core-v99.0")
+    monkeypatch.delenv("SCOPE_REPO_PATH", raising=False)
 
     with pytest.raises(ValueError, match="Unknown SCOPE runtime version"):
         validate_scope_runtime_contract(strict=True)
@@ -68,16 +62,10 @@ def test_strict_mode_rejects_unknown_scope_runtime(
 
 def test_strict_mode_accepts_compatible_scope_runtime(
     monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
 ) -> None:
-    scope_dir = tmp_path / "scope"
-    scope_dir.mkdir()
-    (scope_dir / "integration_versions.py").write_text(
-        'SCOPE_CORE_VERSION = "scope-core-v1.0"\n',
-        encoding="utf-8",
-    )
     monkeypatch.setenv("AKTA_STRICT_SCOPE_CONTRACT", "1")
-    monkeypatch.setenv("SCOPE_REPO_PATH", str(tmp_path))
+    monkeypatch.setenv("SCOPE_CORE_VERSION", "scope-core-v1.0")
+    monkeypatch.delenv("SCOPE_REPO_PATH", raising=False)
 
     runtime = validate_scope_runtime_contract(strict=True)
     assert runtime == "scope-core-v1.0"
