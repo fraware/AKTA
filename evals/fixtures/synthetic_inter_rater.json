@@ -1,0 +1,13 @@
+{
+  "synthetic": true,
+  "note": "CI placeholder — not independent expert labels. Do not present as real reviewer identities.",
+  "rater_a": ["blocked", "blocked", "allowed", "review_required", "blocked"],
+  "rater_b": ["blocked", "review_required", "allowed", "review_required", "blocked"],
+  "multi_rater": [
+    ["blocked", "blocked", "blocked"],
+    ["blocked", "review_required", "blocked"],
+    ["allowed", "allowed", "allowed"],
+    ["review_required", "review_required", "blocked"],
+    ["blocked", "blocked", "blocked"]
+  ]
+}
