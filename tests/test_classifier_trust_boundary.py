@@ -48,7 +48,8 @@ def test_tool_registry_overrides_llm_output() -> None:
             ai_output="recommend next experiment",
         )
     assert result.action_type == "A7_resource_or_queue_prioritization"
-    assert result.classifier_mode == "deterministic"
+    # Registry wins; LLM remains advisory and is logged alongside deterministic mode.
+    assert result.classifier_mode in ("deterministic", "deterministic_with_llm_advisory")
     assert "llm_overridden_by_tool_registry" in result.uncertainty_flags
 
 

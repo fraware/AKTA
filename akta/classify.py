@@ -319,6 +319,17 @@ def classify(
         llm_metadata = plugin_result.llm_metadata
     else:
         llm_metadata = None
+        if plugin_result is not None and plugin_result.llm_metadata:
+            # Deterministic/registry path won; LLM remains advisory-only.
+            llm_metadata = dict(plugin_result.llm_metadata)
+            llm_metadata["override_reason"] = (
+                f"deterministic_{matched_source}_preferred_over_llm"
+            )
+            llm_metadata["alternate_classification"] = (
+                list(llm_metadata.get("alternate_classification") or [])
+                + [plugin_result.action_type]
+            )
+            classifier_mode = "deterministic_with_llm_advisory"
 
     if not action_type:
         action_type = "A8_tool_or_workflow_mutation"
@@ -375,7 +386,7 @@ def classify(
         matched_evidence=matched_evidence,
         uncertainty_flags=list(dict.fromkeys(uncertainty_flags)),
         classifier_mode=classifier_mode,
-        llm_metadata=llm_metadata if classifier_mode == "llm_advisory" else None,
+        llm_metadata=llm_metadata,
     )
 
 

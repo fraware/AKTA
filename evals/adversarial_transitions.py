@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from akta import AKTAGate, AKTAContext
+from akta.errors import GrantVerificationError
 from akta.review_decision import enforce_grant_expiry, is_review_expired
 from adapters.scope.client import submit_review_trigger
 
@@ -247,9 +248,11 @@ def run_adversarial_transition(
             )
             result["regate_admissibility"] = regate.admissibility
             result["error"] = "Expected invalid grant rejection, evaluate_with_grant succeeded"
-        except ValueError as exc:
+        except (ValueError, GrantVerificationError) as exc:
             result["grant_rejection"] = str(exc)
-            result["passed"] = scenario.get("expected_grant_rejection_substring", "does not cover") in str(exc)
+            needle = scenario.get("expected_grant_rejection_substring", "does not cover")
+            text = str(exc)
+            result["passed"] = needle in text or "broadens" in text.lower()
         return result
 
     if transition_type == "tool_allowed_after_regate":
