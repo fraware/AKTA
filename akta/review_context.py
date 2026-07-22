@@ -71,14 +71,17 @@ def evaluate_prior_review(
         )
 
     allowed = metadata.get("prior_review_allowed_tools")
-    if allowed is not None and requested_tool not in allowed:
-        return EvaluationLayer(
-            source="review_context",
-            decision="blocked",
-            reason=(
-                f"SCOPE grant does not allow requested tool {requested_tool}."
-            ),
-        )
+    tools_explicit = bool(metadata.get("prior_review_allowed_tools_explicit"))
+    if tools_explicit or (isinstance(allowed, list) and len(allowed) > 0):
+        allowed_list = list(allowed or [])
+        if requested_tool not in allowed_list:
+            return EvaluationLayer(
+                source="review_context",
+                decision="blocked",
+                reason=(
+                    f"SCOPE grant does not allow requested tool {requested_tool}."
+                ),
+            )
 
     grant_blocked = metadata.get("prior_review_blocked_tools")
     if grant_blocked and requested_tool in grant_blocked:

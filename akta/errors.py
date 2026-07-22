@@ -43,3 +43,11 @@ class AKTAReviewRequired(AKTAError):
 
 class ToolRegistryError(AKTAError):
     """Tool registry resolution error."""
+
+
+class GrantVerificationError(AKTAError):
+    """SCOPE grant failed pre-application verification (directive §4)."""
+
+    def __init__(self, message: str, *, errors: list[str] | None = None) -> None:
+        self.errors = list(errors or [])
+        super().__init__(message)
