@@ -31,8 +31,8 @@
     "scope_decision.json": "sha256:59ce03995c2b8c0685e82eed1efa992d7bf76e1fcce25bea0ffb43b78d2ad572",
     "scope_grant.json": "sha256:82295bc191264da408db4389909f051852aedbf649983d0821ea11783dcf3c1d",
     "scope_review_packet.json": "sha256:2aaf3baf840055b340f284504428c3d04e53400ddbacdc90c5619627047f2226",
-    "scope_review_summary.json": "sha256:0270bf60f176b1a97d71d5e179a05703500cc0ccf5d6970335b7678bfce457b2",
+    "scope_review_summary.json": "sha256:d95312d5cef9aac5408fd61270ee13a0cb8ad35587b820bcc7743bccecab5143",
     "tool_registry_hash.txt": "sha256:65fa2df40f94b62287a9c223b9df7d5199c83cae1283e835a8526bc52aee32c7"
   },
-  "manifest_hash": "sha256:0445ddd47e70fbffc4f9d9e50bed8e498e3bd3bd2934f44446021966170abdaf"
+  "manifest_hash": "sha256:b4e87bc0469c7113571e3864549ed84fd9b0d974e2634fd1305d7a52210082de"
 }
