@@ -97,7 +97,21 @@
         "policy_hash": { "type": "string" },
         "domain_overlay_version": { "type": ["string", "null"] },
         "domain_overlay_hash": { "type": ["string", "null"] },
-        "tool_registry_hash": { "type": "string" }
+        "tool_registry_hash": { "type": "string" },
+        "integrity_mode": { "type": "string" },
+        "policy": { "type": "object" }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "description": "Effective policy provenance binding (directive §5)",
+      "properties": {
+        "bundle_version": { "type": "string" },
+        "effective_policy_hash": { "type": "string" },
+        "manifest_hash": { "type": "string" },
+        "integrity_mode": { "type": "string" },
+        "signing_key_id": { "type": ["string", "null"] },
+        "file_versions": { "type": "object" }
       }
     },
     "integrations": {
