@@ -306,13 +306,27 @@ def _run_scope_cli(
 
 
 def _validate_akta_review_summary(summary: dict[str, Any]) -> None:
-    """Validate summary.json when schema is available."""
+    """Validate summary.json when schema is available; negotiate contract branches."""
     schema_path = _akta_repo_root() / "schemas" / "scope_akta_review_summary.schema.json"
     if not schema_path.is_file():
         return
     from akta.records import validate_against_schema
+    from akta.scope_negotiation import STATUS_SESSION_REQUIRED, consume_scope_summary
+
+    # Default status for legacy summaries that omit it.
+    if "status" not in summary:
+        summary["status"] = "completed"
 
     validate_against_schema(summary, "scope_akta_review_summary.schema.json")
+    negotiated = consume_scope_summary(summary)
+    if not negotiated.ok:
+        raise ValueError("; ".join(negotiated.errors) or "SCOPE summary negotiation failed")
+    if negotiated.status == STATUS_SESSION_REQUIRED:
+        # Attach pending fields; callers must not load grant/decision artifacts.
+        summary["review_pending"] = True
+        summary["session_id"] = negotiated.session_id
+        summary["required_roles"] = negotiated.required_roles
+        summary["next_integration_action"] = negotiated.next_integration_action
 
 
 def _assurance_level_from_provenance(
@@ -402,14 +416,14 @@ def _synthesize_scope_summary(
         "requested_scope": requested,
         "allowed_tools": list(auth.get("allowed_tools") or grant.get("allowed_tools") or []),
         "blocked_tools": list(auth.get("blocked_tools") or grant.get("blocked_tools") or []),
-        "adapter_contract_version": "scope-akta-review-v0.8",
+        "adapter_contract_version": "scope-akta-review-v1.0",
         "identity_assurance_level": ial,
         "signing_assurance_level": sal,
         "adapter_mode": adapter_mode,
         "summary_origin": summary_origin,
-        "packet_id": packet.get("packet_id"),
-        "decision_id": decision.get("decision_id"),
-        "grant_id": grant.get("grant_id"),
+        "packet_id": packet.get("packet_id") or f"SCOPE-PKT-{trigger.get('review_trigger_id', 'unknown')}",
+        "decision_id": decision.get("decision_id") or "SCOPE-DEC-SYNTHESIZED",
+        "grant_id": grant.get("grant_id") or grant.get("scope_grant_id") or "SCOPE-GRANT-SYNTHESIZED",
     }
 
 

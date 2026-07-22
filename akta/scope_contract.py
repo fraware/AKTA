@@ -111,15 +111,30 @@ def _validate_fixture_contract_version(
 
 
 def resolve_scope_runtime_version() -> str | None:
-    """Resolve SCOPE core version from sibling repo or installed package."""
-    scope_repo = os.environ.get("SCOPE_REPO_PATH", "").strip()
-    if scope_repo:
-        versions_path = Path(scope_repo) / "scope" / "integration_versions.py"
-        if versions_path.is_file():
-            ns: dict[str, Any] = {}
-            exec(versions_path.read_text(encoding="utf-8"), ns)
-            core = ns.get("SCOPE_CORE_VERSION")
-            return str(core) if core else None
+    """Resolve SCOPE core version from env, package metadata, or compatibility pin.
+
+    Does not execute sibling repository Python source (directive §6).
+    """
+    env_core = os.environ.get("SCOPE_CORE_VERSION", "").strip()
+    if env_core:
+        return env_core
+    try:
+        from akta.scope_negotiation import resolve_scope_versions_from_environment
+
+        versions = resolve_scope_versions_from_environment()
+        if versions.get("scope_core_version"):
+            return versions["scope_core_version"]
+        # Map installed package major to scope-core pin when metadata lacks core id.
+        pkg = versions.get("scope_package_version")
+        if pkg:
+            if pkg.startswith("1."):
+                return "scope-core-v1.0"
+            if pkg.startswith("0.9"):
+                return "scope-core-v0.9"
+            if pkg.startswith("0.8"):
+                return "scope-core-v0.8"
+    except Exception:
+        pass
     try:
         from scope.integration_versions import SCOPE_CORE_VERSION
 
