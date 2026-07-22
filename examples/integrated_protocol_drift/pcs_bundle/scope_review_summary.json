@@ -9,7 +9,7 @@
   "signing_assurance_level": "SAL0",
   "adapter_mode": "simulated",
   "summary_origin": "akta_simulated",
-  "packet_id": null,
-  "decision_id": null,
+  "packet_id": "SCOPE-PKT-AKTA-REVTRIG-DRIFT0001",
+  "decision_id": "SCOPE-DEC-AKTA-REVTRIG-DRIFT0001",
   "grant_id": "SCOPE-GRANT-AKTA-REVTRIG-DRIFT0001"
 }
