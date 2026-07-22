@@ -546,13 +546,13 @@ def evaluate_admissibility(
         )
     )
 
-    metadata = context.metadata or {}
-    skip_evidence_for_grant = bool(metadata.get("scope_grant_satisfies_evidence"))
+    # Grants never skip the evidence layer (directive §2.1). Legacy
+    # scope_grant_satisfies_evidence metadata is ignored if present.
     ev_dec, ev_reason = evidence_decision(
         policy, evidence_state, action_type, profile,
         tool_spec, requested_tool, consequentiality,
     )
-    if ev_dec and not skip_evidence_for_grant:
+    if ev_dec:
         layers.append(EvaluationLayer(source="evidence_rules", decision=ev_dec, reason=ev_reason))
 
     layers.extend(overlay_decision(overlay, action_type, evidence_state, requested_tool))
