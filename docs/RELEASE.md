@@ -79,6 +79,26 @@ akta gate --output examples/weak_evidence/ai_output.json \
   --out /tmp/akta_decision.json
 ```
 
+## Hash-linked release / pilot artifact chain
+
+Pilot and reconstructable demos should emit a hash-linked chain. Components that exist today:
+
+| Artifact | Generator / verifier |
+|----------|----------------------|
+| Decision + Record + policy binding | `akta` gate / `effective_policy_manifest.json` |
+| SCOPE review summary | reconstructable demos / SCOPE adapter |
+| PCS bundle | `adapters/pcs/export_artifact.py` |
+| Pilot bundle `00`–`14` | `scripts/generate_pilot_bundle.py` |
+| Chain verify | `scripts/verify_reconstructable_cross_repo.py` |
+
+### TODO (blocked on external siblings when unavailable)
+
+- Live SCOPE grant signatures and non-simulated summaries (requires `SCOPE_REPO_PATH`)
+- PF-Core obligation export live proof (requires `PF_CORE_REPO_PATH`)
+- PCS-Core ingest attestation (requires `PCS_CORE_REPO_PATH`)
+
+In-repo demos still write local hash linkages under `dist/`; release gate fails closed when SCOPE CLI is mandatory and missing.
+
 Ed25519 release ceremony: see [policy_integrity.md](policy_integrity.md).
 
 ## Documentation sanity
