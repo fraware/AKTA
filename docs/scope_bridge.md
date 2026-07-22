@@ -11,7 +11,7 @@ AKTA emits SCOPE-compatible review triggers when admissibility is `review_requir
 | PF-Core | Post-action proof that runtime honored the AKTA decision |
 | PCS-Core | Packaging of AKTA Records and review artifacts for memory/bench |
 
-**Authority boundary:** AKTA assigns `requested_scope`; SCOPE grants approval scope. AKTA does not broaden SCOPE grants. SCOPE grants do not override AKTA evidence or deployment-profile policy by default. After authorization, AKTA re-gates via `evaluate_with_grant()` using `prior_review_allowed_tools` and `prior_review_blocked_tools`.
+**Authority boundary:** AKTA assigns `requested_scope`; SCOPE grants approval scope. AKTA does not broaden SCOPE grants. SCOPE grants may satisfy human_review / authorization layers only — they never satisfy the evidence layer (`grant_layer_satisfaction`; see [review_integration.md](review_integration.md)). After authorization, AKTA re-gates via `evaluate_with_grant()` using `prior_review_allowed_tools` and `prior_review_blocked_tools`.
 
 ## Trigger artifact (v0.3)
 
@@ -143,7 +143,7 @@ When a record includes `review_trigger`, PCS export adds `review_trigger.json` t
 - **Global permission** — approval for one run plan must not authorize queue submission or active protocol mutation
 - **Hash mismatch** — triggers with `policy_hash` not matching trusted policy must be rejected
 - **Scope mismatch** — grants must not exceed `requested_scope` without AKTA re-evaluation
-- **Grant override (v0.7.1)** — SCOPE grants must not be treated as blanket overrides of AKTA evidence or profile policy
+- **Grant layer satisfaction (v1.0 RC)** — `scope_grant_satisfies_evidence` removed; grants emit layered satisfaction and must not skip evidence rules
 
 ## Related documentation
 
