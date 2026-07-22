@@ -91,6 +91,11 @@ def run_scenario_eval(
 
         from evals.inter_rater import attach_label_metadata
 
+        record = decision.to_record(
+            ai_output=scenario.get("ai_output", ""),
+            context=scenario.get("context", {}),
+        ).to_dict()
+
         entry = attach_label_metadata({
             "scenario_id": sid,
             "passed": passed,
@@ -98,6 +103,7 @@ def run_scenario_eval(
             "failure_mode": failure_mode,
             "severity": severity,
             "expected": exp,
+            "record": record,
             "actual": {
                 "admissibility": d["admissibility"],
                 "scientific_action_type": d["scientific_action_type"],
@@ -109,6 +115,7 @@ def run_scenario_eval(
                 "policy_hash": d.get("policy_hash"),
                 "tool_registry_hash": d.get("tool_registry_hash"),
                 "next_admissible_steps": d.get("next_admissible_steps", []),
+                "policy": d.get("policy"),
             },
         }, exp)
         results.append(entry)
