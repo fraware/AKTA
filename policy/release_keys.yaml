@@ -1,5 +1,10 @@
 version: akta-release-keys-v0.7
-description: >
-  Public Ed25519 keys for AKTA reference policy bundle release authenticity.
+description: 'Public Ed25519 keys for AKTA reference policy bundle release authenticity.
   Deployment HMAC attestation keys are not listed here.
-keys: []
+
+  '
+keys:
+- key_id: akta-v1.0-test
+  public_key: A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=
+  status: active
+  note: v1.0 reference test key only

@@ -1,0 +1,19 @@
+{
+  "pilot_bundle_version": "akta-pilot-v1.0",
+  "contract_version": "akta-scope-contract-v0.9",
+  "note": "Placeholder checksum manifest. Regenerate after make demo-pilot-bundle with live SCOPE.",
+  "artifacts": {
+    "00_vsa_report.json": "pending-live-build",
+    "01_akta_decision.json": "pending-live-build",
+    "01_akta_decision_after_grant.json": "pending-live-build",
+    "02_akta_record.json": "pending-live-build",
+    "03_review_trigger.json": "pending-live-build",
+    "04_scope_review_summary.json": "pending-live-build",
+    "14_quality_report.json": "pending-live-build",
+    "reconstruction_report.md": "pending-live-build"
+  },
+  "reconstruction_report_excerpt": [
+    "Case C (post-grant re-gate): blocked — evidence/profile layers not satisfied by grant under P2.",
+    "SCOPE summary contract: identity_assurance_level and signing_assurance_level required in pilot mode."
+  ]
+}

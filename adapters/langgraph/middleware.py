@@ -9,6 +9,7 @@ from akta.context import AKTAContext
 from akta.errors import AKTAReviewRequired
 from akta.gate import AKTAGate
 from akta.review_decision import enforce_grant_expiry, is_review_expired
+from akta.session_grant_store import SessionGrantStore
 from akta.tool_registry import ToolRegistry
 
 
@@ -50,16 +51,28 @@ class AKTALangGraphMiddleware:
         self.domain_overlay = domain_overlay
         self.scope_handoff = scope_handoff
         self.state = MiddlewareState()
+        self.grant_store = SessionGrantStore()
+        self._session_id = "default"
 
     def invalidate_grant(self) -> None:
         """Invalidate active grant (e.g. on expiry)."""
         self.state.invalidated = True
         self.state.scope_grant = None
 
+    def reset_state(self) -> None:
+        """Clear session grant state for a new agent turn."""
+        self.state = MiddlewareState()
+        self.grant_store.clear(self._session_id)
+
     def apply_scope_grant(self, scope_grant: dict[str, Any]) -> None:
         """Store SCOPE grant for scoped retry."""
         self.state.scope_grant = scope_grant
         self.state.invalidated = False
+        self.grant_store.put(
+            self._session_id,
+            scope_grant,
+            bound_evidence_state=(scope_grant.get("bound_evidence_state")),
+        )
 
     def _check_grant_expiry(self, context: dict[str, Any]) -> dict[str, Any]:
         ctx = enforce_grant_expiry(context)

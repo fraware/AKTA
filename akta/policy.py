@@ -41,12 +41,29 @@ class PolicyBundle:
     evidence_to_action_rules: dict[str, Any]
     tool_registry: dict[str, Any]
     tool_to_requested_scope: dict[str, Any]
-    version: str = "akta-core-v0.5"
+    version: str = "akta-core-v1.0"
     policy_hash: str = ""
     tool_registry_hash: str = ""
     integrity_mode: str = "dev_unsigned"
     policy_file_versions: dict[str, str] = field(default_factory=dict, repr=False)
+    effective_policy_hash: str = ""
+    manifest_hash: str = ""
+    signing_key_id: str | None = None
+    effective_policy_manifest: dict[str, Any] = field(default_factory=dict, repr=False)
     _raw_files: dict[str, str] = field(default_factory=dict, repr=False)
+
+    def policy_binding(self) -> dict[str, Any]:
+        """Canonical policy provenance block for Decision/Record artifacts."""
+        from akta.effective_policy import policy_binding_block
+
+        return policy_binding_block(
+            bundle_version=self.version,
+            effective_policy_hash=self.effective_policy_hash or self.policy_hash,
+            manifest_hash=self.manifest_hash or self.policy_hash,
+            integrity_mode=self.integrity_mode,
+            signing_key_id=self.signing_key_id,
+            file_versions=self.policy_file_versions,
+        )
 
     @classmethod
     def from_dir(
@@ -103,8 +120,32 @@ class PolicyBundle:
         tool_registry_hash = hash_file_content(registry_content)
 
         from akta.policy_signing import verify_policy_bundle_integrity
+        from akta.effective_policy import (
+            build_effective_policy_manifest,
+            load_effective_policy_manifest,
+        )
 
+        # required=False must not bypass AKTA_PRODUCTION_MODE / AKTA_REQUIRE_SIGNED_POLICY.
         integrity_result = verify_policy_bundle_integrity(policy_dir, required=False)
+
+        overlays_dir = policy_dir.parent / "overlays"
+        effective = load_effective_policy_manifest(policy_dir)
+        if effective is None:
+            effective = build_effective_policy_manifest(
+                policy_dir,
+                overlays_dir=overlays_dir if overlays_dir.is_dir() else None,
+                integrity_mode=integrity_result.integrity_mode,
+            )
+
+        signing_key_id = None
+        try:
+            from akta.policy_integrity import _load_manifest
+
+            base_manifest = _load_manifest(policy_dir)
+            if base_manifest:
+                signing_key_id = (base_manifest.get("signature") or {}).get("key_id")
+        except Exception:
+            signing_key_id = effective.get("signing_key_id")
 
         return cls(
             policy_dir=policy_dir,
@@ -124,6 +165,10 @@ class PolicyBundle:
             tool_registry_hash=tool_registry_hash,
             integrity_mode=integrity_result.integrity_mode,
             policy_file_versions=file_versions,
+            effective_policy_hash=str(effective.get("effective_policy_hash") or policy_hash),
+            manifest_hash=str(effective.get("manifest_hash") or policy_hash),
+            signing_key_id=signing_key_id or effective.get("signing_key_id"),
+            effective_policy_manifest=effective,
             _raw_files=raw_files,
         )
 

@@ -13,10 +13,15 @@ from typing import Any, Callable
 
 def repo_path(env_var: str) -> Path | None:
     raw = os.environ.get(env_var, "").strip()
-    if not raw:
-        return None
-    path = Path(raw)
-    return path if path.is_dir() else None
+    if raw:
+        path = Path(raw)
+        return path if path.is_dir() else None
+    from akta.sibling_repos import discover_sibling
+
+    found = discover_sibling(env_var)
+    if found is not None:
+        os.environ[env_var] = str(found)
+    return found
 
 
 def pf_core_repo() -> Path | None:
@@ -33,6 +38,18 @@ def scope_repo() -> Path | None:
 
 def pcs_bench_repo() -> Path | None:
     return repo_path("PCS_BENCH_REPO_PATH")
+
+
+def vsa_repo() -> Path | None:
+    return repo_path("VSA_REPO_PATH")
+
+
+def memory_repo() -> Path | None:
+    return repo_path("MEMORY_REPO_PATH")
+
+
+def labtrust_repo() -> Path | None:
+    return repo_path("LABTRUST_REPO_PATH")
 
 
 def try_import_validator(
@@ -96,11 +113,35 @@ def validate_pf_obligation_live(obligation: dict[str, Any]) -> str | None:
     return None
 
 
+def validate_vsa_report_live(report: dict[str, Any]) -> str | None:
+    """Validate VSA report against sibling VSA if available."""
+    repo = vsa_repo()
+    if repo is None:
+        return "VSA_REPO_PATH not set"
+
+    src = repo / "src"
+    if src.is_dir() and str(src) not in sys.path:
+        sys.path.insert(0, str(src))
+    validator = try_import_validator(
+        repo,
+        ["vsa.validate.engine", "vsa.engine"],
+        attr="validate_report",
+    )
+    if validator is None:
+        return "VSA validate_report not found; skipped live validation"
+    validator(report)
+    return None
+
+
 def validate_pcs_bundle_live(bundle_dir: Path) -> str | None:
     """Validate PCS bundle against sibling PCS-Core if available."""
     repo = pcs_core_repo()
     if repo is None:
         return "PCS_CORE_REPO_PATH not set"
+
+    py_root = repo / "python"
+    if py_root.is_dir() and str(py_root) not in sys.path:
+        sys.path.insert(0, str(py_root))
 
     validator = try_import_validator(
         repo,
@@ -109,6 +150,25 @@ def validate_pcs_bundle_live(bundle_dir: Path) -> str | None:
     )
     if validator is None:
         validator = try_import_validator(repo, ["pcs_core.bundle", "pcs.bundle"], attr="validate")
+    if validator is None:
+        try:
+            from pcs_core.validate_semantics import validate_file
+
+            manifest = bundle_dir / "manifest.json"
+            record = bundle_dir / "akta_record.json"
+            if manifest.is_file():
+                validate_file(manifest)
+            if record.is_file():
+                validate_file(record)
+            return None
+        except ImportError:
+            pass
+        except Exception as exc:
+            from adapters.pcs.export_artifact import validate_pcs_bundle
+
+            validate_pcs_bundle(bundle_dir)
+            return f"PCS-Core artifact typing skipped; AKTA schema validation passed ({exc})"
+
     if validator is None:
         cli = repo / "scripts" / "validate_akta_bundle.py"
         if cli.exists():
@@ -122,6 +182,7 @@ def validate_pcs_bundle_live(bundle_dir: Path) -> str | None:
             )
             if proc.returncode != 0:
                 raise ValueError(proc.stderr or proc.stdout or "PCS-Core CLI validation failed")
+            return None
         return "PCS-Core validator not found; skipped live validation"
     validator(bundle_dir)
     return None

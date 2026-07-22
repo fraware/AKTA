@@ -135,7 +135,7 @@ class AKTAMCPServer:
         return {"jsonrpc": "2.0", "id": req_id, "result": result}
 
     def _error(self, req_id: Any, code: int, message: str) -> dict[str, Any]:
-        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}}
+        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message, "request_id": str(req_id)}}
 
     def serve_stdio(self) -> None:
         for line in sys.stdin:

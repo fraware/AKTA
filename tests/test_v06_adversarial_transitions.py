@@ -19,7 +19,7 @@ def test_adversarial_suite_all_pass() -> None:
         policy_dir=ROOT / "policy",
         overlays_dir=ROOT / "overlays",
     )
-    assert report["total"] == 17
+    assert report["total"] >= 30
     assert report["passed_count"] == report["total"]
     assert report["passed"] is True
     assert set(report["by_transition_type"]) >= {

@@ -38,7 +38,7 @@ def run_behavioral_eval(
         if holdout_only and not scenario.get("holdout"):
             continue
         sid = scenario["scenario_id"]
-        exp = expected.get(sid)
+        exp = expected.get(sid) or scenario.get("expected_admissibility")
         if exp is None:
             continue
         decision = gate.evaluate(

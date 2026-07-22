@@ -30,6 +30,17 @@ ADAPTER_MODE_CLI = "cli"
 ADAPTER_MODE_AKTA_REVIEW_CLI = "akta-review-cli"
 SCOPE_CLI_MODE_AKTA_REVIEW = "akta-review"
 
+ASSURANCE_LOWEST_IAL = "IAL0"
+ASSURANCE_LOWEST_SAL = "SAL0"
+INSTITUTIONAL_IAL_LEVELS = frozenset({"IAL3", "IAL4"})
+HIGH_ASSURANCE_IAL_LEVELS = frozenset({"IAL2", "IAL3", "IAL4"})
+HIGH_ASSURANCE_SAL_LEVELS = frozenset({"SAL2", "SAL3", "SAL4"})
+
+SUMMARY_ORIGIN_SIMULATED = "akta_simulated"
+SUMMARY_ORIGIN_SYNTHESIZED = "akta_synthesized"
+SUMMARY_ORIGIN_SYNTHESIZED_PROVENANCE = "akta_synthesized_from_scope_provenance"
+SUMMARY_ORIGIN_SCOPE_AKTA_REVIEW = "scope_akta_review"
+
 
 @dataclass
 class ScopeAdapterResult:
@@ -295,13 +306,80 @@ def _run_scope_cli(
 
 
 def _validate_akta_review_summary(summary: dict[str, Any]) -> None:
-    """Validate summary.json when schema is available."""
+    """Validate summary.json when schema is available; negotiate contract branches."""
     schema_path = _akta_repo_root() / "schemas" / "scope_akta_review_summary.schema.json"
     if not schema_path.is_file():
         return
     from akta.records import validate_against_schema
+    from akta.scope_negotiation import STATUS_SESSION_REQUIRED, consume_scope_summary
+
+    # Default status for legacy summaries that omit it.
+    if "status" not in summary:
+        summary["status"] = "completed"
 
     validate_against_schema(summary, "scope_akta_review_summary.schema.json")
+    negotiated = consume_scope_summary(summary)
+    if not negotiated.ok:
+        raise ValueError("; ".join(negotiated.errors) or "SCOPE summary negotiation failed")
+    if negotiated.status == STATUS_SESSION_REQUIRED:
+        # Attach pending fields; callers must not load grant/decision artifacts.
+        summary["review_pending"] = True
+        summary["session_id"] = negotiated.session_id
+        summary["required_roles"] = negotiated.required_roles
+        summary["next_integration_action"] = negotiated.next_integration_action
+
+
+def _assurance_level_from_provenance(
+    provenance: dict[str, Any] | None,
+    *,
+    field: str,
+) -> str | None:
+    if not provenance:
+        return None
+    value = provenance.get(field)
+    if value is None:
+        return None
+    return str(value)
+
+
+def _extract_assurance_from_provenance(
+    grant: dict[str, Any],
+    decision: dict[str, Any],
+) -> tuple[str | None, str | None]:
+    """Read IAL/SAL from SCOPE decision or grant provenance when present."""
+    for source in (decision.get("provenance"), grant.get("provenance")):
+        if not isinstance(source, dict):
+            continue
+        ial = _assurance_level_from_provenance(source, field="identity_assurance_level")
+        sal = _assurance_level_from_provenance(source, field="signing_assurance_level")
+        if ial and sal:
+            return ial, sal
+    return None, None
+
+
+def _is_institutional_or_high_assurance(*, ial: str, sal: str) -> bool:
+    return (
+        ial in INSTITUTIONAL_IAL_LEVELS
+        or ial in HIGH_ASSURANCE_IAL_LEVELS
+        or sal in HIGH_ASSURANCE_SAL_LEVELS
+    )
+
+
+def _resolve_synthetic_assurance_levels(
+    *,
+    adapter_mode: str,
+    grant: dict[str, Any],
+    decision: dict[str, Any],
+) -> tuple[str, str, str]:
+    """Resolve IAL/SAL for AKTA-synthesized summaries (never overstate assurance)."""
+    if adapter_mode == ADAPTER_MODE_SIMULATED:
+        return ASSURANCE_LOWEST_IAL, ASSURANCE_LOWEST_SAL, SUMMARY_ORIGIN_SIMULATED
+
+    prov_ial, prov_sal = _extract_assurance_from_provenance(grant, decision)
+    if prov_ial and prov_sal:
+        return prov_ial, prov_sal, SUMMARY_ORIGIN_SYNTHESIZED_PROVENANCE
+
+    return ASSURANCE_LOWEST_IAL, ASSURANCE_LOWEST_SAL, SUMMARY_ORIGIN_SYNTHESIZED
 
 
 def _synthesize_scope_summary(
@@ -321,19 +399,31 @@ def _synthesize_scope_summary(
         or trigger.get("requested_scope")
         or ""
     )
+    ial, sal, summary_origin = _resolve_synthetic_assurance_levels(
+        adapter_mode=adapter_mode,
+        grant=grant,
+        decision=decision,
+    )
+    if summary_origin != SUMMARY_ORIGIN_SYNTHESIZED_PROVENANCE and _is_institutional_or_high_assurance(
+        ial=ial,
+        sal=sal,
+    ):
+        ial, sal = ASSURANCE_LOWEST_IAL, ASSURANCE_LOWEST_SAL
+
     return {
         "status": "completed",
         "approved_scope": approved,
         "requested_scope": requested,
         "allowed_tools": list(auth.get("allowed_tools") or grant.get("allowed_tools") or []),
         "blocked_tools": list(auth.get("blocked_tools") or grant.get("blocked_tools") or []),
-        "adapter_contract_version": "scope-akta-review-v0.8",
-        "identity_assurance_level": "IAL0",
-        "signing_assurance_level": "SAL1",
+        "adapter_contract_version": "scope-akta-review-v1.0",
+        "identity_assurance_level": ial,
+        "signing_assurance_level": sal,
         "adapter_mode": adapter_mode,
-        "packet_id": packet.get("packet_id"),
-        "decision_id": decision.get("decision_id"),
-        "grant_id": grant.get("grant_id"),
+        "summary_origin": summary_origin,
+        "packet_id": packet.get("packet_id") or f"SCOPE-PKT-{trigger.get('review_trigger_id', 'unknown')}",
+        "decision_id": decision.get("decision_id") or "SCOPE-DEC-SYNTHESIZED",
+        "grant_id": grant.get("grant_id") or grant.get("scope_grant_id") or "SCOPE-GRANT-SYNTHESIZED",
     }
 
 

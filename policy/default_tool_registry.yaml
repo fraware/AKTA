@@ -306,4 +306,311 @@ tools:
     external_effect: false
     default_permission: draft_only
     action_family: procurement
-policy_file_version: default_tool_registry-v0.6
+  # v1.0 deployment catalog extension (tool-class graph for blocked-tool closure)
+  freezer.reserve_slot:
+    action_type: A7_resource_or_queue_prioritization
+    mutates_state: true
+    external_effect: false
+    default_permission: review_required
+    action_family: lab_ops
+  freezer.release_slot:
+    action_type: A7_resource_or_queue_prioritization
+    mutates_state: true
+    external_effect: false
+    default_permission: review_required
+    action_family: lab_ops
+  chromatography.run_hplc:
+    action_type: A6_experimental_planning
+    mutates_state: true
+    external_effect: false
+    default_permission: review_required
+    action_family: instrumentation
+  chromatography.submit_method:
+    action_type: A5_protocol_modification
+    mutates_state: true
+    external_effect: false
+    default_permission: review_required
+    action_family: instrumentation
+  microscopy.capture_image:
+    action_type: A3_evidence_interpretation
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: instrumentation
+  microscopy.auto_acquire:
+    action_type: A9_execution_adjacent_or_external_action
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: instrumentation
+  pcr.design_primers:
+    action_type: A6_experimental_planning
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: genomics
+  pcr.order_synthesis:
+    action_type: A9_execution_adjacent_or_external_action
+    mutates_state: true
+    external_effect: true
+    default_permission: review_required
+    action_family: genomics
+  gene_editor.design_grna:
+    action_type: A6_experimental_planning
+    mutates_state: false
+    external_effect: false
+    default_permission: draft_only
+    action_family: genomics
+  gene_editor.apply_edit:
+    action_type: A9_execution_adjacent_or_external_action
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: genomics
+  seq_align.run:
+    action_type: A3_evidence_interpretation
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: genomics
+  seq_align.annotate:
+    action_type: A3_evidence_interpretation
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: genomics
+  cell_culture.passage:
+    action_type: A9_execution_adjacent_or_external_action
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: cell_biology
+  cell_culture.schedule_feed:
+    action_type: A6_experimental_planning
+    mutates_state: false
+    external_effect: false
+    default_permission: review_required
+    action_family: cell_biology
+  mass_spec.submit_sample:
+    action_type: A9_execution_adjacent_or_external_action
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: instrumentation
+  mass_spec.parse_results:
+    action_type: A3_evidence_interpretation
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: instrumentation
+  synthesis.plan_route:
+    action_type: A6_experimental_planning
+    mutates_state: false
+    external_effect: false
+    default_permission: draft_only
+    action_family: chemistry
+  synthesis.schedule_reaction:
+    action_type: A9_execution_adjacent_or_external_action
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: chemistry
+  pyrophoric_handler.submit:
+    action_type: A9_execution_adjacent_or_external_action
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: chemistry
+  pressure_vessel.pressurize:
+    action_type: A9_execution_adjacent_or_external_action
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: chemistry
+  ehr.export_note:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: true
+    external_effect: true
+    default_permission: blocked
+    action_family: clinical
+  ehr.draft_note:
+    action_type: A4_recommendation
+    mutates_state: false
+    external_effect: false
+    default_permission: draft_only
+    action_family: clinical
+  trial.enroll_patient:
+    action_type: A9_execution_adjacent_or_external_action
+    mutates_state: true
+    external_effect: true
+    default_permission: blocked
+    action_family: clinical
+  trial.submit_amendment:
+    action_type: A10_publication_or_claim_escalation
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: clinical
+  inventory.check_stock:
+    action_type: A1_retrieval_or_summary
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: lab_ops
+  inventory.reserve_reagent:
+    action_type: A7_resource_or_queue_prioritization
+    mutates_state: true
+    external_effect: false
+    default_permission: review_required
+    action_family: lab_ops
+  inventory.order_reagent:
+    action_type: A9_execution_adjacent_or_external_action
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: procurement
+  LIMS.register_sample:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: true
+    external_effect: false
+    default_permission: review_required
+    action_family: lab_ops
+  LIMS.update_status:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: true
+    external_effect: false
+    default_permission: review_required
+    action_family: lab_ops
+  ELN.create_entry:
+    action_type: A4_recommendation
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: collaboration
+  ELN.sign_entry:
+    action_type: A10_publication_or_claim_escalation
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: collaboration
+  workflow_engine.update_dag:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: workflow
+  workflow_engine.trigger_run:
+    action_type: A9_execution_adjacent_or_external_action
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: workflow
+  cloud_storage.upload:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: workflow
+  cloud_storage.share_link:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: true
+    external_effect: true
+    default_permission: review_required
+    action_family: workflow
+  compute_cluster.submit_job:
+    action_type: A6_experimental_planning
+    mutates_state: true
+    external_effect: false
+    default_permission: review_required
+    action_family: compute
+  compute_cluster.cancel_job:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: true
+    external_effect: false
+    default_permission: review_required
+    action_family: compute
+  model_registry.promote:
+    action_type: A10_publication_or_claim_escalation
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: compute
+  model_registry.rollback:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: true
+    external_effect: true
+    default_permission: authorization_required
+    action_family: compute
+  notification.send_alert:
+    action_type: A4_recommendation
+    mutates_state: false
+    external_effect: true
+    default_permission: allowed_with_logging
+    action_family: collaboration
+  calendar.schedule_meeting:
+    action_type: A4_recommendation
+    mutates_state: false
+    external_effect: true
+    default_permission: allowed_with_logging
+    action_family: collaboration
+  audit_log.export:
+    action_type: A1_retrieval_or_summary
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: governance
+  policy_bundle.verify:
+    action_type: A1_retrieval_or_summary
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: governance
+  scope_handoff.submit_review:
+    action_type: A4_recommendation
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: governance
+  pf_runtime.attach_trace:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: governance
+  pcs_bundle.export:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: governance
+  vsa_report.import:
+    action_type: A3_evidence_interpretation
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: evidence
+  scientific_memory.query:
+    action_type: A1_retrieval_or_summary
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: evidence
+  scientific_memory.write_entry:
+    action_type: A8_tool_or_workflow_mutation
+    mutates_state: true
+    external_effect: false
+    default_permission: review_required
+    action_family: evidence
+  labtrust_gym.run_scenario:
+    action_type: A3_evidence_interpretation
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: benchmark
+  pcs_bench.run_suite:
+    action_type: A3_evidence_interpretation
+    mutates_state: false
+    external_effect: false
+    default_permission: allowed_with_logging
+    action_family: benchmark
+policy_file_version: default_tool_registry-v1.0

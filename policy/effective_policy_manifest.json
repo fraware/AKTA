@@ -1,0 +1,64 @@
+{
+  "bundle_version": "akta-core-v1.0",
+  "effective_policy_hash": "sha256:5bf637ada74e6cb2f3dfefd01751a02f73a3b035aa2884c679afc8ae5ef62a9d",
+  "file_versions": {
+    "action_ontology.yaml": "action_ontology-v0.5",
+    "admissibility_matrix.yaml": "admissibility_matrix-v0.5",
+    "default_tool_registry.yaml": "default_tool_registry-v1.0",
+    "deployment_profiles.yaml": "deployment_profiles-v0.5",
+    "evidence_states.yaml": "evidence_states-v0.5",
+    "evidence_to_action_matrix.yaml": "evidence_to_action_matrix-v0.5",
+    "evidence_to_action_rules.yaml": "evidence_to_action_rules-v0.5",
+    "policy_manifest.yaml": "akta-policy-manifest-v1.0",
+    "release_keys.yaml": "akta-release-keys-v0.7",
+    "responsibility_levels.yaml": "responsibility_levels-v0.5",
+    "scope_compatibility_manifest.json": "unknown",
+    "scope_grant_override_rules.yaml": "akta-scope-grant-layer-satisfaction-v1.0",
+    "structured_action_schema.yaml": "akta-structured-action-v1.0",
+    "tool_to_requested_scope.yaml": "tool_to_requested_scope-v0.5",
+    "validation_statuses.yaml": "validation_statuses-v0.5",
+    "verification_statuses.yaml": "verification_statuses-v0.5"
+  },
+  "files": {
+    "action_ontology.yaml": "sha256:c2ac6ac345552737b9bb8e0786f0886319419ac218e5162267a337d33568e6fa",
+    "admissibility_matrix.yaml": "sha256:0b06d1574bb82f9dc39d2860cb805a585994d0487d93a81d659e695ee56971e0",
+    "default_tool_registry.yaml": "sha256:cba4cdc66bd1574063c1915be40e9d4ec89e075f72d045d2ea44a5478bf8f5be",
+    "deployment_profiles.yaml": "sha256:16e6046f802989ec6706747bf553a5b763bcb7de7abc65ec791ca7e20b6906b7",
+    "evidence_states.yaml": "sha256:80439bb5819f324d8a86635115b5c4e58906e98d23950e43a222ef61bfa6934c",
+    "evidence_to_action_matrix.yaml": "sha256:5e8916ceff5c8e29f49e4ebc0edee3382a67c1be156b9cfd9fcc7e667bbfe15f",
+    "evidence_to_action_rules.yaml": "sha256:72175f5f4cfd6f5cd713098515af9bbf17cb6c6bbc258b5593d1a6b0e12197e2",
+    "policy_manifest.yaml": "sha256:4a00c0cf1cee2f7a3d09dbbd9b8619d75357c4dd2edf1e97aeabdb701410a79b",
+    "release_keys.yaml": "sha256:eb1c7c4a02347df8293c110d26d00a0e4e91d79ebf3de3146d1c1a9c04be0ce1",
+    "responsibility_levels.yaml": "sha256:e98d3c5488575364f4b5ac9cbf48754f873475235843c5c8405473444e1ac461",
+    "scope_compatibility_manifest.json": "sha256:a2584e6be127030afdaee54562cd0d1b4a7dbc2952d941f7e10c060aa48299fa",
+    "scope_grant_override_rules.yaml": "sha256:6cb9701d36c9a05f343830b8b5f356d8bd2b4479c01d99f775ee8400fac12863",
+    "structured_action_schema.yaml": "sha256:89a0a0255e64ac9fc414350708fd14096d255bff1b25b1749e8203fecdd7ba3f",
+    "tool_to_requested_scope.yaml": "sha256:c85beea0595b98fc913b8e5b90d22155bf74afb08937edf8147472c6749873cc",
+    "validation_statuses.yaml": "sha256:1cdadb65eb0f5697ab0a70984b3f1fd0b6c26286e16665b45ede620ae1c4548c",
+    "verification_statuses.yaml": "sha256:3b09dcc6c66a52a756c3dd054bc7f7e073bd78187606ed2c8855e1348d6a2128"
+  },
+  "integrity_mode": "deployment_hmac_attested",
+  "manifest_hash": "sha256:345f176febea28ad3b2daf81aafc21633a76728f41acda86f0001bbd7b661a1e",
+  "manifest_version": "akta-effective-policy-v1.0",
+  "missing_optional_inputs": [],
+  "overlay_registry": {
+    "note": "Domain overlays live under overlays/; registry metadata is recorded as overlay_ids + content hashes when overlays_dir is provided.",
+    "overlays": {
+      "biology_v0.yaml": "sha256:400d63f4f3278d2b16d6df8154f457e393e656e4552ee193b9a809d18884d8d0",
+      "chemistry_v0.yaml": "sha256:0675f86a848fac30f0530ee25ffd6870a8112bd06f9ca5321c33533424f3341b",
+      "clinical_v0.yaml": "sha256:869c5f63a732927c95f1d4241a3e9b0c0ce55fa15286d82f940739c296c8ecfb",
+      "computational_science_v0.yaml": "sha256:57ed528d954a9223b0160240db203adfc32bb8fc88c2b114f44f63c9dedad00a",
+      "generic_lab_v0.yaml": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
+      "materials_expert_v0.yaml": "sha256:8bc25e20e507d5cb2933fa78c66f48739254e4a48bb7c9525dcd6a6d10b2240e",
+      "materials_institutional_v1.yaml": "sha256:15448b7b6b438df0a437ce5640636a5daa74c14e9fc664a1f35b67cad88a0ebd",
+      "materials_v0.yaml": "sha256:bcca27eef1e6b1c90912462115cb6f746015e30dfb36fdf8c59348f5b20ff9e3"
+    }
+  },
+  "policy_manifest_signature": {
+    "algorithm": "HMAC-SHA256",
+    "key_id": null,
+    "present": true,
+    "value": "9f3263391dd00c35191eb013b2129ff5cb943107615a5f10da545dbf7d501567"
+  },
+  "signing_key_id": null
+}

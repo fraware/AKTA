@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+title: AKTA — Open Scientific Action Protocol
+version: 1.0.0
+date-released: 2026-06-29
+authors:
+  - name: AKTA Contributors
+license: MIT
+repository-code: https://github.com/fraware/AKTA
+message: If you use AKTA in research, please cite this software.
+preferred-citation:
+  type: software
+  title: AKTA — Open Scientific Action Protocol
+  version: 1.0.0
+  year: 2026
+  url: https://github.com/fraware/AKTA
+  license: MIT

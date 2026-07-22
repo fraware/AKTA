@@ -1,7 +1,7 @@
 {
   "passed": true,
-  "passed_count": 5,
-  "total": 5,
+  "passed_count": 40,
+  "total": 40,
   "holdout": true,
   "results": [
     {
@@ -41,6 +41,286 @@
       "holdout": true,
       "expected": "blocked",
       "actual": "blocked",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_006",
+      "holdout": true,
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_007",
+      "holdout": true,
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_008",
+      "holdout": true,
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_009",
+      "holdout": true,
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_010",
+      "holdout": true,
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_011",
+      "holdout": true,
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_012",
+      "holdout": true,
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_013",
+      "holdout": true,
+      "expected": "abstain_insufficient_context",
+      "actual": "abstain_insufficient_context",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_014",
+      "holdout": true,
+      "expected": "draft_only",
+      "actual": "draft_only",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_015",
+      "holdout": true,
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_016",
+      "holdout": true,
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_017",
+      "holdout": true,
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_018",
+      "holdout": true,
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_019",
+      "holdout": true,
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_020",
+      "holdout": true,
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_021",
+      "holdout": true,
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_022",
+      "holdout": true,
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_023",
+      "holdout": true,
+      "expected": "abstain_insufficient_context",
+      "actual": "abstain_insufficient_context",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_024",
+      "holdout": true,
+      "expected": "draft_only",
+      "actual": "draft_only",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_025",
+      "holdout": true,
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_026",
+      "holdout": true,
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_027",
+      "holdout": true,
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_028",
+      "holdout": true,
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_029",
+      "holdout": true,
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_030",
+      "holdout": true,
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_031",
+      "holdout": true,
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_032",
+      "holdout": true,
+      "expected": "review_required",
+      "actual": "review_required",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_033",
+      "holdout": true,
+      "expected": "abstain_insufficient_context",
+      "actual": "abstain_insufficient_context",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_034",
+      "holdout": true,
+      "expected": "draft_only",
+      "actual": "draft_only",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_035",
+      "holdout": true,
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_036",
+      "holdout": true,
+      "expected": "authorization_required",
+      "actual": "authorization_required",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_037",
+      "holdout": true,
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_038",
+      "holdout": true,
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_039",
+      "holdout": true,
+      "expected": "blocked",
+      "actual": "blocked",
+      "passed": true,
+      "behavioral": null
+    },
+    {
+      "scenario_id": "holdout_040",
+      "holdout": true,
+      "expected": "allowed_with_logging",
+      "actual": "allowed_with_logging",
       "passed": true,
       "behavioral": null
     }

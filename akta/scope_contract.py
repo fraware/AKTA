@@ -20,6 +20,26 @@ SCOPE_APPROVAL_SCOPES = frozenset(VALID_REQUESTED_SCOPES)
 _AKTA_ROOT = Path(__file__).resolve().parent.parent
 _DEFAULT_FIXTURES_DIR = _AKTA_ROOT / "tests" / "fixtures"
 
+AKTA_SCOPE_CONTRACT_VERSION = "akta-scope-contract-v1.0"
+
+# AKTA fixture contract versions compatible with a given SCOPE runtime core version.
+SCOPE_RUNTIME_CONTRACT_COMPAT: dict[str, frozenset[str]] = {
+    "scope-core-v0.8": frozenset({
+        "akta-scope-contract-v0.8",
+        "akta-scope-contract-v0.8.1",
+        "akta-scope-contract-v0.9",
+    }),
+    "scope-core-v0.9": frozenset({
+        "akta-scope-contract-v0.9",
+        "akta-scope-contract-v0.8.1",
+        "akta-scope-contract-v1.0",
+    }),
+    "scope-core-v1.0": frozenset({
+        "akta-scope-contract-v1.0",
+        "akta-scope-contract-v0.9",
+    }),
+}
+
 # v0.2 review_scope vocabulary -> v0.3 requested_scope (compat for SCOPE simulator).
 LEGACY_REVIEW_SCOPE_MAP: dict[str, str] = {
     "draft_only": "protocol_draft",
@@ -57,11 +77,109 @@ def _fixture_candidates(basename: str) -> list[Path]:
 def _load_fixture_json(basename: str) -> dict[str, Any]:
     for path in _fixture_candidates(basename):
         if path.is_file():
-            return json.loads(path.read_text(encoding="utf-8"))
+            data = json.loads(path.read_text(encoding="utf-8"))
+            _validate_fixture_contract_version(data, basename, path)
+            return data
     raise FileNotFoundError(
         f"SCOPE contract fixture not found: {basename} "
         f"(checked SCOPE_REPO_PATH and {_DEFAULT_FIXTURES_DIR})"
     )
+
+
+def _fixture_contract_version(data: dict[str, Any]) -> str | None:
+    version = data.get("contract_version") or data.get("fixture_version")
+    return str(version) if version else None
+
+
+def _validate_fixture_contract_version(
+    data: dict[str, Any],
+    basename: str,
+    path: Path,
+) -> None:
+    version = _fixture_contract_version(data)
+    if version is None:
+        raise ValueError(f"{basename} missing contract_version (loaded from {path})")
+    if version != AKTA_SCOPE_CONTRACT_VERSION:
+        msg = (
+            f"{basename} contract_version {version!r} != "
+            f"expected {AKTA_SCOPE_CONTRACT_VERSION!r} (from {path})"
+        )
+        if os.environ.get("AKTA_STRICT_SCOPE_CONTRACT", "").strip() in ("1", "true", "yes"):
+            raise ValueError(msg)
+        logger = __import__("logging").getLogger(__name__)
+        logger.warning(msg)
+
+
+def resolve_scope_runtime_version() -> str | None:
+    """Resolve SCOPE core version from env, package metadata, or compatibility pin.
+
+    Does not execute sibling repository Python source (directive §6).
+    """
+    env_core = os.environ.get("SCOPE_CORE_VERSION", "").strip()
+    if env_core:
+        return env_core
+    try:
+        from akta.scope_negotiation import resolve_scope_versions_from_environment
+
+        versions = resolve_scope_versions_from_environment()
+        if versions.get("scope_core_version"):
+            return versions["scope_core_version"]
+        # Map installed package major to scope-core pin when metadata lacks core id.
+        pkg = versions.get("scope_package_version")
+        if pkg:
+            if pkg.startswith("1."):
+                return "scope-core-v1.0"
+            if pkg.startswith("0.9"):
+                return "scope-core-v0.9"
+            if pkg.startswith("0.8"):
+                return "scope-core-v0.8"
+    except Exception:
+        pass
+    try:
+        from scope.integration_versions import SCOPE_CORE_VERSION
+
+        return str(SCOPE_CORE_VERSION)
+    except ImportError:
+        return None
+
+
+def validate_scope_runtime_contract(*, strict: bool | None = None) -> str | None:
+    """Compare AKTA fixture contract with live SCOPE runtime when available.
+
+    Returns the resolved SCOPE runtime version, or None when unavailable.
+    Raises ValueError in strict mode on mismatch.
+    """
+    if strict is None:
+        strict = os.environ.get("AKTA_STRICT_SCOPE_CONTRACT", "").strip() in ("1", "true", "yes")
+    runtime_version = resolve_scope_runtime_version()
+    if runtime_version is None:
+        return None
+    allowed = SCOPE_RUNTIME_CONTRACT_COMPAT.get(runtime_version)
+    if allowed is None:
+        msg = (
+            f"Unknown SCOPE runtime version {runtime_version!r}; "
+            f"AKTA fixture contract is {AKTA_SCOPE_CONTRACT_VERSION!r}"
+        )
+        if strict:
+            raise ValueError(msg)
+        return runtime_version
+    if AKTA_SCOPE_CONTRACT_VERSION not in allowed:
+        msg = (
+            f"SCOPE runtime {runtime_version!r} incompatible with AKTA fixture "
+            f"contract {AKTA_SCOPE_CONTRACT_VERSION!r} (allowed: {sorted(allowed)})"
+        )
+        if strict:
+            raise ValueError(msg)
+    return runtime_version
+
+
+def get_fixture_contract_version() -> str:
+    """Return contract_version from the scope order fixture (canonical pin)."""
+    data = _load_fixture_json("scope_scope_order.json")
+    version = _fixture_contract_version(data)
+    if not version:
+        raise ValueError("scope_scope_order.json missing contract_version")
+    return version
 
 
 @lru_cache(maxsize=1)

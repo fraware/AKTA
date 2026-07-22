@@ -67,8 +67,14 @@ def _registry_public_keys(registry: dict[str, Any]) -> list[dict[str, Any]]:
 def verify_ed25519_against_release_registry(
     manifest: dict[str, Any],
     policy_dir: Path,
+    *,
+    fail_on_revoked_key: bool = False,
 ) -> bool:
-    """Return True when Ed25519 signature matches an active release registry key."""
+    """Return True when Ed25519 signature matches an active release registry key.
+
+    When ``fail_on_revoked_key`` is True and the manifest key_id matches a
+    revoked/inactive registry entry, raises PolicyError (hard fail).
+    """
     registry = load_release_key_registry(policy_dir)
     registry_keys = _registry_public_keys(registry)
     if not registry_keys:
@@ -79,6 +85,17 @@ def verify_ed25519_against_release_registry(
         return False
 
     key_id = sig_block.get("key_id")
+    if fail_on_revoked_key and key_id:
+        for entry in registry_keys:
+            if entry.get("key_id") != key_id:
+                continue
+            status = entry.get("status") or "active"
+            if status in ("revoked", "inactive"):
+                raise PolicyError(
+                    f"Release signing key {key_id!r} has status={status!r}; "
+                    "refusing policy bundle"
+                )
+
     for entry in registry_keys:
         if entry.get("status") not in (None, "active"):
             continue
@@ -117,7 +134,9 @@ def detect_integrity_mode(
 
     algorithm = sig.get("algorithm", HMAC_ALGORITHM)
     if algorithm == ED25519_ALGORITHM:
-        if verify_ed25519_against_release_registry(manifest, policy_dir):
+        if verify_ed25519_against_release_registry(
+            manifest, policy_dir, fail_on_revoked_key=production or signed_required
+        ):
             return INTEGRITY_MODE_RELEASE_ED25519_SIGNED
         if signed_required:
             raise PolicyError(
@@ -142,18 +161,27 @@ def verify_policy_bundle_integrity(
     *,
     required: bool | None = None,
 ) -> PolicyIntegrityResult:
-    """Verify policy manifest and return integrity mode (v0.7)."""
+    """Verify policy manifest and return integrity mode (v0.7 / directive §5).
+
+    Environment requirements are never bypassed by ``required=False``:
+    ``AKTA_PRODUCTION_MODE=1`` or ``AKTA_REQUIRE_SIGNED_POLICY=1`` always
+    force hard-fail verification.
+    """
     policy_dir = Path(policy_dir)
     production = is_production_mode()
     signed_required = require_signed_policy()
+    env_forced = production or signed_required
     if required is None:
-        required = production
+        required = env_forced
+    else:
+        # Caller required=False must not bypass explicit environment requirements.
+        required = bool(required) or env_forced
 
     manifest = _load_manifest(policy_dir)
     manifest_present = manifest is not None
 
     if manifest is None:
-        if required or production:
+        if required:
             raise PolicyError(f"Policy verification required but no {MANIFEST_FILENAME} found")
         return PolicyIntegrityResult(
             verified=False,
@@ -174,12 +202,21 @@ def verify_policy_bundle_integrity(
     algorithm = sig.get("algorithm", HMAC_ALGORITHM)
 
     if algorithm == ED25519_ALGORITHM:
+        # Always hard-fail on revoked/inactive key ids when registry lists them.
+        matched = verify_ed25519_against_release_registry(
+            manifest, policy_dir, fail_on_revoked_key=True
+        )
         if integrity_mode == INTEGRITY_MODE_RELEASE_ED25519_SIGNED:
-            if not verify_ed25519_against_release_registry(manifest, policy_dir):
+            if not matched:
                 verify_ed25519_signature(manifest)
         else:
             verify_ed25519_signature(manifest)
     elif algorithm == HMAC_ALGORITHM:
+        if signed_required:
+            raise PolicyError(
+                "AKTA_REQUIRE_SIGNED_POLICY requires release_ed25519_signed manifest; "
+                "HMAC-only policy is deployment attestation, not public release authenticity"
+            )
         key = _resolve_hmac_key(production=production)
         if key is None:
             raise PolicyError("Policy manifest HMAC signature present but no verification key configured")

@@ -187,10 +187,15 @@ class OptionalLLMClassifierPlugin(ClassifierPlugin):
 
         confidence = float(result.get("confidence", 0.65))
         llm_meta = {
+            "model_id": model,
             "model": model,
             "prompt_hash": phash,
+            "response_schema_version": "akta_classification_v0.5",
             "schema": "akta_classification_v0.5",
             "confidence": confidence,
+            "alternate_classification": list(result.get("alternate_action_types") or []),
+            "override_reason": None,
+            "advisory_only": True,
         }
 
         return PluginClassification(

@@ -171,6 +171,7 @@ class AKTAGate:
             "policy_hash": self.policy.policy_hash,
             "policy_file_versions": dict(self.policy.policy_file_versions),
             "policy_integrity_mode": self.policy.integrity_mode,
+            "policy": self.policy.policy_binding(),
             "domain_overlay_version": overlay_obj.version if overlay_obj else None,
             "domain_overlay_hash": overlay_obj.overlay_hash if overlay_obj else None,
             "tool_registry_hash": self.policy.tool_registry_hash,
@@ -212,8 +213,14 @@ class AKTAGate:
         record: dict[str, Any] | None = None,
         trigger: dict[str, Any] | None = None,
         validate_output: bool = True,
+        verification_mode: str | None = None,
+        require_capability_envelope: bool | None = None,
     ) -> AKTADecision:
-        """Re-gate after SCOPE grant or review decision with expiry enforcement (F14)."""
+        """Re-gate after SCOPE grant or review decision with expiry enforcement (F14).
+
+        Grant verification runs before metadata apply. In pilot/release/production
+        modes, missing allowed_tools or simulated grants fail closed.
+        """
         from akta.review_decision import (
             apply_review_decision_to_context,
             enforce_grant_expiry,
@@ -235,6 +242,9 @@ class AKTAGate:
                 scope_grant=scope_grant,
                 record=record,
                 trigger=trigger,
+                deployment_profile=deployment_profile,
+                verification_mode=verification_mode,
+                require_capability_envelope=require_capability_envelope,
             )
             ctx_dict = grant_state.context
 

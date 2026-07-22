@@ -43,9 +43,35 @@ Grant fields mapped to context metadata:
 | `authorization.approved_scope` | `prior_review_scope` | Out-of-scope tools blocked (F14) |
 | Grant expiry | `prior_review_expired` | Expired grants require new review (F14) |
 
-**Grant vs policy:** Weak evidence under `P2_analysis_assistant` may still block queue prioritization after a narrow SCOPE grant. SCOPE authorization does not automatically override AKTA evidence or profile matrices.
+**Grant vs policy:** Weak evidence under `P2_analysis_assistant` may still block queue prioritization after a narrow SCOPE grant. SCOPE authorization satisfies `human_review` / `authorization` layers only — it must never satisfy the evidence layer (directive §2.1). The former `scope_grant_satisfies_evidence` boolean override is removed from the v1.0 release-candidate path.
 
-See `akta/review_loop.py`, `examples/reconstructable_experiment/reconstruction_report.md`, and [limitations.md](limitations.md).
+Layered satisfaction is emitted as `grant_layer_satisfaction` on re-gate decisions:
+
+```json
+{
+  "satisfied_layers": [
+    {"layer": "human_review", "satisfied_by": "SCOPE-GRANT-...", "scope": "protocol_draft"}
+  ],
+  "unsatisfied_layers": [
+    {"layer": "evidence", "decision": "blocked", "reason": "..."}
+  ],
+  "evidence_never_satisfied_by_grant": true
+}
+```
+
+See `akta/grant_override.py`, `policy/scope_grant_override_rules.yaml`, and [limitations.md](limitations.md).
+
+## Landing zones (v1.0 split release)
+
+| Concern | Target location | Status |
+|---------|-----------------|--------|
+| Layered grant satisfaction | `akta/grant_override.py`, decision field `grant_layer_satisfaction` | Scaffolded; evidence override removed |
+| Capability envelopes (§3) | External SCOPE contract + `akta/scope_contract.py` consumers; stop using scalar `scope_rank` as sole comparator (`akta/review_loop.py`) | Not started |
+| Authoritative grant verifier (§4) | `akta/scope_grant_verifier.py` (prefer shared SCOPE package / frozen fixture parity) | Scaffold only |
+| Effective policy provenance (§5) | `policy/effective_policy_manifest.json` (+ hash/signature/key id); bind on every Decision/Record | Partial (`policy_hash` / HMAC / Ed25519; not full effective manifest) |
+| Grant review-satisfaction rules | `policy/scope_grant_override_rules.yaml` (rename candidate: `grant_layer_satisfaction_rules.yaml`) | Evidence override disabled |
+
+See `examples/reconstructable_experiment/reconstruction_report.md` and [authority_transfer.md](authority_transfer.md).
 
 ## Default review roles
 

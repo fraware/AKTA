@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/capability_envelope.schema.json",
+  "title": "AKTA Capability Envelope (SCOPE external contract stub v1.0)",
+  "description": "Versioned authorization capability envelope. Cross-family envelopes are incomparable; narrowing is set inclusion within the same capability_family.",
+  "type": "object",
+  "required": [
+    "envelope_version",
+    "capability_family",
+    "operation",
+    "allowed_tools",
+    "max_responsibility_level"
+  ],
+  "properties": {
+    "envelope_version": {
+      "type": "string",
+      "const": "akta-capability-envelope-v1.0"
+    },
+    "capability_family": {
+      "type": "string",
+      "enum": [
+        "scientific_interpretation",
+        "recommendation",
+        "protocol",
+        "experiment_plan",
+        "queue_allocation",
+        "tool_permission",
+        "execution",
+        "publication",
+        "scientific_memory"
+      ]
+    },
+    "operation": { "type": "string", "minLength": 1 },
+    "target": { "type": ["string", "null"] },
+    "allowed_tools": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Exact allowlist. Empty list denies all tools. Field must be present."
+    },
+    "cardinality": {
+      "type": "string",
+      "enum": ["single", "bounded", "unbounded"],
+      "default": "single"
+    },
+    "environment": { "type": ["string", "null"] },
+    "max_responsibility_level": {
+      "type": "string",
+      "pattern": "^R[0-9]$"
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "expiration": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "legacy_approved_scope": {
+      "type": "string",
+      "description": "Optional bridge from scalar SCOPE approved_scope ranks during migration."
+    }
+  },
+  "additionalProperties": false
+}

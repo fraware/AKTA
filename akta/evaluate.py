@@ -546,6 +546,8 @@ def evaluate_admissibility(
         )
     )
 
+    # Grants never skip the evidence layer (directive §2.1). Legacy
+    # scope_grant_satisfies_evidence metadata is ignored if present.
     ev_dec, ev_reason = evidence_decision(
         policy, evidence_state, action_type, profile,
         tool_spec, requested_tool, consequentiality,
@@ -568,6 +570,17 @@ def evaluate_admissibility(
     )
     if mandatory_layer:
         layers.append(mandatory_layer)
+
+    from akta.structured_action_policy import structured_action_requirement_decision
+
+    structured_layer = structured_action_requirement_decision(
+        tool_spec,
+        requested_tool,
+        context,
+        policy_dir=policy.policy_dir,
+    )
+    if structured_layer:
+        layers.append(structured_layer)
 
     handoff_layer = handoff_escalation_decision(context)
     if handoff_layer:

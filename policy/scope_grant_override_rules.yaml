@@ -1,0 +1,34 @@
+# Grant review/authorization satisfaction rules (v1.0 RC).
+#
+# Directive §2.1: SCOPE grants may satisfy human_review / authorization layers
+# only. They must NEVER satisfy the evidence layer. The former
+# grant_may_satisfy_evidence_layer override is permanently disabled for the
+# v1.0 release candidate.
+#
+# Landing: layered satisfaction is computed in akta/grant_override.py and
+# attached as metadata.grant_layer_satisfaction / decision.grant_layer_satisfaction.
+version: akta-scope-grant-layer-satisfaction-v1.0
+default: evidence_never_satisfied_by_grant
+grant_may_satisfy_evidence_layer: false
+grant_satisfiable_layers:
+  - human_review
+  - authorization
+grant_never_satisfiable_layers:
+  - evidence
+# Profile rows retained for documentation / future review-layer policy only.
+# None of these rows may re-enable evidence override.
+rules:
+  - profile: P5_review_gated_experimental_planner
+    evidence_min: E4_internally_consistent_evidence
+    grant_may_satisfy_evidence_layer: false
+    note: "Grant may satisfy review/authorization; evidence matrix still applies."
+  - profile: P6_authorized_closed_loop_lab_agent
+    evidence_min: E5_internally_replicated_evidence
+    grant_may_satisfy_evidence_layer: false
+    note: "Grant may satisfy review/authorization; evidence matrix still applies."
+  - profile: P2_analysis_assistant
+    evidence_min: E2_preliminary_signal
+    grant_may_satisfy_evidence_layer: false
+  - profile: P4_protocol_drafting_assistant
+    evidence_min: E3_noisy_or_conflicting_evidence
+    grant_may_satisfy_evidence_layer: false

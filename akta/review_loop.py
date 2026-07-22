@@ -23,6 +23,11 @@ from akta.scope_contract import (
     is_valid_narrowing_grant,
     scope_rank,
 )
+from akta.grant_override import (
+    apply_grant_override_metadata,
+    enrich_layer_satisfaction_from_evidence,
+    strip_legacy_evidence_override,
+)
 from akta.scope_mapping import VALID_REQUESTED_SCOPES
 
 SCOPE_RANK_ORDER: dict[str, int] = {
@@ -56,12 +61,30 @@ def _evidence_rank(evidence_state: str) -> int:
 
 
 def grant_scope_covers_action(granted_scope: str, requested_scope: str) -> bool:
-    """Return True when granted scope covers the requested scope (narrow grants only)."""
+    """Return True when granted scope covers the requested scope (narrow grants only).
+
+    Deprecated scalar path: prefer ``envelope_covers_request`` when capability
+    envelopes are present.
+    """
     if granted_scope == requested_scope:
         return True
     if is_valid_narrowing_grant(granted_scope=granted_scope, requested_scope=requested_scope):
         return True
     return _scope_rank(granted_scope) >= _scope_rank(requested_scope)
+
+
+def envelope_covers_request(
+    granted_envelope: dict[str, Any],
+    requested_envelope: dict[str, Any],
+) -> bool:
+    """Primary authorization comparator (directive §3): same-family set inclusion."""
+    from akta.capability_envelope import authorization_covers
+
+    covers, _ = authorization_covers(
+        granted_envelope=granted_envelope,
+        requested_envelope=requested_envelope,
+    )
+    return covers
 
 
 def akta_cannot_broaden_grant(
@@ -72,6 +95,14 @@ def akta_cannot_broaden_grant(
     if requested_upgrade_scope not in VALID_REQUESTED_SCOPES:
         return True
     return not grant_scope_covers_action(granted_scope, requested_upgrade_scope)
+
+
+def akta_cannot_broaden_envelope(
+    granted_envelope: dict[str, Any],
+    requested_envelope: dict[str, Any],
+) -> bool:
+    """True when AKTA must refuse to broaden beyond the granted envelope."""
+    return not envelope_covers_request(granted_envelope, requested_envelope)
 
 
 @dataclass
@@ -157,10 +188,20 @@ def evaluate_grant_tool_allowlist(
     metadata: dict[str, Any],
     requested_tool: str,
 ) -> EvaluationLayer | None:
-    """Enforce grant allowed_tools when present."""
-    allowed = metadata.get("prior_review_allowed_tools")
-    if not allowed:
-        return None
+    """Enforce grant allowed_tools when explicitly declared.
+
+    Distinction (directive §2.2):
+    - field absent → no allowlist enforcement here (verifier should reject
+      runtime grants missing the field; see ``akta/scope_grant_verifier.py``)
+    - allowed_tools=[] → deny all tools
+    - allowed_tools=[...] → exact allowlist
+    """
+    if not metadata.get("prior_review_allowed_tools_explicit"):
+        allowed = metadata.get("prior_review_allowed_tools")
+        if not allowed:
+            return None
+    else:
+        allowed = metadata.get("prior_review_allowed_tools") or []
     allowed_set = set(allowed)
     if requested_tool not in allowed_set:
         return EvaluationLayer(
@@ -180,8 +221,15 @@ def prepare_grant_context(
     scope_grant: dict[str, Any],
     record: dict[str, Any] | None = None,
     trigger: dict[str, Any] | None = None,
+    deployment_profile: str | None = None,
+    verification_mode: str | None = None,
+    require_capability_envelope: bool | None = None,
 ) -> GrantLoopState:
-    """Apply SCOPE grant to context and detect invalidation before re-gate."""
+    """Apply SCOPE grant to context and detect invalidation before re-gate.
+
+    Grant verification runs inside ``apply_scope_grant_to_context`` before
+    metadata is applied.
+    """
     ctx_dict = context.to_dict() if isinstance(context, AKTAContext) else dict(context)
     ctx_dict = apply_scope_grant_to_context(
         ctx_dict,
@@ -189,6 +237,8 @@ def prepare_grant_context(
         record=record,
         trigger=trigger,
         validate_grant=True,
+        verification_mode=verification_mode,
+        require_capability_envelope=require_capability_envelope,
     )
 
     bounds = _bound_values_from_record(record)
@@ -200,11 +250,37 @@ def prepare_grant_context(
     ctx_dict["metadata"] = metadata
     ctx_dict = enforce_grant_expiry(ctx_dict)
 
+    profile = (
+        deployment_profile
+        or str(ctx_dict.get("deployment_profile") or "")
+        or str((record or {}).get("deployment_profile") or "P2_analysis_assistant")
+    )
+    evidence_state = str(
+        ctx_dict.get("evidence_state")
+        or (record or {}).get("classification", {}).get("evidence_state")
+        or ""
+    )
+    ctx_dict = apply_grant_override_metadata(
+        ctx_dict,
+        deployment_profile=profile,
+        evidence_state=evidence_state,
+        scope_grant=scope_grant,
+    )
+    # Defense in depth: never carry the removed evidence-layer override flag.
+    metadata = strip_legacy_evidence_override(dict(ctx_dict.get("metadata") or {}))
+    ctx_dict["metadata"] = metadata
+
     granted = _scope_grant_approved_scope(scope_grant) or ""
     requested = _scope_grant_requested_scope(scope_grant, record, trigger) or ""
-    allowed = scope_grant.get("allowed_tools") or (
-        (scope_grant.get("authorization") or {}).get("allowed_tools") or []
-    )
+    auth = scope_grant.get("authorization") or {}
+    if "allowed_tools" in scope_grant:
+        allowed = list(scope_grant.get("allowed_tools") or [])
+    elif "allowed_tools" in auth:
+        allowed = list(auth.get("allowed_tools") or [])
+    elif metadata.get("prior_review_allowed_tools_explicit"):
+        allowed = list(metadata.get("prior_review_allowed_tools") or [])
+    else:
+        allowed = []
     trigger_blocked = list((trigger or {}).get("blocked_tools") or [])
 
     invalidation = check_grant_context_validity(
@@ -258,10 +334,49 @@ def apply_grant_decision_constraints(
     updated["blocked_tools"] = sorted(blocked)
 
     allowed = set(updated.get("allowed_tools") or [])
-    if grant_state.grant_allowed_tools:
-        allowed = allowed & set(grant_state.grant_allowed_tools)
-        if requested_tool in grant_state.grant_allowed_tools:
+    explicit_allowlist = bool(metadata.get("prior_review_allowed_tools_explicit"))
+    grant_tools = grant_state.grant_allowed_tools
+    if explicit_allowlist or grant_tools:
+        # Empty explicit allowlist narrows to deny-all.
+        grant_set = set(grant_tools)
+        allowed = allowed & grant_set if grant_set else set()
+        if requested_tool in grant_set:
             allowed.add(requested_tool)
         updated["allowed_tools"] = sorted(allowed)
+
+    # Record evidence as unsatisfied when the composed decision is still blocked
+    # by policy; grants never clear evidence-based blocks.
+    adm = updated.get("admissibility", "")
+    evidence_blocked = adm in ("blocked", "abstain_insufficient_context")
+    enriched_ctx = enrich_layer_satisfaction_from_evidence(
+        grant_state.context,
+        evidence_decision=adm if evidence_blocked else None,
+        evidence_reason=updated.get("decision_reason"),
+    )
+    satisfaction = (enriched_ctx.get("metadata") or {}).get("grant_layer_satisfaction")
+    if satisfaction:
+        # Mark review/authorization layers as satisfied when a grant was applied.
+        # Never rewrite an evidence block into allowed.
+        if evidence_blocked:
+            for layer in satisfaction.get("satisfied_layers") or []:
+                if layer.get("layer") == "evidence":
+                    raise AssertionError(
+                        "forbidden: evidence layer listed under satisfied_layers"
+                    )
+            updated["admissibility"] = adm  # explicit: grant cannot upgrade evidence block
+            updated["review_required"] = updated.get("review_required", False)
+            # Clear authorization_required / review_required only when evidence is not the block
+            # (evidence block stays blocked).
+        else:
+            if adm in ("review_required", "authorization_required"):
+                # Grant satisfied human review/auth; remaining review_required is from
+                # other layers (profile/overlay) — keep as-is.
+                pass
+            updated["review_satisfied"] = True
+            updated["authorization_satisfied"] = True
+        updated["grant_layer_satisfaction"] = satisfaction
+        envelope = metadata.get("capability_envelope")
+        if envelope:
+            updated["capability_envelope"] = envelope
 
     return updated

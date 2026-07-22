@@ -48,8 +48,8 @@ def _get(url: str, path: str) -> dict:
 def test_health(server_url: str) -> None:
     data = _get(server_url, "/v0/health")
     assert data["status"] == "ok"
-    assert data["api_version"] == "v0.6"
-    assert data["version"] == "0.8.0"
+    assert data["api_version"] == "v1.0"
+    assert data["version"] == "1.0.0"
 
 
 def test_policy(server_url: str) -> None:
@@ -68,11 +68,21 @@ def test_evaluate_blocked(server_url: str) -> None:
             "requested_action": "prioritize_next_run",
             "deployment_profile": "P2_analysis_assistant",
             "domain_overlay": "generic_lab_v0",
-            "context": {"evidence_state": "E2_preliminary_signal"},
+            "context": {
+                "evidence_state": "E2_preliminary_signal",
+                "structured_action": {
+                    "tool_name": "lab_scheduler.prioritize",
+                    "action_intent": "prioritize_next_run",
+                    "target_resource": "lab_scheduler",
+                    "external_effects_declared": True,
+                    "external_effects": ["external"],
+                },
+            },
         },
     )
     assert data["admissibility"] == "blocked"
     assert len(data["next_admissible_steps"]) > 0
+    assert data.get("artifact_id", "").startswith("AKTA-DECISION-")
 
 
 def test_card_validate(server_url: str) -> None:
@@ -108,7 +118,16 @@ def test_export_pf_and_pcs(server_url: str) -> None:
             "requested_action": "prioritize_next_run",
             "deployment_profile": "P2_analysis_assistant",
             "domain_overlay": "generic_lab_v0",
-            "context": {"evidence_state": "E2_preliminary_signal"},
+            "context": {
+                "evidence_state": "E2_preliminary_signal",
+                "structured_action": {
+                    "tool_name": "lab_scheduler.prioritize",
+                    "action_intent": "prioritize_next_run",
+                    "target_resource": "lab_scheduler",
+                    "external_effects_declared": True,
+                    "external_effects": ["external"],
+                },
+            },
         },
     )
     record = _post(server_url, "/v0/records", {"decision": decision})
@@ -175,3 +194,76 @@ def test_rate_limit_returns_429() -> None:
         assert exc_info.value.code == 429
     finally:
         server.shutdown()
+
+
+def test_rejects_caller_filesystem_paths(server_url: str) -> None:
+    import urllib.error
+    import urllib.request
+
+    req = urllib.request.Request(
+        f"{server_url}/v0/records",
+        data=json.dumps({"decision_path": "C:/secret/decision.json"}).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with pytest.raises(urllib.error.HTTPError) as exc_info:
+        urllib.request.urlopen(req)
+    assert exc_info.value.code == 400
+    body = json.loads(exc_info.value.read().decode("utf-8"))
+    assert body["error_code"] == "caller_filesystem_paths_forbidden"
+
+
+def test_production_mode_requires_service_token() -> None:
+    import urllib.error
+    import urllib.request
+
+    server = create_server(
+        "127.0.0.1",
+        0,
+        ROOT / "policy",
+        ROOT / "overlays",
+        production_mode=True,
+        service_tokens=["svc-token-1"],
+    )
+    host, port = server.server_address
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    url = f"http://{host}:{port}"
+    try:
+        with pytest.raises(urllib.error.HTTPError) as exc_info:
+            _get(url, "/v0/health")
+        assert exc_info.value.code == 401
+        req = urllib.request.Request(
+            f"{url}/v0/health",
+            headers={"Authorization": "Bearer svc-token-1"},
+        )
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        assert data["production_mode"] is True
+    finally:
+        server.shutdown()
+
+
+def test_non_loopback_bind_requires_credentials() -> None:
+    with pytest.raises(ValueError, match="Non-loopback"):
+        create_server("0.0.0.0", 0, ROOT / "policy", ROOT / "overlays")
+
+
+def test_error_detail_sanitizes_filesystem_paths() -> None:
+    from adapters.generic_rest.server import _sanitize_error_detail
+
+    assert _sanitize_error_detail(r"C:\Users\secret\policy.yaml missing") == "request failed"
+    assert _sanitize_error_detail("/var/akta/policy/foo.yaml") == "request failed"
+    assert _sanitize_error_detail("No such file or directory") == "request failed"
+    assert _sanitize_error_detail("invalid structured_action") == "invalid structured_action"
+
+
+def test_ignores_xff_without_trusted_proxy() -> None:
+    from adapters.generic_rest.server import AKTARESTHandler
+
+    handler = object.__new__(AKTARESTHandler)
+    handler.headers = {"X-Forwarded-For": "203.0.113.9"}  # type: ignore[assignment]
+    handler.client_address = ("127.0.0.1", 12345)
+    handler.trusted_proxy = False
+    handler.production_mode = False
+    assert handler._client_key().startswith("127.0.0.1")

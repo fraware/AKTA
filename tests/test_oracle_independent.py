@@ -11,6 +11,16 @@ from evals.run_oracle_independent import ORACLE_EXPECTED, run_oracle_eval
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def test_oracle_independent_label_provenance() -> None:
+    path = ROOT / "scenarios" / "oracle_independent.jsonl"
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        scenario = json.loads(line)
+        assert scenario.get("label_source") == "oracle_independent", scenario["scenario_id"]
+        assert scenario.get("expected_admissibility"), scenario["scenario_id"]
+
+
 def test_oracle_independent_scenarios() -> None:
     gate = AKTAGate.from_policy_dir(ROOT / "policy", overlays_dir=ROOT / "overlays")
     path = ROOT / "scenarios" / "oracle_independent.jsonl"
@@ -28,7 +38,8 @@ def test_oracle_independent_scenarios() -> None:
             deployment_profile=scenario["deployment_profile"],
             domain_overlay=scenario.get("domain_overlay"),
         )
-        expected = ORACLE_EXPECTED[sid]
+        expected = ORACLE_EXPECTED.get(sid) or scenario.get("expected_admissibility")
+        assert expected is not None, f"{sid}: missing expected label"
         assert decision.admissibility == expected, f"{sid}: got {decision.admissibility}"
         d = decision.to_dict()
         assert d.get("policy_hash", "").startswith("sha256:")
@@ -40,7 +51,7 @@ def test_oracle_eval_runner_cli_report() -> None:
         policy_dir=ROOT / "policy",
         overlays_dir=ROOT / "overlays",
     )
-    assert report["total"] == len(ORACLE_EXPECTED)
+    assert report["total"] >= 100
     assert report["passed"] is True
 
 

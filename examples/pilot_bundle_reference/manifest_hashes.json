@@ -1,0 +1,33 @@
+{
+  "pilot_bundle_version": "akta-pilot-v1.0",
+  "files": {
+    "00_vsa_report.json": "sha256:3a21c992168d137265b2bef3c065aaaf904ba08f103611566680f334de8597ec",
+    "01_akta_decision_pre_grant.json": "sha256:a29ea84e5c8591fa588c213d3b14cbff8a95f235404c23fed29573e18d39cfdc",
+    "02_akta_record.json": "sha256:d56d12a5aebc3dfdd6d34b412f0ff3d0cb90d49d95becb00cb7d98ef8767d0cb",
+    "03_review_trigger.json": "sha256:09be6e243d2d60cd4cd24a649ee23440047d555d2147a91484e87ceb90d45d1c",
+    "04_scope_review_summary.json": "sha256:878f1991fd26861d3951d6634a4aca9b8d429a93abb28ef6b43588d87b5e490d",
+    "05_scope_packet.json": "sha256:f85de40b4bf7faabaa5b42c87e5b68c32a1f34c5bb0480841ff8fc08bf7991cd",
+    "06_scope_decision.json": "sha256:489f66ad38a864b15a738845c891a6557d2acf1b9d5c77f00fa6f71c8408a3e0",
+    "07_scope_grant.json": "sha256:5866474c8dc0d2145358fa479f1a99606a7f5987582d100e69da8d467cb3b487",
+    "08_akta_decision_after_grant.json": "sha256:6009c767617faf02005efa6fe3b86f37c570e22548850b76ff85e59069eb7a0c",
+    "09_pf_obligation.json": "sha256:5c15d426c97d5349759c7fd3d175c9b40ab619e7d8178e20342bb211db3c5204",
+    "10_pf_trace_certificate.json": "sha256:c6a8817c4d81a77afd6ba4004a56a2de3883028394b7827244d54b180bb28dad",
+    "11_pcs_bundle/akta_decision.json": "sha256:a29ea84e5c8591fa588c213d3b14cbff8a95f235404c23fed29573e18d39cfdc",
+    "11_pcs_bundle/akta_record.json": "sha256:d56d12a5aebc3dfdd6d34b412f0ff3d0cb90d49d95becb00cb7d98ef8767d0cb",
+    "11_pcs_bundle/domain_overlay_hash.txt": "sha256:aff97a5c94f9f99549b9f4043617ba8dcfce973312fde13d63101d173bcb0860",
+    "11_pcs_bundle/manifest.json": "sha256:3e0aef506d152f30fbdec72c2e226ee366395555869b562db7ac60047497729c",
+    "11_pcs_bundle/pf_obligation.json": "sha256:5c15d426c97d5349759c7fd3d175c9b40ab619e7d8178e20342bb211db3c5204",
+    "11_pcs_bundle/policy_hash.txt": "sha256:918d683b234533a1c7da8178e581eff636b2786f9b7cc373873ea805994b15ff",
+    "11_pcs_bundle/review_trigger.json": "sha256:09be6e243d2d60cd4cd24a649ee23440047d555d2147a91484e87ceb90d45d1c",
+    "11_pcs_bundle/scope_decision.json": "sha256:489f66ad38a864b15a738845c891a6557d2acf1b9d5c77f00fa6f71c8408a3e0",
+    "11_pcs_bundle/scope_grant.json": "sha256:5866474c8dc0d2145358fa479f1a99606a7f5987582d100e69da8d467cb3b487",
+    "11_pcs_bundle/scope_review_packet.json": "sha256:f85de40b4bf7faabaa5b42c87e5b68c32a1f34c5bb0480841ff8fc08bf7991cd",
+    "11_pcs_bundle/scope_review_summary.json": "sha256:878f1991fd26861d3951d6634a4aca9b8d429a93abb28ef6b43588d87b5e490d",
+    "11_pcs_bundle/tool_registry_hash.txt": "sha256:65fa2df40f94b62287a9c223b9df7d5199c83cae1283e835a8526bc52aee32c7",
+    "11_pcs_bundle/vsa_report.json": "sha256:3a21c992168d137265b2bef3c065aaaf904ba08f103611566680f334de8597ec",
+    "12_scientific_memory_import.json": "sha256:60dd7e4ac997c85e5dfa7974d2b74f56642ffa7d80f52179d48f07c64421fd85",
+    "13_pcs_bench_report.json": "sha256:8e0921b64adc83b69d866c4eb568ab8719cd85146b5e22cfe47e9e0ce153e8ed",
+    "14_quality_report.json": "sha256:5159b806b3ec005f430cdbc728c6a09a4036339be0beb99d967a14394c48e191",
+    "reconstruction_report.md": "sha256:c8053f4e4738b2778541bf060779e4e2c167a64f617b4cea31073109fc48d81f"
+  }
+}

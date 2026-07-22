@@ -272,6 +272,19 @@ class AKTADecision:
                     if self._data.get("policy_integrity_mode")
                     else {}
                 ),
+                **(
+                    {"policy": self._data["policy"]}
+                    if self._data.get("policy")
+                    else {}
+                ),
+            },
+            "policy": self._data.get("policy") or {
+                "bundle_version": self._data["policy_version"],
+                "effective_policy_hash": self._data["policy_hash"],
+                "manifest_hash": self._data["policy_hash"],
+                "integrity_mode": self._data.get("policy_integrity_mode", "dev_unsigned"),
+                "signing_key_id": None,
+                "file_versions": self._data.get("policy_file_versions") or {},
             },
             "integrations": {
                 "vsa_report_ref": ctx.get("vsa_report_ref"),

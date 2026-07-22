@@ -27,6 +27,7 @@ MANIFEST_FILES = [
     "admissibility_matrix.yaml",
     "evidence_to_action_matrix.yaml",
     "evidence_to_action_rules.yaml",
+    "scope_grant_override_rules.yaml",
     "default_tool_registry.yaml",
     "tool_to_requested_scope.yaml",
 ]
@@ -53,8 +54,8 @@ def build_manifest(*, algorithm: str = "auto") -> dict:
         files[name] = hash_file_content(path.read_text(encoding="utf-8"))
 
     manifest: dict = {
-        "version": "akta-policy-manifest-v0.6",
-        "bundle_version": "akta-core-v0.6",
+        "version": "akta-policy-manifest-v1.0",
+        "bundle_version": "akta-core-v1.0",
         "files": files,
     }
 
@@ -91,12 +92,44 @@ def main() -> None:
         default="auto",
         help="Signature algorithm (auto prefers Ed25519 when AKTA_POLICY_SIGNING_KEY set)",
     )
+    parser.add_argument(
+        "--effective",
+        action="store_true",
+        default=True,
+        help="Also write effective_policy_manifest.json (default: true)",
+    )
+    parser.add_argument(
+        "--no-effective",
+        action="store_true",
+        help="Skip writing effective_policy_manifest.json",
+    )
     args = parser.parse_args()
     manifest = build_manifest(algorithm=args.algorithm)
     out = POLICY_DIR / "policy_manifest.yaml"
     out.write_text(yaml.dump(manifest, sort_keys=False, default_flow_style=False), encoding="utf-8")
     algo = manifest.get("signature", {}).get("algorithm", "none")
     print(f"Wrote {out} (signature: {algo})")
+
+    if args.effective and not args.no_effective:
+        from akta.effective_policy import write_effective_policy_manifest
+        from akta.policy_signing import detect_integrity_mode, INTEGRITY_MODE_DEPLOYMENT_HMAC_ATTESTED
+
+        integrity_mode = INTEGRITY_MODE_DEPLOYMENT_HMAC_ATTESTED
+        try:
+            integrity_mode = detect_integrity_mode(
+                POLICY_DIR,
+                manifest,
+                production=False,
+                signed_required=False,
+            )
+        except Exception:
+            pass
+        effective_path = write_effective_policy_manifest(
+            POLICY_DIR,
+            overlays_dir=ROOT / "overlays",
+            integrity_mode=integrity_mode,
+        )
+        print(f"Wrote {effective_path}")
 
 
 if __name__ == "__main__":

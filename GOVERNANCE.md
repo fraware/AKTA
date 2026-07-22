@@ -12,7 +12,15 @@ AKTA is an open protocol with a reference implementation under the MIT license. 
 
 ## Versioning
 
-AKTA follows semantic versioning for the reference implementation package (`akta-protocol`, currently v0.7.1). Schema versions are embedded in artifact metadata (e.g., `akta-core-v0.5`, `akta-record-v0.5`).
+AKTA follows semantic versioning for the reference implementation package (`akta-protocol`, currently v1.0.0). Schema versions are embedded in artifact metadata (e.g., `akta-core-v1.0`, `akta-record-v0.5`).
+
+See also `policy/scope_compatibility_manifest.json` for SCOPE contract pins and [docs/policy_integrity.md](docs/policy_integrity.md) for effective policy provenance.
+
+## Compatibility and release keys
+
+- SCOPE/AKTA contract negotiation uses pinned versions in `policy/scope_compatibility_manifest.json` (strict mode: exact match).
+- Policy HMAC / Ed25519 release-key rotation: revoke compromised key IDs in the signing registry, regenerate `effective_policy_manifest.json`, and fail closed under `AKTA_PRODUCTION_MODE` / `AKTA_REQUIRE_SIGNED_POLICY`. See [docs/policy_integrity.md](docs/policy_integrity.md).
+- RFCs for protocol changes belong in design review before schema freezes; prefer small, versioned schema bumps over silent semantic drift.
 
 ## Non-certification
 

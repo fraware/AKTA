@@ -1,0 +1,25 @@
+{
+  "manifest_version": "akta-scope-compatibility-v1.0",
+  "akta_package_version": "1.0.0",
+  "akta_review_contract_version": "scope-akta-review-v1.0",
+  "grant_schema_version": "akta-scope-grant-v1.0",
+  "capability_envelope_version": "akta-capability-envelope-v1.0",
+  "summary_contract_version": "scope-akta-review-summary-v1.0",
+  "fixture_contract_version": "akta-scope-contract-v1.0",
+  "compatible_scope_packages": {
+    "scope-protocol": ["0.9.0", "0.9.1", "1.0.0"],
+    "scope-core": ["scope-core-v0.9", "scope-core-v1.0"]
+  },
+  "compatible_scope_policy_versions": [
+    "scope-policy-v0.9",
+    "scope-policy-v1.0"
+  ],
+  "strict_exact_versions": {
+    "akta_review_contract_version": "scope-akta-review-v1.0",
+    "grant_schema_version": "akta-scope-grant-v1.0",
+    "capability_envelope_version": "akta-capability-envelope-v1.0",
+    "summary_contract_version": "scope-akta-review-summary-v1.0",
+    "fixture_contract_version": "akta-scope-contract-v1.0"
+  },
+  "summary_status_values": ["completed", "session_required"]
+}
