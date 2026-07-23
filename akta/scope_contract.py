@@ -43,6 +43,15 @@ SCOPE_RUNTIME_CONTRACT_COMPAT: dict[str, frozenset[str]] = {
         "akta-scope-contract-v2.0",
         "akta-scope-contract-v1.0",
     }),
+    "scope-core-v2.1": frozenset({
+        "akta-scope-contract-v2.0",
+    }),
+    "2.1.0": frozenset({
+        "akta-scope-contract-v2.0",
+    }),
+    "2.1.1": frozenset({
+        "akta-scope-contract-v2.0",
+    }),
 }
 
 # v0.2 review_scope vocabulary -> v0.3 requested_scope (compat for SCOPE simulator).

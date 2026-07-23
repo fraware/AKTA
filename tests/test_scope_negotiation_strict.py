@@ -9,14 +9,23 @@ from akta.scope_negotiation import consume_scope_summary, negotiate_scope_contra
 
 def _full_peer() -> dict[str, str]:
     return {
-        "scope_package_version": "2.0.0",
-        "scope_core_version": "scope-core-v2.0",
+        "scope_package_version": "2.1.0",
+        "scope_core_version": "scope-core-v2.1",
         "akta_review_contract_version": "scope-akta-review-v1.0",
         "grant_schema_version": "scope-grant-v2",
         "envelope_schema_version": "scientific-authorization-envelope-v2",
         "summary_schema_version": "scope-akta-review-summary-v1.0",
-        "policy_manifest_version": "scope-policy-v2.0",
+        "policy_manifest_version": "scope-policy-v2.1",
     }
+
+
+def test_strict_rejects_legacy_envelope_ids() -> None:
+    peer = _full_peer()
+    peer["envelope_schema_version"] = "akta-capability-envelope-v1.0"
+    peer["grant_schema_version"] = "akta-scope-grant-v1.0"
+    result = negotiate_scope_contract(peer_versions=peer, strict=True)
+    assert not result.ok
+    assert any("legacy" in e for e in result.errors)
 
 
 def test_strict_rejects_missing_peer_versions() -> None:
