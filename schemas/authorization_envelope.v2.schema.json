@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scientific-authorization.dev/schemas/authorization_envelope.v2.schema.json",
+  "title": "Scientific Authorization Envelope v2",
+  "description": "Canonical capability-limited authorization envelope shared by SCOPE and AKTA. Beta/reference contract.",
+  "type": "object",
+  "required": [
+    "envelope_version",
+    "capability_id",
+    "family",
+    "operation",
+    "target",
+    "allowed_tools",
+    "blocked_tools",
+    "cardinality",
+    "environment",
+    "responsibility_ceiling",
+    "constraints",
+    "expiration"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "envelope_version": {
+      "type": "string",
+      "const": "scientific-authorization-envelope-v2"
+    },
+    "capability_id": {
+      "type": "string",
+      "pattern": "^CAP-[0-9A-Fa-f]{32}$"
+    },
+    "family": {
+      "type": "string",
+      "enum": [
+        "interpretation",
+        "recommendation",
+        "protocol",
+        "experiment_plan",
+        "queue",
+        "permissions",
+        "execution",
+        "publication",
+        "memory"
+      ]
+    },
+    "operation": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "protocol",
+            "instrument",
+            "sample_set",
+            "dataset",
+            "publication",
+            "memory_namespace",
+            "tool_permission",
+            "queue_entry"
+          ]
+        },
+        "protocol_id": { "type": "string" },
+        "instrument_id": { "type": "string" },
+        "sample_set_id": { "type": "string" },
+        "dataset_id": { "type": "string" },
+        "publication_id": { "type": "string" },
+        "memory_namespace": { "type": "string" },
+        "tool_id": { "type": "string" },
+        "queue_entry_id": { "type": "string" },
+        "protocol_version": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "allowed_tools": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "blocked_tools": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "cardinality": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["single", "bounded", "unbounded"]
+        },
+        "maximum_uses": { "type": ["integer", "null"], "minimum": 1 },
+        "maximum_items": { "type": ["integer", "null"], "minimum": 1 },
+        "max": { "type": ["integer", "null"], "minimum": 1 },
+        "consumed_uses": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "tenant_id": { "type": "string" },
+        "project_id": { "type": "string" },
+        "domain_overlay": { "type": "string" },
+        "deployment_id": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "responsibility_ceiling": {
+      "type": "string",
+      "enum": [
+        "R0_none",
+        "R1_observation",
+        "R2_interpretation",
+        "R3_recommendation",
+        "R4_methodological_modification",
+        "R5_execution_preparation",
+        "R6_physical_execution",
+        "R7_publication",
+        "R8_memory"
+      ]
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "expiration": {
+      "type": "object",
+      "properties": {
+        "absolute_expiration": {
+          "type": ["string", "null"],
+          "description": "ISO-8601 UTC timestamp or null"
+        },
+        "expires_after": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "expires_on": {
+          "type": "string",
+          "description": "Legacy single-event alias; prefer expires_after"
+        },
+        "mode": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
