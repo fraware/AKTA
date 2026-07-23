@@ -15,6 +15,13 @@ from akta.evaluation_types import EvaluationLayer
 from akta.policy_integrity import is_production_mode, require_signed_policy
 from akta.tool_registry import ToolSpec
 
+# Legacy structured-action aliases → shared family vocabulary.
+_LEGACY_FAMILY_ALIASES: dict[str, str] = {
+    "scientific_interpretation": "interpretation",
+    "queue_allocation": "queue",
+    "tool_permission": "permissions",
+    "scientific_memory": "memory",
+}
 KNOWN_ACTION_TYPES = frozenset({
     "A0_informational_or_exploratory",
     "A1_retrieval_or_summary",
@@ -30,13 +37,13 @@ KNOWN_ACTION_TYPES = frozenset({
 })
 
 TOOL_FAMILY_HINTS: dict[str, str] = {
-    "literature": "scientific_interpretation",
+    "literature": "interpretation",
     "protocol": "protocol",
     "experiment": "experiment_plan",
-    "lab_scheduler": "queue_allocation",
+    "lab_scheduler": "queue",
     "robot": "execution",
     "publication": "publication",
-    "memory": "scientific_memory",
+    "memory": "memory",
     "ehr": "recommendation",
 }
 
@@ -122,10 +129,18 @@ def validate_structured_action_declaration(
             f"tool_name mismatch: declaration {declared_tool!r} != requested {requested_tool!r}"
         )
 
-    family = declaration.get("capability_family") or declaration.get("action_family")
+    family = (
+        declaration.get("family")
+        or declaration.get("capability_family")
+        or declaration.get("action_family")
+    )
+    if family:
+        family = _LEGACY_FAMILY_ALIASES.get(str(family), str(family))
     if family and family not in CAPABILITY_FAMILIES:
-        errors.append(f"unknown capability_family: {family!r}")
+        errors.append(f"unknown capability family: {family!r}")
     tool_family = _tool_family(requested_tool)
+    if tool_family:
+        tool_family = _LEGACY_FAMILY_ALIASES.get(tool_family, tool_family)
     if family and tool_family and family != tool_family:
         errors.append(
             f"action/tool family mismatch: declaration {family!r} vs tool hint {tool_family!r}"

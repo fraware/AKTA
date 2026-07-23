@@ -1,8 +1,12 @@
-"""Authorization capability envelopes (directive §3).
+"""Shared authorization capability envelopes (scientific-authorization-envelope-v2).
 
-Scalar SCOPE scope ranks remain as a backward-compatible adapter for existing
-fixtures. New grant paths should carry a versioned capability_envelope; AKTA
-may only narrow within the same capability_family (set inclusion).
+AKTA no longer defines an independent capability-envelope vocabulary.
+Security-critical comparison uses EXACT shared fields only:
+envelope_version, capability_id, family, operation, target, allowed_tools,
+blocked_tools, cardinality, environment, responsibility_ceiling, constraints,
+expiration.
+
+Legacy scalar adapters exist only for unit tests and migration tooling.
 """
 
 from __future__ import annotations
@@ -10,97 +14,125 @@ from __future__ import annotations
 from typing import Any
 
 from akta.errors import GrantVerificationError
+from akta.shared_contracts import (
+    ENVELOPE_VERSION,
+    _contracts,
+    authorization_envelope_schema_hash,
+    authorization_schema_provenance,
+    capability_families,
+    family_operations,
+)
 
-ENVELOPE_VERSION = "akta-capability-envelope-v1.0"
 
-CAPABILITY_FAMILIES: frozenset[str] = frozenset({
-    "scientific_interpretation",
-    "recommendation",
-    "protocol",
-    "experiment_plan",
-    "queue_allocation",
-    "tool_permission",
-    "execution",
-    "publication",
-    "scientific_memory",
-})
+# Lazy-compatible frozenset: callers may import CAPABILITY_FAMILIES at module load.
+def _families() -> frozenset[str]:
+    return capability_families()
 
-# Legacy scalar approved_scope → initial family mapping (compat adapter).
-LEGACY_SCOPE_TO_FAMILY: dict[str, str] = {
-    "draft_only": "scientific_interpretation",
-    "protocol_draft": "protocol",
-    "active_protocol_update": "protocol",
-    "single_validation_plan": "experiment_plan",
-    "single_validation_run_draft": "experiment_plan",
-    "single_run_queue_priority": "queue_allocation",
-    "robot_queue_submission": "execution",
-    "execution_payload_preparation": "execution",
-    "publication_claim": "publication",
-    "scientific_memory_import": "scientific_memory",
-}
+
+class _FamilyProxy(frozenset):
+    """Proxy so ``x in CAPABILITY_FAMILIES`` resolves shared vocabulary at use time."""
+
+    def __contains__(self, item: object) -> bool:  # type: ignore[override]
+        return item in _families()
+
+    def __iter__(self):  # type: ignore[override]
+        return iter(_families())
+
+    def __len__(self) -> int:  # type: ignore[override]
+        return len(_families())
+
+
+CAPABILITY_FAMILIES: frozenset[str] = _FamilyProxy()  # type: ignore[assignment]
+
+
+def _api():
+    return _contracts()
+
+
+def get_envelope_version() -> str:
+    return ENVELOPE_VERSION
+
+
+def get_capability_families() -> frozenset[str]:
+    return capability_families()
 
 
 def extract_capability_envelope(scope_grant: dict[str, Any]) -> dict[str, Any] | None:
-    """Return capability_envelope from grant root or authorization block."""
+    """Return shared authorization envelope from grant root or authorization block.
+
+    Accepts only shared field names. Looks for ``authorization_envelope`` (v2)
+    or legacy ``capability_envelope`` key that already uses shared fields.
+    """
     auth = scope_grant.get("authorization") or {}
-    envelope = scope_grant.get("capability_envelope") or auth.get("capability_envelope")
-    return dict(envelope) if isinstance(envelope, dict) else None
+    for key in ("authorization_envelope", "capability_envelope"):
+        envelope = scope_grant.get(key) or auth.get(key)
+        if isinstance(envelope, dict):
+            return dict(envelope)
+    return None
 
 
 def validate_capability_envelope(envelope: dict[str, Any]) -> list[str]:
-    """Return validation errors for an envelope (empty list = ok)."""
-    errors: list[str] = []
-    version = envelope.get("envelope_version")
-    if version != ENVELOPE_VERSION:
-        errors.append(
-            f"capability_envelope.envelope_version must be {ENVELOPE_VERSION!r}, "
-            f"got {version!r}"
-        )
-    family = envelope.get("capability_family")
-    if family not in CAPABILITY_FAMILIES:
-        errors.append(f"unknown capability_family: {family!r}")
-    if not envelope.get("operation"):
-        errors.append("capability_envelope.operation is required")
-    if "allowed_tools" not in envelope:
-        errors.append("capability_envelope.allowed_tools field is required")
-    elif not isinstance(envelope.get("allowed_tools"), list):
-        errors.append("capability_envelope.allowed_tools must be a list")
-    level = envelope.get("max_responsibility_level")
-    if not isinstance(level, str) or not level.startswith("R"):
-        errors.append("capability_envelope.max_responsibility_level must look like R0–R9")
-    return errors
+    """Return validation errors for a shared envelope (empty list = ok)."""
+    return list(_api().validate_envelope_dict(envelope, raise_on_error=False))
 
 
 def legacy_scope_to_envelope(
     *,
     approved_scope: str,
-    allowed_tools: list[str] | None,
-    expiration: str | None = None,
-    max_responsibility_level: str = "R5",
+    allowed_tools: list[str] | None = None,
+    blocked_tools: list[str] | None = None,
+    expiration: str | dict[str, Any] | None = None,
+    responsibility_ceiling: str = "R4_methodological_modification",
+    target: dict[str, Any] | None = None,
+    environment: dict[str, Any] | None = None,
+    cardinality: dict[str, Any] | None = None,
+    constraints: dict[str, Any] | None = None,
+    # Deprecated kwargs retained for migration callers — NOT used in comparison.
+    max_responsibility_level: str | None = None,
 ) -> dict[str, Any]:
-    """Build a synthetic envelope from scalar approved_scope (compat only)."""
-    family = LEGACY_SCOPE_TO_FAMILY.get(approved_scope, "tool_permission")
-    tools = list(allowed_tools) if allowed_tools is not None else []
-    return {
-        "envelope_version": ENVELOPE_VERSION,
-        "capability_family": family,
-        "operation": approved_scope or "unspecified",
-        "target": None,
-        "allowed_tools": tools,
-        "cardinality": "single",
-        "environment": None,
-        "max_responsibility_level": max_responsibility_level,
-        "constraints": {},
-        "expiration": expiration,
-        "legacy_approved_scope": approved_scope,
+    """Build a shared-schema envelope from a legacy scalar scope (compat only).
+
+    Forbidden as an authorization driver in pilot/release/cross_repo/production.
+    """
+    short_map = {
+        "R0": "R0_none",
+        "R1": "R1_observation",
+        "R2": "R2_interpretation",
+        "R3": "R3_recommendation",
+        "R4": "R4_methodological_modification",
+        "R5": "R5_execution_preparation",
+        "R6": "R6_physical_execution",
+        "R7": "R7_publication",
+        "R8": "R8_memory",
     }
+    # Prefer explicit shared ceiling; map short R-levels from migration callers.
+    if max_responsibility_level is not None and responsibility_ceiling == (
+        "R4_methodological_modification"
+    ):
+        ceiling = short_map.get(max_responsibility_level, max_responsibility_level)
+    else:
+        ceiling = short_map.get(responsibility_ceiling, responsibility_ceiling)
 
+    exp: dict[str, Any]
+    if isinstance(expiration, dict):
+        exp = dict(expiration)
+    elif isinstance(expiration, str) and expiration:
+        exp = {"absolute_expiration": expiration, "expires_after": []}
+    else:
+        exp = {"absolute_expiration": None, "expires_after": []}
 
-def _responsibility_rank(level: str | None) -> int:
-    if not level or not str(level).startswith("R"):
-        return 99
-    digits = "".join(ch for ch in str(level)[1:] if ch.isdigit())
-    return int(digits) if digits else 99
+    env = _api().envelope_from_legacy_scope(
+        approved_scope,
+        allowed_tools=allowed_tools,
+        blocked_tools=blocked_tools,
+        target=target,
+        environment=environment,
+        responsibility_ceiling=ceiling,
+        expiration=exp,
+        cardinality=cardinality,
+        constraints=constraints,
+    )
+    return env.to_dict()
 
 
 def envelope_narrows(
@@ -109,39 +141,14 @@ def envelope_narrows(
 ) -> bool:
     """True when requested is a set-inclusion narrowing of granted (same family).
 
-    Cross-family envelopes are incomparable (always False). Narrowing requires:
-    same family; requested tools ⊆ granted tools; requested cardinality ≤ granted;
-    requested responsibility ≤ granted; environment equal or granted unrestricted;
-    requested expiration not after granted expiration when both set.
+    Checks: family, operation, target, allowed-tools subset, blocked-tools
+    superset, cardinality, environment, responsibility ceiling, constraints,
+    expiration. Unknown values invalidate (raise → treated as not covering).
     """
-    if granted.get("capability_family") != requested.get("capability_family"):
-        return False  # cross-family grants are incomparable
-    granted_tools = set(granted.get("allowed_tools") or [])
-    requested_tools = set(requested.get("allowed_tools") or [])
-    if not requested_tools.issubset(granted_tools):
+    try:
+        return bool(_api().envelope_covers(granted, requested))
+    except Exception:
         return False
-    # Cardinality: unbounded covers bounded/single; bounded covers single.
-    order = {"single": 0, "bounded": 1, "unbounded": 2}
-    g_card = order.get(str(granted.get("cardinality") or "single"), 0)
-    r_card = order.get(str(requested.get("cardinality") or "single"), 0)
-    if r_card > g_card:
-        return False
-    if _responsibility_rank(requested.get("max_responsibility_level")) > _responsibility_rank(
-        granted.get("max_responsibility_level")
-    ):
-        return False
-    g_env = granted.get("environment")
-    r_env = requested.get("environment")
-    if g_env not in (None, "", "*") and r_env not in (None, "", "*") and g_env != r_env:
-        return False
-    if g_env not in (None, "", "*") and r_env in (None, "", "*"):
-        # Requested unrestricted environment is broader than a granted pinned env.
-        return False
-    g_exp = granted.get("expiration")
-    r_exp = requested.get("expiration")
-    if g_exp and r_exp and str(r_exp) > str(g_exp):
-        return False
-    return True
 
 
 def authorization_covers(
@@ -151,14 +158,17 @@ def authorization_covers(
     granted_scope: str = "",
     requested_scope: str = "",
     scalar_covers: Any = None,
+    allow_legacy_scalar: bool = False,
 ) -> tuple[bool, str]:
-    """Primary authorization comparator: prefer envelopes; scalar is legacy only.
+    """Primary authorization comparator: shared envelopes only by default.
 
     Returns ``(covers, comparator)`` where comparator is ``envelope`` or
-    ``legacy_scalar``.
+    ``legacy_scalar`` (legacy only when explicitly allowed for unit/migration).
     """
     if granted_envelope is not None and requested_envelope is not None:
         return envelope_narrows(granted_envelope, requested_envelope), "envelope"
+    if not allow_legacy_scalar:
+        return False, "envelope_required"
     if scalar_covers is None:
         from akta.review_loop import grant_scope_covers_action
 
@@ -172,7 +182,7 @@ def resolve_grant_envelope(
     require_envelope: bool = False,
     allow_legacy_adapter: bool = True,
 ) -> dict[str, Any]:
-    """Resolve envelope from grant or legacy scalar adapter.
+    """Resolve shared envelope from grant or legacy scalar adapter.
 
     Raises GrantVerificationError when require_envelope and none present /
     legacy adapter disabled.
@@ -184,17 +194,11 @@ def resolve_grant_envelope(
             raise GrantVerificationError("; ".join(errors), errors=errors)
         return envelope
 
-    if require_envelope and not allow_legacy_adapter:
+    if require_envelope or not allow_legacy_adapter:
         raise GrantVerificationError(
-            "capability_envelope required; scalar scope ranks are not sufficient "
-            "(directive §3)",
-            errors=["capability_envelope_missing"],
-        )
-
-    if not allow_legacy_adapter:
-        raise GrantVerificationError(
-            "capability_envelope missing and legacy scalar adapter disabled",
-            errors=["capability_envelope_missing"],
+            "authorization_envelope required; scalar scope ranks are not sufficient "
+            "(P0-B)",
+            errors=["authorization_envelope_missing"],
         )
 
     from akta.scope_contract import _scope_grant_approved_scope
@@ -207,9 +211,27 @@ def resolve_grant_envelope(
         tools = list(auth.get("allowed_tools") or [])
     else:
         tools = None
+    if "blocked_tools" in scope_grant:
+        blocked: list[str] | None = list(scope_grant.get("blocked_tools") or [])
+    elif "blocked_tools" in auth:
+        blocked = list(auth.get("blocked_tools") or [])
+    else:
+        blocked = None
     expires = scope_grant.get("expires_at") or auth.get("expires_at")
+    exp_obj = scope_grant.get("expiration") or auth.get("expiration")
     return legacy_scope_to_envelope(
         approved_scope=approved,
         allowed_tools=tools,
-        expiration=expires,
+        blocked_tools=blocked,
+        expiration=exp_obj if isinstance(exp_obj, dict) else expires,
     )
+
+
+def schema_identity() -> dict[str, str]:
+    """Envelope + grant schema identity for cross-repo acceptance."""
+    return {
+        **authorization_schema_provenance(),
+        "envelope_schema_hash": authorization_envelope_schema_hash(),
+        "family_count": str(len(capability_families())),
+        "operation_families": str(len(family_operations())),
+    }
