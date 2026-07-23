@@ -8,8 +8,30 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+__version__ = "2.1.0"
 ENVELOPE_VERSION = "scientific-authorization-envelope-v2"
-PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+PACKAGE_VERSION = __version__
+
+
+def _data_root() -> Path:
+    """Resolve schemas/vocabularies/conformance for source tree or installed wheel.
+
+    Source layout keeps artifacts at the vendor root (sibling of ``python/``).
+    Installed wheels place them next to this package via hatch force-include.
+    """
+    here = Path(__file__).resolve().parent
+    if (here / "schemas").is_dir():
+        return here
+    vendor_root = here.parents[1]
+    if (vendor_root / "schemas").is_dir():
+        return vendor_root
+    raise FileNotFoundError(
+        "scientific-authorization-contracts data root not found "
+        "(expected schemas/ next to package or at vendor root)"
+    )
+
+
+PACKAGE_ROOT = _data_root()
 SCHEMAS_DIR = PACKAGE_ROOT / "schemas"
 VOCAB_DIR = PACKAGE_ROOT / "vocabularies"
 CONFORMANCE_DIR = PACKAGE_ROOT / "conformance"
@@ -97,6 +119,10 @@ def grant_schema_hash() -> str:
     return schema_file_hash("scope_grant.v2.schema.json")
 
 
+def grant_status_schema_hash() -> str:
+    return schema_file_hash("scope_grant_status.v1.schema.json")
+
+
 def load_conformance_cases(kind: str) -> list[dict[str, Any]]:
     root = CONFORMANCE_DIR / kind
     if not root.is_dir():
@@ -105,6 +131,40 @@ def load_conformance_cases(kind: str) -> list[dict[str, Any]]:
     for path in sorted(root.glob("*.json")):
         cases.append(_load_json(path))
     return cases
+
+
+def release_artifact_hash() -> str:
+    """Stable hash over schemas, vocabularies, conformance, and python modules.
+
+    Uses logical paths (``schemas/...``, ``python/scientific_authorization_contracts/...``)
+    so source-tree and installed-wheel layouts produce the same digest.
+    """
+    digest = hashlib.sha256()
+    pkg_dir = Path(__file__).resolve().parent
+
+    def _feed(logical: str, path: Path) -> None:
+        digest.update(logical.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+
+    for label, directory in (
+        ("schemas", SCHEMAS_DIR),
+        ("vocabularies", VOCAB_DIR),
+        ("conformance", CONFORMANCE_DIR),
+    ):
+        if not directory.is_dir():
+            continue
+        for path in sorted(p for p in directory.rglob("*") if p.is_file()):
+            if path.suffix != ".json" or "__pycache__" in path.parts:
+                continue
+            rel = path.relative_to(directory).as_posix()
+            _feed(f"{label}/{rel}", path)
+
+    for path in sorted(p for p in pkg_dir.glob("*.py") if p.is_file()):
+        _feed(f"python/scientific_authorization_contracts/{path.name}", path)
+
+    return "sha256:" + digest.hexdigest()
 
 
 # Re-export envelope API for consumers.
@@ -121,17 +181,29 @@ from scientific_authorization_contracts.envelope import (  # noqa: E402
     new_capability_id,
     validate_envelope_dict,
 )
+from scientific_authorization_contracts.grant import (  # noqa: E402
+    GrantValidationError,
+    validate_grant,
+    validate_grant_status,
+)
 from scientific_authorization_contracts.hashing import (  # noqa: E402
     attach_hash,
     compute_hash,
     verify_hash,
 )
+from scientific_authorization_contracts.request import (  # noqa: E402
+    RequestedAuthorizationContext,
+)
 
 __all__ = [
     "ENVELOPE_VERSION",
+    "PACKAGE_VERSION",
     "AuthorizationEnvelope",
     "EnvelopeConflictError",
     "EnvelopeValidationError",
+    "GrantValidationError",
+    "RequestedAuthorizationContext",
+    "__version__",
     "attach_hash",
     "authorization_envelope_schema_hash",
     "authorization_schema_provenance",
@@ -147,14 +219,18 @@ __all__ = [
     "family_operations",
     "grant_schema_hash",
     "grant_schema_version",
+    "grant_status_schema_hash",
     "legacy_scope_migration",
     "load_conformance_cases",
     "load_envelope_schema",
     "load_schema",
     "new_capability_id",
+    "release_artifact_hash",
     "responsibility_rank",
     "schema_file_hash",
     "target_types",
     "validate_envelope_dict",
+    "validate_grant",
+    "validate_grant_status",
     "verify_hash",
 ]
