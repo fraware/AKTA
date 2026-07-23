@@ -1,22 +1,45 @@
 # Deployment reference (v1.0)
 
 AKTA v1.0 ships a **reference** REST and MCP adapter baseline — not a production HA service.
+Beta designation is retained; this is not a claim of production readiness for SCOPE-authorized action.
+
+## REST modes (P1-C)
+
+| Mode | Env / flag | Posture |
+|------|------------|---------|
+| `development-local` | default / `AKTA_REST_MODE=development-local` | Loopback-friendly; in-memory artifact/audit stores; optional API key |
+| `institutional-service` | `AKTA_REST_MODE=institutional-service` | Verified identity registry, tenant binding, persistent stores, trusted proxy, policy manifest verification |
+
+`AKTA_REST_PRODUCTION=1` still means “require auth on loopback” inside development-local.
+It does **not** equal institutional-service identity. Static bearer-token equality alone is
+rejected as institutional identity.
+
+### Institutional-service requirements
+
+- Verified service identity registry (`AKTA_REST_IDENTITY_REGISTRY`) with credential digests
+- Role / API permissions and `X-AKTA-Tenant` binding
+- Persistent artifact store + append-only audit ledger (`AKTA_REST_DATA_DIR`)
+- TLS termination + `AKTA_REST_TRUSTED_PROXY=1`
+- Bounded request body (`AKTA_REST_MAX_BODY_BYTES`) and rate limiting (`AKTA_REST_RATE_LIMIT`)
+- Policy manifest verification on startup
 
 ## REST (`akta-rest`)
 
 - Endpoints under `/v0/` (health, evaluate, records, export, artifacts)
 - Structured responses include `request_id` (from `X-Request-ID` header or generated UUID)
 - Error envelope: `error_code`, `detail`, `request_id` (filesystem paths sanitized)
-- Default bind: loopback (`127.0.0.1`). Non-loopback binds require `AKTA_REST_API_KEY` or `AKTA_REST_SERVICE_TOKENS`
-- Production mode (`AKTA_REST_PRODUCTION=1` / `--production`): authenticated service identities required even on loopback
+- Default bind: loopback (`127.0.0.1`). Non-loopback binds require credentials
 - Caller-supplied filesystem paths (`decision_path`, `out_dir`, policy/overlay paths) are rejected; policy dirs are server-controlled
-- Request body limit: `AKTA_REST_MAX_BODY_BYTES` (default 1 MiB)
-- Rate limiting: `AKTA_REST_RATE_LIMIT` (default 120/min), concurrency-safe sliding window
-- `X-Forwarded-For` is ignored unless `AKTA_REST_TRUSTED_PROXY=1` (TLS termination + trusted proxy required in production)
+- Artifact retrieval is bound to tenant + caller permissions (admin/auditor may read tenant-scoped artifacts)
 
 ### TLS and trusted proxies
 
-Terminate TLS at a reverse proxy (or load balancer). Enable `AKTA_REST_TRUSTED_PROXY=1` only when the proxy strips untrusted `X-Forwarded-For` and forwards the real client address. Do not expose the REST process directly on a public interface without TLS and service-token auth.
+Terminate TLS at a reverse proxy (or load balancer). Enable `AKTA_REST_TRUSTED_PROXY=1` only when the proxy strips untrusted `X-Forwarded-For` and forwards the real client address. Do not expose the REST process directly on a public interface without TLS and verified service identity.
+
+### Institutional trust store
+
+See [institutional_trust_store.md](institutional_trust_store.md) for `AKTA_TRUST_STORE_PATH`
+issuer registry population. Production grant crypto fails closed on empty registries.
 
 ## MCP (`adapters/mcp/server.py`)
 
@@ -31,8 +54,13 @@ Set `AKTA_OTEL_ENABLED=1` to emit OpenTelemetry spans when `opentelemetry-api` i
 
 Use `AKTALangGraphMiddleware` with `SessionGrantStore` for multi-turn grant persistence. Grants auto-invalidate on expiry and evidence downgrade.
 
+## Institutional pilot stages (P1-E)
+
+`AKTA_PILOT_STAGE=stage1_shadow|stage2_draft_only|stage3_validation` (see `akta/pilot_workflow.py`).
+Stage 3 requires real SCOPE identity, signed grant, full verification, PF proof, PCS package, and transactional ledger — fail closed if any missing. Hard exclusions: physical robot, clinical intervention, high-risk bio, hazardous chemical, unreviewed publication claims.
+
 ## Non-goals for v1.0
 
 - High availability or horizontal scaling
-- Auth federation / SSO
+- Auth federation / SSO as a product
 - Operational P7 autonomous operator support
