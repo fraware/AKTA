@@ -1,0 +1,42 @@
+version: akta-scope-issuer-keys-v1
+description: |
+  Approved SCOPE issuer public keys for grant authentication (P0-C / institutional trust).
+
+  Institutions populate this registry with real issuer public material only.
+  The default tree ships EMPTY so production/institutional profiles fail closed
+  until AKTA_TRUST_STORE_PATH (or this file) is populated.
+
+  Schema mirrors SCOPE reviewer_key_registry.yaml patterns and extends them with
+  explicit lifecycle fields required by AKTA institutional deploys:
+    key_id, public_key_ref / public_key_pem / public_key_file, status,
+    algorithm, valid_from, valid_until, issuer_identity (optional).
+
+  NEVER place private keys in this registry. Test-only material lives under
+  tests/fixtures/trust_keys/ and must not be treated as production keys.
+
+schema:
+  entry_required:
+    - key_id
+    - status
+    - algorithm
+  entry_public_material_one_of:
+    - public_key_ref
+    - public_key_pem
+    - public_key_file
+  status_enum:
+    - active
+    - revoked
+    - expired
+    - pending
+  algorithm_enum:
+    - Ed25519
+  optional_fields:
+    - valid_from
+    - valid_until
+    - issuer_identity
+    - notes
+
+# Production institutional registry: intentionally empty.
+issuers: {}
+
+revoked_key_ids: []
