@@ -1,36 +1,60 @@
-# Deployment reference (v1.0)
+# Deployment reference (v1.1 / WS13)
 
-AKTA v1.0 ships a **reference** REST and MCP adapter baseline — not a production HA service.
+AKTA ships a **reference** REST and MCP adapter baseline — not a production HA service.
 Beta designation is retained; this is not a claim of production readiness for SCOPE-authorized action.
 
-## REST modes (P1-C)
+## REST modes (P1-C / WS13)
 
 | Mode | Env / flag | Posture |
 |------|------------|---------|
 | `development-local` | default / `AKTA_REST_MODE=development-local` | Loopback-friendly; in-memory artifact/audit stores; optional API key |
-| `institutional-service` | `AKTA_REST_MODE=institutional-service` | Verified identity registry, tenant binding, persistent stores, trusted proxy, policy manifest verification |
+| `pilot-service` | `AKTA_REST_MODE=pilot-service` (alias: `static-registry`) | Credential-digest identity registry + file (or CI sqlite) stores; non-institutional |
+| `institutional-service` | `AKTA_REST_MODE=institutional-service` | OIDC issuer+audience verification, PostgreSQL artifact/audit stores, trusted proxy, policy manifest verification |
 
 `AKTA_REST_PRODUCTION=1` still means “require auth on loopback” inside development-local.
 It does **not** equal institutional-service identity. Static bearer-token equality alone is
 rejected as institutional identity.
 
-### Institutional-service requirements
+### Pilot-service requirements
 
 - Verified service identity registry (`AKTA_REST_IDENTITY_REGISTRY`) with credential digests
 - Role / API permissions and `X-AKTA-Tenant` binding
-- Persistent artifact store + append-only audit ledger (`AKTA_REST_DATA_DIR`)
+- Persistent file artifact store + append-only audit ledger (`AKTA_REST_DATA_DIR`)
+- Optional CI fallback: `AKTA_REST_USE_SQLITE=1` (never for institutional production)
+
+### Institutional-service requirements
+
+- OIDC issuer + audience (`AKTA_OIDC_ISSUER`, `AKTA_OIDC_AUDIENCE`) and JWKS URL (`AKTA_OIDC_JWKS_URL`)
+- Optional claim mapping: `AKTA_OIDC_TENANT_CLAIM`, `AKTA_OIDC_ROLE_CLAIM`, `AKTA_OIDC_SUBJECT_CLAIM`
+- PostgreSQL DSN: `AKTA_REST_DATABASE_URL` (or `DATABASE_URL`)
 - TLS termination + `AKTA_REST_TRUSTED_PROXY=1`
 - Bounded request body (`AKTA_REST_MAX_BODY_BYTES`) and rate limiting (`AKTA_REST_RATE_LIMIT`)
 - Policy manifest verification on startup
+- `/records` requires `decision_artifact_id` (inline decision bodies rejected)
+- PF/PCS export requires `record_artifact_id` (inline record bodies rejected)
+
+### Optional dependencies
+
+Install institutional extras:
+
+```bash
+pip install 'akta-protocol[rest]'
+# provides: PyJWT, psycopg[binary]
+```
+
+Without these packages, institutional OIDC/PostgreSQL paths fail closed with an explicit import error.
+CI may exercise pilot-service with file/sqlite stores and mock OIDC claims in unit tests.
 
 ## REST (`akta-rest`)
 
 - Endpoints under `/v0/` (health, evaluate, records, export, artifacts)
 - Structured responses include `request_id` (from `X-Request-ID` header or generated UUID)
 - Error envelope: `error_code`, `detail`, `request_id` (filesystem paths sanitized)
-- Default bind: loopback (`127.0.0.1`). Non-loopback binds require credentials
+- Default bind: loopback (`127.0.0.1`). Non-loopback binds require credentials / OIDC
 - Caller-supplied filesystem paths (`decision_path`, `out_dir`, policy/overlay paths) are rejected; policy dirs are server-controlled
 - Artifact retrieval is bound to tenant + caller permissions (admin/auditor may read tenant-scoped artifacts)
+- Artifact IDs are collision-resistant; stores record artifact hashes, schema versions, and source linkage
+- Audit ledgers are hash-chained (`prev_hash` / `entry_hash`)
 
 ### TLS and trusted proxies
 
@@ -38,8 +62,8 @@ Terminate TLS at a reverse proxy (or load balancer). Enable `AKTA_REST_TRUSTED_P
 
 ### Institutional trust store
 
-See [institutional_trust_store.md](institutional_trust_store.md) for `AKTA_TRUST_STORE_PATH`
-issuer registry population. Production grant crypto fails closed on empty registries.
+See [institutional_trust_store.md](institutional_trust_store.md) for grant-issuer / status / manifest
+registries. Production grant crypto fails closed on empty registries.
 
 ## MCP (`adapters/mcp/server.py`)
 
@@ -62,5 +86,5 @@ Stage 3 requires real SCOPE identity, signed grant, full verification, PF proof,
 ## Non-goals for v1.0
 
 - High availability or horizontal scaling
-- Auth federation / SSO as a product
+- Auth federation / SSO as a product beyond OIDC token verification
 - Operational P7 autonomous operator support
