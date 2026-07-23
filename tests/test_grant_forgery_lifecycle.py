@@ -75,12 +75,17 @@ def trust_store(issuer_keys: dict[str, str], tmp_path: Path) -> dict:
                 "public_key_pem": issuer_keys["public_key_pem"],
                 "public_key_ref": issuer_keys["public_key_ref"],
                 "status": "active",
+                "algorithm": "Ed25519",
+                "authorized_artifact_types": ["scope_grant", "scope_grant_status"],
             }
         },
         "revoked_key_ids": [],
         "source": str(tmp_path),
+        "default_artifact_types": ["scope_grant"],
     }
-    return build_trust_store(registry, base_dir=tmp_path)
+    return build_trust_store(
+        registry, base_dir=tmp_path, required_artifact_type="scope_grant"
+    )
 
 
 def _sign_grant(grant: dict, issuer_keys: dict[str, str]) -> dict:
@@ -114,6 +119,9 @@ def test_invalid_grant_hash_fails(issuer_keys: dict[str, str], trust_store: dict
 def test_unknown_issuer_fails(issuer_keys: dict[str, str], trust_store: dict) -> None:
     grant = _sign_grant(_unsigned_base_grant(), issuer_keys)
     grant["issuer"]["issuer_key_id"] = "sha256:" + ("f" * 64)
+    # Recompute hash after issuer mutation so the failure is unknown-key, not hash.
+    grant = _contracts().attach_hash(grant, "grant_hash")
+    grant["signed_payload_hash"] = grant["grant_hash"]
     with pytest.raises(GrantVerificationError, match="unknown issuer"):
         verify_scope_grant_or_raise(grant, mode="pilot", trust_store=trust_store)
 
@@ -125,12 +133,17 @@ def test_revoked_issuer_key_fails(issuer_keys: dict[str, str], tmp_path: Path) -
                 "public_key_pem": issuer_keys["public_key_pem"],
                 "public_key_ref": issuer_keys["public_key_ref"],
                 "status": "revoked",
+                "algorithm": "Ed25519",
+                "authorized_artifact_types": ["scope_grant"],
             }
         },
         "revoked_key_ids": [issuer_keys["public_key_ref"]],
         "source": str(tmp_path),
+        "default_artifact_types": ["scope_grant"],
     }
-    store = build_trust_store(registry, base_dir=tmp_path)
+    store = build_trust_store(
+        registry, base_dir=tmp_path, required_artifact_type="scope_grant"
+    )
     grant = _sign_grant(_unsigned_base_grant(), issuer_keys)
     with pytest.raises(GrantVerificationError, match="revoked issuer"):
         verify_scope_grant_or_raise(grant, mode="pilot", trust_store=store)
@@ -158,115 +171,166 @@ def test_wrong_packet_fails(issuer_keys: dict[str, str], trust_store: dict) -> N
         )
 
 
-def test_stale_policy_manifest_fails(issuer_keys: dict[str, str], trust_store: dict) -> None:
-    grant = _sign_grant(_unsigned_base_grant(), issuer_keys)
+def test_stale_policy_manifest_fails(tmp_path: Path) -> None:
+    from tests.helpers.institutional_grant import make_institutional_kit, make_signed_grant
+
+    kit = make_institutional_kit(tmp_path)
+    grant, status, arts = make_signed_grant(
+        kit,
+        overrides={
+            "constraints": {
+                "single_use": True,
+                "policy_manifest_hash": "sha256:" + ("e" * 64),
+                "tenant_id": "tenant-a",
+            }
+        },
+    )
     with pytest.raises(GrantVerificationError, match="stale policy manifest"):
         verify_scope_grant_or_raise(
             grant,
             mode="pilot",
-            trust_store=trust_store,
+            trust_store=kit["issuer_store"],
+            ledger_status=status,
+            authorization_manifest=kit["manifest"],
+            source_artifacts=arts,
+            status_trust_store=kit["status_store"],
+            manifest_trust_store=kit["manifest_store"],
             context={"metadata": {"policy_manifest_hash": "sha256:" + ("a" * 64)}},
         )
 
 
-def test_consumed_single_use_fails(issuer_keys: dict[str, str], trust_store: dict) -> None:
-    grant = _sign_grant(_unsigned_base_grant(), issuer_keys)
-    with pytest.raises(GrantVerificationError, match="single-use|consumed"):
+def test_consumed_single_use_fails(tmp_path: Path) -> None:
+    from datetime import datetime, timezone
+
+    from tests.helpers.institutional_grant import (
+        make_institutional_kit,
+        make_signed_grant,
+        sign_status,
+    )
+
+    kit = make_institutional_kit(tmp_path)
+    grant, status, arts = make_signed_grant(kit)
+    status["cardinality_remaining"] = 0
+    status["single_use_remaining"] = 0
+    status["checked_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    status = sign_status(status, kit["status_keys"])
+    with pytest.raises(GrantVerificationError, match="single-use|consumed|remaining"):
         verify_scope_grant_or_raise(
             grant,
             mode="pilot",
-            trust_store=trust_store,
-            ledger_status={
-                "grant_id": grant["grant_id"],
-                "status": "active",
-                "checked_at": "2026-01-02T00:00:00Z",
-                "cardinality_remaining": 0,
-                "single_use_remaining": 0,
-                "grant_hash": grant["grant_hash"],
-            },
+            trust_store=kit["issuer_store"],
+            ledger_status=status,
+            authorization_manifest=kit["manifest"],
+            source_artifacts=arts,
+            status_trust_store=kit["status_store"],
+            manifest_trust_store=kit["manifest_store"],
         )
 
 
-def test_revoked_grant_fails(issuer_keys: dict[str, str], trust_store: dict) -> None:
-    grant = _sign_grant(_unsigned_base_grant(), issuer_keys)
+def test_revoked_grant_fails(tmp_path: Path) -> None:
+    from datetime import datetime, timezone
+
+    from tests.helpers.institutional_grant import (
+        make_institutional_kit,
+        make_signed_grant,
+        sign_status,
+    )
+
+    kit = make_institutional_kit(tmp_path)
+    grant, status, arts = make_signed_grant(kit)
+    status["status"] = "revoked"
+    status["revoked"] = True
+    status["cardinality_remaining"] = 0
+    status["checked_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    status = sign_status(status, kit["status_keys"])
     with pytest.raises(GrantVerificationError, match="revoked"):
         verify_scope_grant_or_raise(
             grant,
             mode="pilot",
-            trust_store=trust_store,
-            ledger_status={
-                "grant_id": grant["grant_id"],
-                "status": "revoked",
-                "checked_at": "2026-01-02T00:00:00Z",
-                "cardinality_remaining": 0,
-                "revoked": True,
-                "grant_hash": grant["grant_hash"],
-            },
+            trust_store=kit["issuer_store"],
+            ledger_status=status,
+            authorization_manifest=kit["manifest"],
+            source_artifacts=arts,
+            status_trust_store=kit["status_store"],
+            manifest_trust_store=kit["manifest_store"],
         )
 
 
-def test_bound_context_protocol_and_model_required(
-    issuer_keys: dict[str, str], trust_store: dict
-) -> None:
-    grant = _sign_grant(_unsigned_base_grant(), issuer_keys)
+def test_bound_context_protocol_and_model_required(tmp_path: Path) -> None:
+    from tests.helpers.institutional_grant import make_institutional_kit, make_signed_grant
+
+    kit = make_institutional_kit(tmp_path)
+    grant, status, arts = make_signed_grant(
+        kit,
+        overrides={
+            "expiration": {
+                "absolute_expiration": "2030-01-01T00:00:00Z",
+                "expires_after": ["protocol_version_change", "model_version_change"],
+            },
+            "constraints": {"single_use": True, "tenant_id": "tenant-a"},
+        },
+    )
     with pytest.raises(GrantVerificationError, match="missing consequential grant context"):
         verify_scope_grant_or_raise(
             grant,
             mode="pilot",
-            trust_store=trust_store,
+            trust_store=kit["issuer_store"],
+            ledger_status=status,
+            authorization_manifest=kit["manifest"],
+            source_artifacts=arts,
+            status_trust_store=kit["status_store"],
+            manifest_trust_store=kit["manifest_store"],
             context={"metadata": {}},
         )
 
 
-def test_fabricated_allowed_tools_fails(issuer_keys: dict[str, str], trust_store: dict) -> None:
-    grant = _sign_grant(_unsigned_base_grant(), issuer_keys)
+def test_fabricated_allowed_tools_fails(tmp_path: Path) -> None:
+    from tests.helpers.institutional_grant import make_institutional_kit, make_signed_grant
+
+    kit = make_institutional_kit(tmp_path)
+    grant, status, arts = make_signed_grant(kit)
     grant["authorization"]["allowed_tools"] = ["totally.fabricated.tool"]
     grant = _contracts().attach_hash(grant, "grant_hash")
     grant["signed_payload_hash"] = grant["grant_hash"]
-    priv = Path(issuer_keys["private_key_path"]).read_bytes()
+    priv = Path(kit["issuer_keys"]["private_key_path"]).read_bytes()
     grant["grant_signature"] = sign_payload_hash_ed25519(priv, grant["grant_hash"])
     with pytest.raises(GrantVerificationError, match="fabricated allowed_tools"):
-        verify_scope_grant_or_raise(grant, mode="pilot", trust_store=trust_store)
+        verify_scope_grant_or_raise(
+            grant,
+            mode="pilot",
+            trust_store=kit["issuer_store"],
+            ledger_status=status,
+            authorization_manifest=kit["manifest"],
+            source_artifacts=arts,
+            status_trust_store=kit["status_store"],
+            manifest_trust_store=kit["manifest_store"],
+        )
 
 
-def test_valid_signed_grant_with_attestation(
-    issuer_keys: dict[str, str], trust_store: dict
-) -> None:
-    grant = _sign_grant(
-        _unsigned_base_grant(
-            constraints={
+def test_valid_signed_grant_with_attestation(tmp_path: Path) -> None:
+    from tests.helpers.institutional_grant import make_institutional_kit, make_signed_grant
+
+    kit = make_institutional_kit(tmp_path)
+    grant, status, arts = make_signed_grant(
+        kit,
+        overrides={
+            "constraints": {
                 "single_use": True,
                 "policy_manifest_hash": "sha256:" + ("e" * 64),
                 "protocol_version": "proto-1",
+                "tenant_id": "tenant-a",
             }
-        ),
-        issuer_keys,
-    )
-    attestation = {
-        "grant_id": grant["grant_id"],
-        "status": "active",
-        "checked_at": "2026-01-02T00:00:00Z",
-        "cardinality_remaining": 1,
-        "single_use_remaining": 1,
-        "grant_hash": grant["grant_hash"],
-        "scope_trust_root_hash": grant["provenance"]["scope_trust_root_hash"],
-        "attestation_key_id": issuer_keys["public_key_ref"],
-        "issuer": {
-            "issuer_identity": "scope-test",
-            "issuer_key_id": issuer_keys["public_key_ref"],
         },
-    }
-    attestation = _contracts().attach_hash(attestation, "attestation_hash")
-    attestation["signed_payload_hash"] = attestation["attestation_hash"]
-    priv = Path(issuer_keys["private_key_path"]).read_bytes()
-    attestation["attestation_signature"] = sign_payload_hash_ed25519(
-        priv, attestation["attestation_hash"]
     )
     result = verify_scope_grant_or_raise(
         grant,
         mode="pilot",
-        trust_store=trust_store,
-        ledger_status=attestation,
+        trust_store=kit["issuer_store"],
+        ledger_status=status,
+        authorization_manifest=kit["manifest"],
+        source_artifacts=arts,
+        status_trust_store=kit["status_store"],
+        manifest_trust_store=kit["manifest_store"],
         context={
             "metadata": {
                 "policy_manifest_hash": "sha256:" + ("e" * 64),
@@ -274,7 +338,7 @@ def test_valid_signed_grant_with_attestation(
                 "bound_protocol_version": "proto-1",
             }
         },
-        record={"record_id": "rec-1"},
+        record=arts["record"],
     )
     assert result.ok, result.errors
 
