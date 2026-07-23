@@ -114,6 +114,22 @@ def cmd_review_trigger_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_migrate_legacy_grant(args: argparse.Namespace) -> int:
+    """Explicit legacy → scope-grant-v2 migration (AKTA 1.1 WS4)."""
+    from akta.scope_grant_verifier import migrate_legacy_grant_to_v2
+
+    raw = _load_json(args.grant)
+    if not isinstance(raw, dict):
+        print("Grant file must contain a JSON object", file=sys.stderr)
+        return 1
+    migrated = migrate_legacy_grant_to_v2(raw, grant_version=args.grant_version)
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(migrated, indent=2), encoding="utf-8")
+    print(json.dumps({"ok": True, "out": str(out_path), "grant_version": args.grant_version}))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="akta", description="AKTA v0.2 — Open Scientific Action Protocol")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -176,6 +192,15 @@ def build_parser() -> argparse.ArgumentParser:
     rev_export.add_argument("--decision", required=True)
     rev_export.add_argument("--out", required=True)
     rev_export.set_defaults(func=cmd_review_trigger_export)
+
+    migrate = sub.add_parser(
+        "migrate-legacy-grant",
+        help="Migrate a legacy SCOPE grant to scope-grant-v2 (explicit CLI only)",
+    )
+    migrate.add_argument("--grant", required=True, help="Legacy grant JSON path")
+    migrate.add_argument("--out", required=True, help="Migrated grant JSON path")
+    migrate.add_argument("--grant-version", default="2.0.0")
+    migrate.set_defaults(func=cmd_migrate_legacy_grant)
 
     return parser
 
