@@ -1,0 +1,72 @@
+# Institutional full-stack release pins (P1-A).
+# Recorded SHAs are discovery-time pins from local sibling checkouts.
+# Missing components keep placeholder pins and remain fail-closed under
+# institutional_release profile — never silently optionalized.
+#
+# Beta: pins enable reproducible institutional validation; they do not certify
+# production readiness for SCOPE-authorized action.
+
+version: akta-release-pins-v1
+profile: institutional_release
+recorded_at: "2026-07-23T00:00:00Z"
+recorded_host: local-discovery
+
+components:
+  SCOPE:
+    env_var: SCOPE_REPO_PATH
+    path_candidates: ["SCOPE"]
+    commit: 41b0faf2094179d154996fcf78d77ce0c1347dcd
+    tag: v1.0.0
+    required: true
+    status: pinned
+  PF-Core:
+    env_var: PF_CORE_REPO_PATH
+    path_candidates: ["provability-fabric-core", "provability-fabric", "PF-Core"]
+    commit: 629984cb62b9d4b2281d36062a2979198ba61c82
+    tag: pf-core-v0.6.0
+    required: true
+    status: pinned
+  PCS-Core:
+    env_var: PCS_CORE_REPO_PATH
+    path_candidates: ["pcs-core", "PCS-Core"]
+    commit: b4ae0c7a8beba8ec356bd6873a8272f537d9a397
+    tag: v0.1.0-pf-core
+    required: true
+    status: pinned
+  PCS-Bench:
+    env_var: PCS_BENCH_REPO_PATH
+    path_candidates: ["pcs-bench", "PCS-Bench"]
+    commit: a3a080e5cb4c24db49f3704c6a582903eed9bbb5
+    tag: null
+    required: true
+    status: pinned
+  Scientific-Memory:
+    env_var: MEMORY_REPO_PATH
+    path_candidates: ["scientific-memory", "Scientific-Memory"]
+    commit: 784140baee2589c89453243bee37ea074d0a4a2d
+    tag: v1.0.3
+    required: true
+    status: pinned
+  VSA:
+    env_var: VSA_REPO_PATH
+    path_candidates: ["verified-science-agent", "VSA", "vsa"]
+    commit: "UNAVAILABLE-PLACEHOLDER-FAIL-CLOSED"
+    tag: null
+    required: true
+    status: missing_placeholder
+    note: |
+      No local VSA sibling discovered. Institutional release must fail closed
+      until a real commit SHA is pinned — do not treat VSA-only synthetic
+      validation as sufficient.
+
+# Hard rejects under institutional_release (P1-A acceptance criteria).
+rejects:
+  - simulated_scope
+  - legacy_scalar_scope_grant
+  - mock_pf_validator
+  - mock_pcs_validator
+  - missing_pcs_bench
+  - synthetic_vsa_only_validation
+  - missing_scientific_memory_integration
+  - empty_issuer_trust_registry
+  - unpinned_or_placeholder_required_sibling
