@@ -1,7 +1,7 @@
 {
   "artifact_type": "akta_scientific_action_record",
   "schema_version": "akta-record-v0.5",
-  "record_hash": "sha256:b03373229ae1da6ddd8ccac63f0d5943a8f142faa6e77bdba33dd57b620ab475",
+  "record_hash": "sha256:c5cfef22fad9dce2ede9540c1dca57195af40c7781fdb8c5b6254c4471d31fe5",
   "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
   "integrity_mode": "deployment_hmac_attested",
   "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
@@ -22,17 +22,17 @@
     "tool_registry_hash.txt"
   ],
   "file_hashes": {
-    "akta_decision.json": "sha256:55a53a80955ad89f595cd171115d58201bec9b166a981a37d93a27b36384cc83",
-    "akta_record.json": "sha256:51d01acc0b0b04b935219bfd003584c563cca5ba4a3e062d1cd70708e64c60fd",
+    "akta_decision.json": "sha256:500d0f6f5bd3a32720b1f3f36bbd6573a7d097770116fdb8c61c3773f03432fe",
+    "akta_record.json": "sha256:44ea7a9169eed6043041b7e8480e4bb348e36b50ba1ef1312180fbb0f2708ab2",
     "domain_overlay_hash.txt": "sha256:aff97a5c94f9f99549b9f4043617ba8dcfce973312fde13d63101d173bcb0860",
-    "pf_obligation.json": "sha256:1cebe99d9f85795eb4a742476c6d48d85809d8f9fbe40557e79479c0771b97b2",
+    "pf_obligation.json": "sha256:649780ac76f3f7d5ba5840d56037c8b0dd7e965aa534796c0ae75101f600c6ef",
     "policy_hash.txt": "sha256:918d683b234533a1c7da8178e581eff636b2786f9b7cc373873ea805994b15ff",
-    "review_trigger.json": "sha256:2efe258e0381b629e763c8e51320167f1da767cfbd71207999ca475dd8ef1897",
+    "review_trigger.json": "sha256:ec8d20f25f2fcd9e316b4367d73ee15fa43816ed889e641687425364339448b0",
     "scope_decision.json": "sha256:59ce03995c2b8c0685e82eed1efa992d7bf76e1fcce25bea0ffb43b78d2ad572",
     "scope_grant.json": "sha256:82295bc191264da408db4389909f051852aedbf649983d0821ea11783dcf3c1d",
     "scope_review_packet.json": "sha256:2aaf3baf840055b340f284504428c3d04e53400ddbacdc90c5619627047f2226",
-    "scope_review_summary.json": "sha256:d95312d5cef9aac5408fd61270ee13a0cb8ad35587b820bcc7743bccecab5143",
+    "scope_review_summary.json": "sha256:73d03ebf1af787ec14be83418bb37920b1dd0703e2f78780c1c11b4717ca1687",
     "tool_registry_hash.txt": "sha256:65fa2df40f94b62287a9c223b9df7d5199c83cae1283e835a8526bc52aee32c7"
   },
-  "manifest_hash": "sha256:b4e87bc0469c7113571e3864549ed84fd9b0d974e2634fd1305d7a52210082de"
+  "manifest_hash": "sha256:e967e4fac7fa12ee5e247c7ba83a0e58ea1f0bd311ffa0c550e6ddc93a1d76b9"
 }

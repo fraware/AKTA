@@ -4,12 +4,12 @@
   "requested_scope": "active_protocol_update",
   "allowed_tools": [],
   "blocked_tools": [],
-  "adapter_contract_version": "scope-akta-review-v0.8",
+  "adapter_contract_version": "scope-akta-review-v1.0",
   "identity_assurance_level": "IAL0",
   "signing_assurance_level": "SAL0",
   "adapter_mode": "simulated",
   "summary_origin": "akta_simulated",
   "packet_id": "SCOPE-PKT-AKTA-REVTRIG-DRIFT0001",
-  "decision_id": "SCOPE-DEC-AKTA-REVTRIG-DRIFT0001",
+  "decision_id": "SCOPE-DEC-SYNTHESIZED",
   "grant_id": "SCOPE-GRANT-AKTA-REVTRIG-DRIFT0001"
 }
