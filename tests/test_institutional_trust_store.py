@@ -30,7 +30,7 @@ from akta.trust_store import (
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_KEYS = ROOT / "tests" / "fixtures" / "trust_keys"
 FIXTURE_REGISTRY = FIXTURE_KEYS / "issuer_registry.yaml"
-POLICY_REGISTRY = ROOT / "policy" / "scope_issuer_key_registry.yaml"
+POLICY_REGISTRY = ROOT / "policy" / "scope_grant_issuer_registry.yaml"
 
 
 def _envelope() -> dict[str, Any]:
@@ -83,7 +83,11 @@ def _sign_grant(grant: dict[str, Any], private_pem: bytes, key_id: str) -> dict[
 @pytest.fixture
 def fixture_trust_store() -> dict[str, Any]:
     registry = load_issuer_registry(FIXTURE_REGISTRY)
-    return build_trust_store(registry, base_dir=FIXTURE_KEYS)
+    return build_trust_store(
+        registry,
+        base_dir=FIXTURE_KEYS,
+        required_artifact_type="scope_grant",
+    )
 
 
 def test_policy_registry_ships_empty_for_fail_closed() -> None:
@@ -158,24 +162,32 @@ def _start_attestation_server(payload: dict[str, Any]) -> tuple[HTTPServer, str]
 
 
 def test_grant_status_attestation_accept_and_reject(
-    fixture_trust_store: dict[str, Any],
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     """High-fidelity mock of authenticated SCOPE /grant-status attestation."""
-    priv = (FIXTURE_KEYS / "issuer_ed25519.pem").read_bytes()
-    key_id = "akta-test-issuer-ed25519"
-    grant = _sign_grant(
-        {
-            **_base_grant(key_id=key_id),
+    from datetime import datetime, timezone
+
+    from tests.helpers.institutional_grant import make_institutional_kit, make_signed_grant
+
+    kit = make_institutional_kit(tmp_path)
+    grant, attestation, arts = make_signed_grant(
+        kit,
+        overrides={
             "constraints": {
                 "single_use": True,
                 "policy_manifest_hash": "sha256:" + ("b" * 64),
                 "protocol_version": "proto-1",
-            },
+                "tenant_id": "tenant-a",
+            }
         },
-        priv,
-        key_id,
     )
+    # Ensure attestation is fresh for max-age checks.
+    attestation["checked_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    from tests.helpers.institutional_grant import sign_status
+
+    attestation = sign_status(attestation, kit["status_keys"])
+
     bound_context = {
         "metadata": {
             "policy_manifest_hash": "sha256:" + ("b" * 64),
@@ -191,44 +203,34 @@ def test_grant_status_attestation_accept_and_reject(
         }
     }
 
-    attestation: dict[str, Any] = {
-        "grant_id": grant["grant_id"],
-        "status": "active",
-        "checked_at": "2026-01-02T00:00:00Z",
-        "cardinality_remaining": 1,
-        "uses_consumed": 0,
-        "grant_hash": grant["grant_hash"],
-        "scope_trust_root_hash": grant["provenance"]["scope_trust_root_hash"],
-        "attestation_key_id": key_id,
-        "authorization_schema_version": ENVELOPE_VERSION,
-        "authorization_schema_hash": authorization_envelope_schema_hash(),
-    }
-    attestation = _contracts().attach_hash(attestation, "attestation_hash")
-    attestation["signed_payload_hash"] = attestation["attestation_hash"]
-    attestation["attestation_signature"] = sign_payload_hash_ed25519(
-        priv, attestation["attestation_hash"]
-    )
-
     server, base_url = _start_attestation_server(attestation)
     try:
         monkeypatch.setenv("SCOPE_GRANT_STATUS_URL", base_url + "/{grant_id}")
         ok_remote = verify_scope_grant(
             grant,
             mode="pilot",
-            trust_store=fixture_trust_store,
+            trust_store=kit["issuer_store"],
             ledger_status=None,
+            authorization_manifest=kit["manifest"],
+            source_artifacts=arts,
+            status_trust_store=kit["status_store"],
+            manifest_trust_store=kit["manifest_store"],
             context=bound_context,
-            record={"record_id": "rec-trust-1"},
+            record=arts["record"],
         )
         assert ok_remote.ok, ok_remote.errors
 
         ok2 = verify_scope_grant(
             grant,
             mode="pilot",
-            trust_store=fixture_trust_store,
+            trust_store=kit["issuer_store"],
             ledger_status=attestation,
+            authorization_manifest=kit["manifest"],
+            source_artifacts=arts,
+            status_trust_store=kit["status_store"],
+            manifest_trust_store=kit["manifest_store"],
             context=bound_context,
-            record={"record_id": "rec-trust-1"},
+            record=arts["record"],
         )
         assert ok2.ok, ok2.errors
 
@@ -237,28 +239,34 @@ def test_grant_status_attestation_accept_and_reject(
         bad = verify_scope_grant(
             grant,
             mode="pilot",
-            trust_store=fixture_trust_store,
+            trust_store=kit["issuer_store"],
             ledger_status=forged,
+            authorization_manifest=kit["manifest"],
+            source_artifacts=arts,
+            status_trust_store=kit["status_store"],
+            manifest_trust_store=kit["manifest_store"],
             context=bound_context,
-            record={"record_id": "rec-trust-1"},
+            record=arts["record"],
         )
         assert not bad.ok
-        assert any("attestation" in e for e in bad.errors)
+        assert any("attestation" in e or "signature" in e for e in bad.errors)
 
         revoked = dict(attestation)
         revoked["status"] = "revoked"
-        revoked = _contracts().attach_hash(revoked, "attestation_hash")
-        revoked["signed_payload_hash"] = revoked["attestation_hash"]
-        revoked["attestation_signature"] = sign_payload_hash_ed25519(
-            priv, revoked["attestation_hash"]
-        )
+        from tests.helpers.institutional_grant import sign_status
+
+        revoked = sign_status(revoked, kit["status_keys"])
         bad2 = verify_scope_grant(
             grant,
             mode="pilot",
-            trust_store=fixture_trust_store,
+            trust_store=kit["issuer_store"],
             ledger_status=revoked,
+            authorization_manifest=kit["manifest"],
+            source_artifacts=arts,
+            status_trust_store=kit["status_store"],
+            manifest_trust_store=kit["manifest_store"],
             context=bound_context,
-            record={"record_id": "rec-trust-1"},
+            record=arts["record"],
         )
         assert not bad2.ok
         assert any("revoked" in e or "status" in e for e in bad2.errors)

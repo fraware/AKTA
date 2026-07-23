@@ -3,6 +3,9 @@ description: |
   DEV/TEST ONLY issuer registry. Never use these keys for institutional
   production profiles. Public material only in this file; private key is
   sibling issuer_ed25519.pem for local signing in tests.
+default_authorized_artifact_types:
+  - scope_grant
+  - scope_grant_status
 issuers:
   akta-test-issuer-ed25519:
     key_id: akta-test-issuer-ed25519
@@ -13,5 +16,8 @@ issuers:
     valid_until: "2099-01-01T00:00:00Z"
     public_key_file: issuer_ed25519.pub.pem
     public_key_ref: sha256:63cce5d566aa83e745ceb507a6f2f38500d9db6e5b2bc60b5168e05ec112a76a
+    authorized_artifact_types:
+      - scope_grant
+      - scope_grant_status
     notes: Generated for AKTA unit/integration tests only.
 revoked_key_ids: []
