@@ -10,15 +10,14 @@ from typing import Any
 
 import jsonschema
 
-from akta.hash import hash_object
 from akta.errors import SchemaValidationError
+from akta.hash import hash_object
 from akta.overlays import DomainOverlay
 from akta.scope_mapping import (
     REVIEW_TRIGGER_VERSION,
     resolve_requested_scope,
     resolve_review_route,
 )
-
 
 SCHEMAS_DIR = Path(__file__).resolve().parent.parent / "schemas"
 

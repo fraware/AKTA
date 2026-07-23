@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -15,10 +14,8 @@ from akta.policy_integrity import (
     ED25519_ALGORITHM,
     HMAC_ALGORITHM,
     MANIFEST_FILENAME,
-    _collect_verification_keys,
     _load_manifest,
     _resolve_hmac_key,
-    compute_file_hash,
     is_production_mode,
     require_signed_policy,
     verify_ed25519_signature,
@@ -178,7 +175,6 @@ def verify_policy_bundle_integrity(
         required = bool(required) or env_forced
 
     manifest = _load_manifest(policy_dir)
-    manifest_present = manifest is not None
 
     if manifest is None:
         if required:

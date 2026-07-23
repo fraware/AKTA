@@ -11,7 +11,6 @@ from akta.context import AKTAContext
 from akta.policy import PolicyBundle
 from akta.tool_registry import ToolSpec
 
-
 ACTION_ORDER = {
     "A0_explanation": 0,
     "A1_retrieval_or_summary": 1,
@@ -192,7 +191,7 @@ def infer_evidence_from_vsa(vsa_report: dict[str, Any] | None) -> str | None:
     claims = vsa_report.get("claims", [])
     if claims:
         levels = [c.get("evidence_level", "") for c in claims if isinstance(c, dict)]
-        if any("preliminary" in str(l).lower() or "weak" in str(l).lower() for l in levels):
+        if any("preliminary" in str(level).lower() or "weak" in str(level).lower() for level in levels):
             return "E2_preliminary_signal"
     return None
 

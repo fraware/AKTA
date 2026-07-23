@@ -12,7 +12,6 @@ from akta.errors import PolicyError
 from akta.hash import hash_file_content
 from akta.policy_integrity import is_production_mode
 
-
 OVERLAY_ALIASES = {
     "generic_lab_v0": "generic_lab_v0.yaml",
     "materials_v0": "materials_v0.yaml",
