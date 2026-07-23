@@ -1,4 +1,4 @@
-"""Effective policy manifest generation and binding (directive §5)."""
+"""Effective policy manifest generation and binding (directive §5 / WS11)."""
 
 from __future__ import annotations
 
@@ -34,6 +34,26 @@ EFFECTIVE_POLICY_INPUTS: tuple[str, ...] = (
     "scope_compatibility_manifest.json",
     "release_keys.yaml",
     "policy_manifest.yaml",
+    # WS11 provenance expansions
+    "shared_contracts_pin.json",
+    "scope_grant_issuer_registry.yaml",
+    "scope_status_attestation_registry.yaml",
+    "scope_policy_manifest_signer_registry.yaml",
+    "release_pins.yaml",
+    "runtime_capability_mapping.yaml",
+)
+
+# Schema / registry names folded into effective-policy body + policy_binding_block.
+SCHEMA_HASH_KEYS = (
+    "envelope_schema_hash",
+    "grant_schema_hash",
+    "grant_status_schema_hash",
+)
+
+REGISTRY_INPUT_NAMES = (
+    "scope_grant_issuer_registry.yaml",
+    "scope_status_attestation_registry.yaml",
+    "scope_policy_manifest_signer_registry.yaml",
 )
 
 OVERLAY_REGISTRY_NOTE = (
@@ -48,6 +68,8 @@ def _file_version(path: Path, data: Any) -> str:
             data.get("policy_file_version")
             or data.get("version")
             or data.get("policy_bundle_version")
+            or data.get("pin_version")
+            or data.get("manifest_version")
             or "unknown"
         )
     return "unknown"
@@ -60,6 +82,71 @@ def collect_overlay_registry(overlays_dir: Path | None) -> dict[str, Any]:
     for path in sorted(overlays_dir.glob("*.yaml")):
         overlays[path.name] = compute_file_hash(path)
     return {"note": OVERLAY_REGISTRY_NOTE, "overlays": overlays}
+
+
+def _load_shared_contracts_pin(policy_dir: Path) -> dict[str, Any]:
+    path = policy_dir / "shared_contracts_pin.json"
+    if not path.is_file():
+        return {}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return data if isinstance(data, dict) else {}
+
+
+def _shared_contract_provenance(policy_dir: Path) -> dict[str, Any]:
+    """Shared contract version + release/schema hashes for effective policy body."""
+    pin = _load_shared_contracts_pin(policy_dir)
+    provenance: dict[str, Any] = {
+        "package": pin.get("package") or "scientific-authorization-contracts",
+        "package_version": pin.get("package_version"),
+        "release_artifact_hash": pin.get("release_artifact_hash"),
+        "envelope_schema_version": pin.get("envelope_schema_version"),
+        "envelope_schema_hash": pin.get("envelope_schema_hash"),
+        "grant_schema_version": pin.get("grant_schema_version"),
+        "grant_schema_hash": pin.get("grant_schema_hash"),
+        "grant_status_schema_hash": pin.get("grant_status_schema_hash"),
+    }
+    # Prefer live installed package when available (fail soft for offline pin-only).
+    try:
+        from akta.shared_contracts import (
+            contracts_package_version,
+            grant_schema_hash,
+            grant_schema_version,
+            release_artifact_hash,
+            shared_contract_report,
+        )
+
+        report = shared_contract_report()
+        provenance["package_version"] = contracts_package_version()
+        provenance["release_artifact_hash"] = release_artifact_hash()
+        provenance["envelope_schema_version"] = report.get("envelope_schema_version")
+        provenance["envelope_schema_hash"] = report.get("envelope_schema_hash")
+        provenance["grant_schema_version"] = grant_schema_version()
+        provenance["grant_schema_hash"] = grant_schema_hash()
+        if pin.get("grant_status_schema_hash"):
+            provenance["grant_status_schema_hash"] = pin["grant_status_schema_hash"]
+    except Exception:
+        pass
+    return {k: v for k, v in provenance.items() if v is not None}
+
+
+def _schema_hashes_from_provenance(provenance: dict[str, Any]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for key in SCHEMA_HASH_KEYS:
+        value = provenance.get(key)
+        if value:
+            out[key] = str(value)
+    return out
+
+
+def _registry_hashes(files: dict[str, str]) -> dict[str, str]:
+    return {name: files[name] for name in REGISTRY_INPUT_NAMES if name in files}
+
+
+def _overlay_aggregate_hash(overlay_registry: dict[str, Any]) -> str | None:
+    overlays = overlay_registry.get("overlays") or {}
+    if not overlays:
+        return None
+    return hash_object(overlays)
 
 
 def build_effective_policy_manifest(
@@ -102,23 +189,44 @@ def build_effective_policy_manifest(
     overlay_registry = collect_overlay_registry(
         Path(overlays_dir) if overlays_dir else policy_dir.parent / "overlays"
     )
+    shared_contracts = _shared_contract_provenance(policy_dir)
+    schema_hashes = _schema_hashes_from_provenance(shared_contracts)
+    registry_hashes = _registry_hashes(files)
+    overlay_hash = _overlay_aggregate_hash(overlay_registry)
+    release_pins_hash = files.get("release_pins.yaml")
+    runtime_capability_mapping_hash = files.get("runtime_capability_mapping.yaml")
+    compatibility_manifest_hash = files.get("scope_compatibility_manifest.json")
 
     effective_policy_hash = hash_object({
         "files": files,
         "file_versions": file_versions,
         "overlay_registry": overlay_registry,
         "bundle_version": bundle_version,
+        "shared_contracts": shared_contracts,
+        "schema_hashes": schema_hashes,
+        "registry_hashes": registry_hashes,
+        "release_pins_hash": release_pins_hash,
+        "runtime_capability_mapping_hash": runtime_capability_mapping_hash,
+        "compatibility_manifest_hash": compatibility_manifest_hash,
     })
     # Canonical JSON for manifest_hash excludes the hash fields themselves.
+    # integrity_mode is recorded on the artifact but excluded from the hash so
+    # HMAC vs unsigned load paths do not falsely flag provenance drift.
     body_for_hash = {
-        "manifest_version": "akta-effective-policy-v1.0",
+        "manifest_version": "akta-effective-policy-v1.1",
         "bundle_version": bundle_version,
-        "integrity_mode": integrity_mode,
         "signing_key_id": signing_key_id,
         "files": files,
         "file_versions": file_versions,
         "overlay_registry": overlay_registry,
         "missing_optional_inputs": missing,
+        "shared_contracts": shared_contracts,
+        "schema_hashes": schema_hashes,
+        "registry_hashes": registry_hashes,
+        "release_pins_hash": release_pins_hash,
+        "runtime_capability_mapping_hash": runtime_capability_mapping_hash,
+        "compatibility_manifest_hash": compatibility_manifest_hash,
+        "overlay_hash": overlay_hash,
         "policy_manifest_signature": {
             "algorithm": sig.get("algorithm"),
             "key_id": signing_key_id,
@@ -129,6 +237,7 @@ def build_effective_policy_manifest(
 
     return {
         **body_for_hash,
+        "integrity_mode": integrity_mode,
         "effective_policy_hash": effective_policy_hash,
         "manifest_hash": manifest_hash,
         "policy_manifest_signature": {
@@ -217,6 +326,10 @@ def verify_effective_policy_manifest(
         if stored_overlays.get(name) != recomputed_overlays.get(name):
             errors.append(f"overlay registry hash drift for {name}")
 
+    for key in ("schema_hashes", "registry_hashes", "shared_contracts"):
+        if (stored_manifest.get(key) or {}) != (recomputed.get(key) or {}):
+            errors.append(f"effective policy {key} drift")
+
     # Mutating critical inputs after manifest generation must fail.
     critical = {
         "default_tool_registry.yaml",
@@ -225,6 +338,12 @@ def verify_effective_policy_manifest(
         "structured_action_schema.yaml",
         "scope_compatibility_manifest.json",
         "release_keys.yaml",
+        "shared_contracts_pin.json",
+        "scope_grant_issuer_registry.yaml",
+        "scope_status_attestation_registry.yaml",
+        "scope_policy_manifest_signer_registry.yaml",
+        "release_pins.yaml",
+        "runtime_capability_mapping.yaml",
     }
     for name in critical:
         if name in stored_files and name in recomputed_files:
@@ -273,6 +392,13 @@ def policy_binding_block(
     schema_hashes: dict[str, str] | None = None,
     overlay_hash: str | None = None,
     release_key_id: str | None = None,
+    shared_contract_release_hash: str | None = None,
+    issuer_registry_hash: str | None = None,
+    status_attestation_registry_hash: str | None = None,
+    policy_manifest_signer_registry_hash: str | None = None,
+    release_pins_hash: str | None = None,
+    runtime_capability_mapping_hash: str | None = None,
+    compatibility_manifest_hash: str | None = None,
 ) -> dict[str, Any]:
     """Canonical policy provenance block for Decision and Record artifacts."""
     block: dict[str, Any] = {
@@ -283,9 +409,52 @@ def policy_binding_block(
         "signing_key_id": signing_key_id,
         "release_key_id": release_key_id or signing_key_id,
         "file_versions": dict(file_versions),
+        "schema_hashes": dict(schema_hashes or {}),
+        "overlay_hash": overlay_hash,
+        "shared_contract_release_hash": shared_contract_release_hash,
+        "issuer_registry_hash": issuer_registry_hash,
+        "status_attestation_registry_hash": status_attestation_registry_hash,
+        "policy_manifest_signer_registry_hash": policy_manifest_signer_registry_hash,
+        "release_pins_hash": release_pins_hash,
+        "runtime_capability_mapping_hash": runtime_capability_mapping_hash,
+        "compatibility_manifest_hash": compatibility_manifest_hash,
     }
-    if schema_hashes:
-        block["schema_hashes"] = dict(schema_hashes)
-    if overlay_hash:
-        block["overlay_hash"] = overlay_hash
     return block
+
+
+def binding_from_effective_manifest(
+    *,
+    bundle_version: str,
+    integrity_mode: str,
+    signing_key_id: str | None,
+    file_versions: dict[str, str],
+    effective: dict[str, Any],
+    policy_hash_fallback: str = "",
+) -> dict[str, Any]:
+    """Populate every policy_binding_block field from a recomputed effective manifest."""
+    shared = effective.get("shared_contracts") or {}
+    registries = effective.get("registry_hashes") or {}
+    return policy_binding_block(
+        bundle_version=bundle_version,
+        effective_policy_hash=str(
+            effective.get("effective_policy_hash") or policy_hash_fallback
+        ),
+        manifest_hash=str(effective.get("manifest_hash") or policy_hash_fallback),
+        integrity_mode=integrity_mode,
+        signing_key_id=signing_key_id,
+        file_versions=file_versions,
+        schema_hashes=dict(effective.get("schema_hashes") or {}),
+        overlay_hash=effective.get("overlay_hash"),
+        release_key_id=signing_key_id,
+        shared_contract_release_hash=shared.get("release_artifact_hash"),
+        issuer_registry_hash=registries.get("scope_grant_issuer_registry.yaml"),
+        status_attestation_registry_hash=registries.get(
+            "scope_status_attestation_registry.yaml"
+        ),
+        policy_manifest_signer_registry_hash=registries.get(
+            "scope_policy_manifest_signer_registry.yaml"
+        ),
+        release_pins_hash=effective.get("release_pins_hash"),
+        runtime_capability_mapping_hash=effective.get("runtime_capability_mapping_hash"),
+        compatibility_manifest_hash=effective.get("compatibility_manifest_hash"),
+    )

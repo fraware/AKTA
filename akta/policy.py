@@ -53,15 +53,15 @@ class PolicyBundle:
 
     def policy_binding(self) -> dict[str, Any]:
         """Canonical policy provenance block for Decision/Record artifacts."""
-        from akta.effective_policy import policy_binding_block
+        from akta.effective_policy import binding_from_effective_manifest
 
-        return policy_binding_block(
+        return binding_from_effective_manifest(
             bundle_version=self.version,
-            effective_policy_hash=self.effective_policy_hash or self.policy_hash,
-            manifest_hash=self.manifest_hash or self.policy_hash,
             integrity_mode=self.integrity_mode,
             signing_key_id=self.signing_key_id,
             file_versions=self.policy_file_versions,
+            effective=self.effective_policy_manifest or {},
+            policy_hash_fallback=self.policy_hash,
         )
 
     @classmethod
@@ -118,23 +118,20 @@ class PolicyBundle:
         })
         tool_registry_hash = hash_file_content(registry_content)
 
-        from akta.effective_policy import (
-            build_effective_policy_manifest,
-            load_effective_policy_manifest,
-        )
+        from akta.effective_policy import require_effective_policy_integrity
         from akta.policy_signing import verify_policy_bundle_integrity
 
         # required=False must not bypass AKTA_PRODUCTION_MODE / AKTA_REQUIRE_SIGNED_POLICY.
         integrity_result = verify_policy_bundle_integrity(policy_dir, required=False)
 
         overlays_dir = policy_dir.parent / "overlays"
-        effective = load_effective_policy_manifest(policy_dir)
-        if effective is None:
-            effective = build_effective_policy_manifest(
-                policy_dir,
-                overlays_dir=overlays_dir if overlays_dir.is_dir() else None,
-                integrity_mode=integrity_result.integrity_mode,
-            )
+        overlays_arg = overlays_dir if overlays_dir.is_dir() else None
+        # WS11: always recompute + verify; never return a stale stored manifest unchecked.
+        effective = require_effective_policy_integrity(
+            policy_dir,
+            overlays_dir=overlays_arg,
+            integrity_mode=integrity_result.integrity_mode,
+        )
 
         signing_key_id = None
         try:
