@@ -20,12 +20,18 @@ Workflows under `.github/workflows/` pin third-party GitHub Actions to full comm
 | CodeQL | `.github/workflows/codeql.yml` (Python) |
 | SBOM | CycloneDX JSON attached on package/tag builds when tooling available |
 | Wheel build + twine check | `package` job |
-| Wheel install smoke | Install built wheel into clean venv and import `akta` |
-| Reproducibility comparison | Optional second wheel build hash compare when enabled |
-| Package provenance hooks | GitHub Attestations / `actions/attest-build-provenance` on tags when available |
+## Supply-chain / release evidence (WS14)
+
+| Control | Placement |
+|---------|-----------|
+| Full wheel smoke | `python -m akta.wheel_smoke` after clean wheel install (schemas, grant auth, status, containment, evidence, PF/PCS) |
+| Reproducibility | Second build under `SOURCE_DATE_EPOCH`; **fails** unless digests match or `docs/reproducibility_normalization.md` lists an allowed token |
+| Sibling matrix on tags | `.github/workflows/release-gate.yml` requires full PF/PCS/SCOPE/VSA/Memory matrix on `v*` |
+| Release evidence report | `scripts/build_release_evidence_report.py` → `dist/release_evidence.json` |
+| VSA pin | `903d834f…` (`v0.7.2`); missing checkout / SHA mismatch remain fail-closed |
 
 ## Sibling pins (P1-A)
 
 Institutional release pins live in `policy/release_pins.yaml` and are recorded in
-`scripts/verify_v1_release.py --institutional` reports. Missing siblings stay
-fail-closed placeholders — never silently optionalized under institutional_release.
+`scripts/verify_v1_release.py --institutional` reports. Missing checkouts or SHA
+mismatches stay fail-closed — never silently optionalized under institutional_release.

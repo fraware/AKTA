@@ -21,8 +21,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: pip install -e ".[dev,security]"
+      - name: Install shared contracts then AKTA
+        run: |
+          pip install ./vendor/scientific-authorization-contracts
+          pip install -e ".[dev,security]"
 
       - name: Shared contract drift gate
         run: python scripts/assert_shared_contract_drift.py
@@ -78,12 +80,17 @@ jobs:
           deps = list(data["project"]["dependencies"])
           for extra in ("dev", "security"):
               deps.extend(data["project"].get("optional-dependencies", {}).get(extra, []))
+          # Vendor-local package; not on public indexes yet.
+          deps = [
+              d for d in deps
+              if not str(d).startswith("scientific-authorization-contracts")
+          ]
           pathlib.Path("requirements-audit.txt").write_text("\n".join(deps) + "\n", encoding="utf-8")
           PY
           pip-audit -r requirements-audit.txt --progress-spinner off
 
       - name: Grant forgery lifecycle tests
-        run: pytest tests/test_grant_forgery_lifecycle.py tests/test_institutional_trust_store.py -v
+        run: pytest tests/test_grant_forgery_lifecycle.py tests/test_institutional_trust_store.py tests/test_strict_mode_crypto.py tests/test_trust_domains.py -v
 
       - name: Run pytest
         run: pytest tests/ skills/akta-scientific-action-admissibility/tests/ -v
@@ -153,18 +160,29 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install build tooling
-        run: pip install -e ".[dev,security]"
+        run: |
+          pip install ./vendor/scientific-authorization-contracts
+          pip install -e ".[dev,security]"
       - name: Shared contract drift gate
         run: python scripts/assert_shared_contract_drift.py
       - name: Build wheel and sdist
+        env:
+          SOURCE_DATE_EPOCH: "1700000000"
         run: python -m build
       - name: Twine check
         run: twine check dist/*
-      - name: Wheel install smoke
+      - name: Wheel install smoke (full institutional path)
+        env:
+          SOURCE_DATE_EPOCH: "1700000000"
         run: |
           python -m venv /tmp/akta-wheel-smoke
+          # Contracts first (no public index), then AKTA wheel in a clean venv.
+          /tmp/akta-wheel-smoke/bin/pip install ./vendor/scientific-authorization-contracts
           /tmp/akta-wheel-smoke/bin/pip install dist/*.whl
-          /tmp/akta-wheel-smoke/bin/python -c "import akta; from akta.trust_store import resolve_trust_store; print('ok', akta.__name__)"
+          # Policy/overlays are package data for gate path; bind from checkout for smoke.
+          cp -a policy overlays /tmp/akta-wheel-smoke/
+          cd /tmp/akta-wheel-smoke
+          ./bin/python -m akta.wheel_smoke
       - name: SBOM (CycloneDX when available)
         run: |
           pip install cyclonedx-bom >/dev/null 2>&1 || true
@@ -188,38 +206,70 @@ jobs:
           print("wrote stub SBOM")
           PY
           fi
-      - name: Reproducibility comparison (second build hash)
+      - name: Reproducibility comparison (fail-closed unless documented)
+        env:
+          SOURCE_DATE_EPOCH: "1700000000"
         run: |
           python -m build -o dist-repro
           python - <<'PY'
-          import hashlib, pathlib, sys
+          import hashlib, json, pathlib, sys
           def digest(pattern):
               paths = sorted(pathlib.Path('.').glob(pattern))
               h = hashlib.sha256()
+              wheels = []
               for p in paths:
                   if p.suffix == '.whl':
                       h.update(p.read_bytes())
-              return h.hexdigest(), [str(p) for p in paths if p.suffix == '.whl']
+                      wheels.append(str(p))
+              return h.hexdigest(), wheels
           a, pa = digest('dist/*.whl')
           b, pb = digest('dist-repro/*.whl')
-          print({'dist': pa, 'dist_repro': pb, 'sha256_dist': a, 'sha256_repro': b, 'match': a == b})
-          # Record comparison; do not fail CI on non-bit-identical wheels (setuptools metadata).
+          match = a == b
+          norm_doc = pathlib.Path('docs/reproducibility_normalization.md')
+          norm_text = norm_doc.read_text(encoding='utf-8') if norm_doc.is_file() else ''
+          # Only tokens listed under "## Active exceptions" count (not the vocabulary table).
+          active = ''
+          if '## Active exceptions' in norm_text:
+              active = norm_text.split('## Active exceptions', 1)[1]
+              if '##' in active:
+                  active = active.split('##', 1)[0]
+          allowed_tokens = ('WHEEL_METADATA_TIMESTAMP', 'PLATFORM_TAG_DRIFT')
+          documented = any(tok in active for tok in allowed_tokens) and 'None.' not in active.strip().splitlines()[:5]
+          # Treat explicit "None." as no active exception.
+          if active.strip().startswith('None.') or active.strip() == 'None':
+              documented = False
+          payload = {
+              'sha256_dist': a,
+              'sha256_repro': b,
+              'match': match,
+              'dist': pa,
+              'dist_repro': pb,
+              'source_date_epoch': '1700000000',
+              'normalization_doc': 'docs/reproducibility_normalization.md',
+              'documented_exception': (not match) and documented,
+          }
+          pathlib.Path('dist').mkdir(exist_ok=True)
           pathlib.Path('dist/reproducibility.json').write_text(
-              __import__('json').dumps({'sha256_dist': a, 'sha256_repro': b, 'match': a == b}, indent=2),
-              encoding='utf-8',
+              json.dumps(payload, indent=2), encoding='utf-8'
           )
+          print(payload)
+          if not match and not documented:
+              print(
+                  'FAIL: release artifacts differ and no active exception token is '
+                  'listed under "## Active exceptions" in docs/reproducibility_normalization.md',
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+          if not match and documented:
+              print(
+                  'WARN: artifacts differ; accepted only because an active '
+                  'normalization exception token is listed'
+              )
           PY
-      - name: Upload package artifacts
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
-        with:
-          name: akta-packages
-          path: |
-            dist/
-            dist-repro/
       - name: pip-audit (fail-closed on declared deps)
         run: |
           python - <<'PY'
-          import pathlib
+          import pathlib, json
           try:
               import tomllib
           except ModuleNotFoundError:
@@ -228,9 +278,35 @@ jobs:
           deps = list(data["project"]["dependencies"])
           for extra in ("dev", "security"):
               deps.extend(data["project"].get("optional-dependencies", {}).get(extra, []))
+          # Vendor-local package; not on public indexes yet.
+          deps = [
+              d for d in deps
+              if not str(d).startswith("scientific-authorization-contracts")
+          ]
           pathlib.Path("requirements-audit.txt").write_text("\n".join(deps) + "\n", encoding="utf-8")
           PY
-          pip-audit -r requirements-audit.txt --progress-spinner off
+          mkdir -p dist
+          pip-audit -r requirements-audit.txt --progress-spinner off --format json -o dist/pip-audit.json || pip-audit -r requirements-audit.txt --progress-spinner off
+      - name: Release evidence report
+        run: |
+          python scripts/build_release_evidence_report.py --out dist/release_evidence.json
+          python - <<'PY'
+          import json, pathlib, re
+          report = json.loads(pathlib.Path('dist/release_evidence.json').read_text(encoding='utf-8'))
+          vsa = report.get('vsa_pin') or {}
+          commit = str(vsa.get('commit') or '')
+          assert vsa.get('pinned') is True, f'VSA must be pinned in release evidence, got {vsa!r}'
+          assert vsa.get('fail_closed_placeholder') is not True
+          assert re.fullmatch(r'[0-9a-f]{40}', commit), f'bad VSA commit {commit!r}'
+          print(f"release evidence ok; VSA pinned {commit} tag={vsa.get('tag')}")
+          PY
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: akta-packages
+          path: |
+            dist/
+            dist-repro/
 
   cross-repo-pf-pcs:
     runs-on: ubuntu-latest
@@ -241,7 +317,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: pip install -e ".[dev,security]"
+        run: |
+          pip install ./vendor/scientific-authorization-contracts
+          pip install -e ".[dev,security]"
       - name: Cross-repo PF-Core validation
         if: ${{ vars.PF_CORE_REPO_PATH != '' }}
         env:
