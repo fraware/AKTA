@@ -1,0 +1,45 @@
+version: akta-scope-grant-issuer-keys-v1
+description: |
+  Approved SCOPE grant-issuer public keys for grant authentication (AKTA 1.1).
+
+  Institutions populate this registry with real issuer public material only.
+  The default tree ships EMPTY so strict modes (pilot|release|cross_repo|production)
+  fail closed until AKTA_GRANT_ISSUER_REGISTRY / AKTA_TRUST_STORE_PATH is populated.
+
+  Multi-role keys must list explicit authorized_artifact_types (default: scope_grant).
+  NEVER place private keys in this registry.
+
+default_authorized_artifact_types:
+  - scope_grant
+
+schema:
+  entry_required:
+    - key_id
+    - status
+    - algorithm
+  entry_public_material_one_of:
+    - public_key_ref
+    - public_key_pem
+    - public_key_file
+  status_enum:
+    - active
+    - revoked
+    - expired
+    - pending
+  algorithm_enum:
+    - Ed25519
+  optional_fields:
+    - valid_from
+    - valid_until
+    - issuer_identity
+    - tenant
+    - institution
+    - authorized_artifact_types
+    - replacement_key_id
+    - revocation_reason
+    - notes
+
+# Production institutional registry: intentionally empty.
+issuers: {}
+
+revoked_key_ids: []

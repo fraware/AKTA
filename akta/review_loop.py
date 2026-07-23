@@ -144,120 +144,64 @@ def check_grant_context_validity(
     scope_grant: dict[str, Any],
     record: dict[str, Any] | None = None,
 ) -> EvaluationLayer | None:
-    """Invalidate grant when any bound consequential state changes (P0-E).
+    """Invalidate grant when any bound consequential state changes (P0-E / WS10).
 
     Missing consequential context → renewed review (never infer missing == bound).
+    Status-authoritative lifecycle fields are preferred when ledger status is present.
     """
+    from akta.lifecycle_semantics import check_expires_after_bindings
+
     metadata = dict(context.get("metadata") or {})
-    constraints = scope_grant.get("constraints") or {}
-    expiration = scope_grant.get("expiration") or {}
-    expires_after = list(expiration.get("expires_after") or [])
-    if isinstance(expiration.get("expires_on"), str):
-        expires_after.append(expiration["expires_on"])
+    ledger_status = metadata.get("ledger_status") or metadata.get("grant_ledger_status")
+    # Prefer verification-attached status when present.
+    verification = metadata.get("grant_verification") or {}
+    if ledger_status is None and isinstance(verification, dict):
+        ledger_status = verification.get("ledger_status")
 
-    bound_evidence = metadata.get("bound_evidence_state") or constraints.get("evidence_state")
-    bound_protocol = (
-        metadata.get("bound_protocol_version") or constraints.get("protocol_version")
+    result = check_expires_after_bindings(
+        scope_grant,
+        context=context,
+        ledger_status=ledger_status if isinstance(ledger_status, dict) else None,
     )
-    if bound_evidence is None or bound_protocol is None:
-        bounds = _bound_values_from_record(record)
-        bound_evidence = bound_evidence or bounds.get("bound_evidence_state")
-        bound_protocol = bound_protocol or bounds.get("bound_protocol_version")
+    layer = result.to_evaluation_layer()
+    if layer is not None:
+        return layer
 
-    current_evidence = context.get("evidence_state")
+    # Implicit closed-loop bindings from the prior record (even when the grant
+    # omits expires_after): protocol identity and evidence non-downgrade.
+    bound_protocol = metadata.get("bound_protocol_version")
     current_protocol = (
         context.get("protocol_version")
         or context.get("active_protocol_id")
         or (context.get("scientific_context") or {}).get("protocol_version")
     )
-
-    # Missing consequential bindings → abstain / renewed review.
-    required_events = {
-        "protocol_version_change": ("protocol_version", bound_protocol, current_protocol),
-        "evidence_state_change": ("evidence_state", bound_evidence, current_evidence),
-        "validation_status_change": (
-            "validation_status",
-            constraints.get("validation_status") or metadata.get("bound_validation_status"),
-            context.get("validation_status") or metadata.get("validation_status"),
-        ),
-        "policy_version_change": (
-            "policy_manifest_hash",
-            constraints.get("policy_manifest_hash")
-            or metadata.get("bound_policy_manifest_hash"),
-            metadata.get("policy_manifest_hash"),
-        ),
-        "model_version_change": (
-            "model_version",
-            constraints.get("model_version") or metadata.get("bound_model_version"),
-            context.get("model_version") or metadata.get("model_version"),
-        ),
-        "tool_registry_change": (
-            "tool_registry_hash",
-            constraints.get("tool_registry_hash")
-            or constraints.get("tool_registry_version")
-            or metadata.get("bound_tool_registry_hash"),
-            metadata.get("tool_registry_hash"),
-        ),
-        "domain_overlay_change": (
-            "domain_overlay_hash",
-            constraints.get("domain_overlay")
-            or constraints.get("domain_overlay_hash")
-            or metadata.get("bound_domain_overlay_hash"),
-            context.get("domain_overlay") or metadata.get("domain_overlay_hash"),
-        ),
-        "safety_incident": (
-            "safety_incident_state",
-            constraints.get("safety_incident_state")
-            or metadata.get("bound_safety_incident_state"),
-            metadata.get("safety_incident_state"),
-        ),
-    }
-
-    for event in expires_after:
-        spec = required_events.get(str(event))
-        if not spec:
-            continue
-        label, bound, current = spec
-        if bound is None:
-            return EvaluationLayer(
-                source="review_loop",
-                decision="review_required",
-                reason=(
-                    f"Missing consequential grant context {label!r} for expiration "
-                    f"event {event!r}; abstain / renewed review (never infer missing == bound)."
-                ),
-            )
-        if current is not None and str(bound) != str(current):
-            return EvaluationLayer(
-                source="review_loop",
-                decision="review_required",
-                reason=(
-                    f"Grant bound state changed for {label} ({bound} -> {current}); "
-                    "SCOPE grant requires renewed review."
-                ),
-            )
-
-    if bound_evidence and current_evidence:
-        if _evidence_rank(current_evidence) < _evidence_rank(str(bound_evidence)):
-            return EvaluationLayer(
-                source="review_loop",
-                decision="review_required",
-                reason=(
-                    f"Evidence downgraded from {bound_evidence} to {current_evidence}; "
-                    "SCOPE grant requires renewed review."
-                ),
-            )
-
     if bound_protocol and current_protocol and str(bound_protocol) != str(current_protocol):
         return EvaluationLayer(
             source="review_loop",
             decision="review_required",
             reason=(
-                f"Protocol context changed ({bound_protocol} -> {current_protocol}); "
+                f"Grant bound state changed for protocol_version "
+                f"({bound_protocol} -> {current_protocol}); "
                 "SCOPE grant requires renewed review."
             ),
         )
 
+    bound_evidence = metadata.get("bound_evidence_state")
+    current_evidence = context.get("evidence_state")
+    if bound_evidence and current_evidence:
+        if _evidence_rank(str(current_evidence)) < _evidence_rank(str(bound_evidence)):
+            return EvaluationLayer(
+                source="review_loop",
+                decision="review_required",
+                reason=(
+                    f"Grant bound evidence downgraded "
+                    f"({bound_evidence} -> {current_evidence}); "
+                    "SCOPE grant requires renewed review."
+                ),
+            )
+
+    # Retain absolute expiration check.
+    expiration = scope_grant.get("expiration") or {}
     expires_at = metadata.get("prior_review_expires_at")
     if not expires_at:
         abs_exp = expiration.get("absolute_expiration") if isinstance(expiration, dict) else None
@@ -314,6 +258,13 @@ def prepare_grant_context(
     require_capability_envelope: bool | None = None,
     trust_store: dict[str, Any] | None = None,
     ledger_status: dict[str, Any] | None = None,
+    authorization_manifest: dict[str, Any] | None = None,
+    source_artifacts: dict[str, Any] | None = None,
+    requested_tool: str | None = None,
+    requested_action: str | None = None,
+    action_class: str | None = None,
+    status_trust_store: dict[str, Any] | None = None,
+    manifest_trust_store: dict[str, Any] | None = None,
 ) -> GrantLoopState:
     """Apply SCOPE grant to context and detect invalidation before re-gate.
 
@@ -331,6 +282,13 @@ def prepare_grant_context(
         require_capability_envelope=require_capability_envelope,
         trust_store=trust_store,
         ledger_status=ledger_status,
+        authorization_manifest=authorization_manifest,
+        source_artifacts=source_artifacts,
+        requested_tool=requested_tool,
+        requested_action=requested_action,
+        action_class=action_class,
+        status_trust_store=status_trust_store,
+        manifest_trust_store=manifest_trust_store,
     )
 
     bounds = _bound_values_from_record(record)
@@ -470,5 +428,33 @@ def apply_grant_decision_constraints(
         envelope = metadata.get("capability_envelope")
         if envelope:
             updated["capability_envelope"] = envelope
+
+    # Integrated acceptance / WS14 Record provenance: preserve auth chain on Decision.
+    initial = (
+        metadata.get("pre_grant_admissibility")
+        or metadata.get("initial_admissibility")
+        or (grant_state.context or {}).get("initial_admissibility")
+    )
+    auth_prov: dict[str, Any] = {
+        "grant_verification": metadata.get("grant_verification"),
+        "status_attestation": (
+            (metadata.get("grant_verification") or {}).get("ledger_status")
+            or metadata.get("ledger_status")
+        ),
+        "requested_envelope": metadata.get("requested_authorization_envelope"),
+        "granted_envelope": metadata.get("capability_envelope"),
+        "requested_authorization": metadata.get("requested_authorization"),
+        "containment": metadata.get("authorization_containment"),
+        "authorization_comparator": metadata.get("authorization_comparator"),
+        "envelope_covers_requested_scope": metadata.get(
+            "envelope_covers_requested_scope"
+        ),
+        "final_decision": updated.get("admissibility"),
+    }
+    if initial is not None:
+        auth_prov["initial_admissibility"] = initial
+    updated["authorization_provenance"] = {
+        k: v for k, v in auth_prov.items() if v is not None
+    }
 
     return updated

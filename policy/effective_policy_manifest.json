@@ -1,6 +1,7 @@
 {
   "bundle_version": "akta-core-v1.0",
-  "effective_policy_hash": "sha256:2faafa13b8a318a8d4f3f7b13c2a68733e85a20cb41dba8a54131159c2beea0d",
+  "compatibility_manifest_hash": "sha256:efbc052fa89e47e64bebcfa6c81c95c0065d59489a4f521942214be98a3eaab3",
+  "effective_policy_hash": "sha256:7b0f47ee87ef829585907c3d20fe3752a0398d1f6d7ae9b3a03df0392aefd4d0",
   "file_versions": {
     "action_ontology.yaml": "action_ontology-v0.5",
     "admissibility_matrix.yaml": "admissibility_matrix-v0.5",
@@ -11,9 +12,15 @@
     "evidence_to_action_rules.yaml": "evidence_to_action_rules-v0.5",
     "policy_manifest.yaml": "akta-policy-manifest-v1.0",
     "release_keys.yaml": "akta-release-keys-v0.7",
+    "release_pins.yaml": "akta-release-pins-v1.1",
     "responsibility_levels.yaml": "responsibility_levels-v0.5",
-    "scope_compatibility_manifest.json": "unknown",
+    "runtime_capability_mapping.yaml": "runtime_capability_mapping-v1.0",
+    "scope_compatibility_manifest.json": "akta-scope-compatibility-v1.1",
+    "scope_grant_issuer_registry.yaml": "akta-scope-grant-issuer-keys-v1",
     "scope_grant_override_rules.yaml": "akta-scope-grant-layer-satisfaction-v1.0",
+    "scope_policy_manifest_signer_registry.yaml": "akta-scope-policy-manifest-signer-keys-v1",
+    "scope_status_attestation_registry.yaml": "akta-scope-status-attestation-keys-v1",
+    "shared_contracts_pin.json": "scientific-authorization-contracts-pin-v1",
     "structured_action_schema.yaml": "akta-structured-action-v1.0",
     "tool_to_requested_scope.yaml": "tool_to_requested_scope-v0.5",
     "validation_statuses.yaml": "validation_statuses-v0.5",
@@ -29,18 +36,25 @@
     "evidence_to_action_rules.yaml": "sha256:72175f5f4cfd6f5cd713098515af9bbf17cb6c6bbc258b5593d1a6b0e12197e2",
     "policy_manifest.yaml": "sha256:4a00c0cf1cee2f7a3d09dbbd9b8619d75357c4dd2edf1e97aeabdb701410a79b",
     "release_keys.yaml": "sha256:eb1c7c4a02347df8293c110d26d00a0e4e91d79ebf3de3146d1c1a9c04be0ce1",
+    "release_pins.yaml": "sha256:5e914ec9447fdf4aae38fa5e5de3d2e35e19b24549ed16c61bb9739ac401c00b",
     "responsibility_levels.yaml": "sha256:e98d3c5488575364f4b5ac9cbf48754f873475235843c5c8405473444e1ac461",
-    "scope_compatibility_manifest.json": "sha256:85c9e21ab29f91b4da544464362e3ff9bb1ab13a0d14bfcf83c5c84d29cb8979",
+    "runtime_capability_mapping.yaml": "sha256:bda801bcb5447a8841b7e6ecddac60a4543233e5c38d03a3d8b93da097011af2",
+    "scope_compatibility_manifest.json": "sha256:efbc052fa89e47e64bebcfa6c81c95c0065d59489a4f521942214be98a3eaab3",
+    "scope_grant_issuer_registry.yaml": "sha256:fb67555ba6e88a4edd019e9ab4b3568cc2ca25f76a1d4dd5f3b2deab600006eb",
     "scope_grant_override_rules.yaml": "sha256:6cb9701d36c9a05f343830b8b5f356d8bd2b4479c01d99f775ee8400fac12863",
+    "scope_policy_manifest_signer_registry.yaml": "sha256:a83423fb53e3fac4c56f74b6b2e1d0cead283e5c2814919e2abc0e54c94fcb86",
+    "scope_status_attestation_registry.yaml": "sha256:7d187af9b0eeb990b6408c1dce2b05ac3edebeec059cd4b234c0ba7536b2f3d5",
+    "shared_contracts_pin.json": "sha256:50b6a2e4296e4e9c4f78838eaac377f0daeeeaf150e5b61a9c5fb66c95d72a80",
     "structured_action_schema.yaml": "sha256:89a0a0255e64ac9fc414350708fd14096d255bff1b25b1749e8203fecdd7ba3f",
     "tool_to_requested_scope.yaml": "sha256:c85beea0595b98fc913b8e5b90d22155bf74afb08937edf8147472c6749873cc",
     "validation_statuses.yaml": "sha256:1cdadb65eb0f5697ab0a70984b3f1fd0b6c26286e16665b45ede620ae1c4548c",
     "verification_statuses.yaml": "sha256:3b09dcc6c66a52a756c3dd054bc7f7e073bd78187606ed2c8855e1348d6a2128"
   },
   "integrity_mode": "deployment_hmac_attested",
-  "manifest_hash": "sha256:5b453acdfe7c5be9a090585b065f55771beb8ef119a37ab70a7329ba87815ca7",
-  "manifest_version": "akta-effective-policy-v1.0",
+  "manifest_hash": "sha256:5f180d472b8ace145872ce1aef9c87a7c4f308f6bdd7a1833bbb71303745fd3b",
+  "manifest_version": "akta-effective-policy-v1.1",
   "missing_optional_inputs": [],
+  "overlay_hash": "sha256:473d097b6e317ad9de948e03883db75bca7488018e6fd7e5017707b91eb34dec",
   "overlay_registry": {
     "note": "Domain overlays live under overlays/; registry metadata is recorded as overlay_ids + content hashes when overlays_dir is provided.",
     "overlays": {
@@ -59,6 +73,28 @@
     "key_id": null,
     "present": true,
     "value": "9f3263391dd00c35191eb013b2129ff5cb943107615a5f10da545dbf7d501567"
+  },
+  "registry_hashes": {
+    "scope_grant_issuer_registry.yaml": "sha256:fb67555ba6e88a4edd019e9ab4b3568cc2ca25f76a1d4dd5f3b2deab600006eb",
+    "scope_policy_manifest_signer_registry.yaml": "sha256:a83423fb53e3fac4c56f74b6b2e1d0cead283e5c2814919e2abc0e54c94fcb86",
+    "scope_status_attestation_registry.yaml": "sha256:7d187af9b0eeb990b6408c1dce2b05ac3edebeec059cd4b234c0ba7536b2f3d5"
+  },
+  "release_pins_hash": "sha256:5e914ec9447fdf4aae38fa5e5de3d2e35e19b24549ed16c61bb9739ac401c00b",
+  "runtime_capability_mapping_hash": "sha256:bda801bcb5447a8841b7e6ecddac60a4543233e5c38d03a3d8b93da097011af2",
+  "schema_hashes": {
+    "envelope_schema_hash": "sha256:9881294eed119374c328f1d48bd7edb39d32b15450734716959c2a953b1ea918",
+    "grant_schema_hash": "sha256:472e81b99122ed9839eb645dc6f7915c1ca525f63cce71488199e31611163c5c",
+    "grant_status_schema_hash": "sha256:a01507839c35e514ee4c4843223f7f1523709d1f38ff2d62c49b999540c23ac0"
+  },
+  "shared_contracts": {
+    "envelope_schema_hash": "sha256:9881294eed119374c328f1d48bd7edb39d32b15450734716959c2a953b1ea918",
+    "envelope_schema_version": "scientific-authorization-envelope-v2",
+    "grant_schema_hash": "sha256:472e81b99122ed9839eb645dc6f7915c1ca525f63cce71488199e31611163c5c",
+    "grant_schema_version": "scope-grant-v2",
+    "grant_status_schema_hash": "sha256:a01507839c35e514ee4c4843223f7f1523709d1f38ff2d62c49b999540c23ac0",
+    "package": "scientific-authorization-contracts",
+    "package_version": "2.1.0",
+    "release_artifact_hash": "sha256:d1f496733819215336a260934f71c374a239a1194be781b0349849fd50b137d3"
   },
   "signing_key_id": null
 }

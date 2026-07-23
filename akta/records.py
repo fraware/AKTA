@@ -287,13 +287,30 @@ class AKTADecision:
             },
             "integrations": {
                 "vsa_report_ref": ctx.get("vsa_report_ref"),
-                "pf_core_obligation_ref": None,
-                "pcs_artifact_ref": None,
+                "pf_core_obligation_ref": ctx.get("pf_core_obligation_ref"),
+                "pcs_artifact_ref": ctx.get("pcs_artifact_ref"),
                 "prior_akta_records": ctx.get("prior_akta_records", []),
             },
         }
         if self._data.get("review_trigger"):
             record_body["review_trigger"] = self._data["review_trigger"]
+        # WS14 / integrated acceptance: preserve full authorization provenance.
+        auth_prov = self._data.get("authorization_provenance")
+        if auth_prov:
+            record_body["authorization_provenance"] = auth_prov
+        for key in (
+            "grant_layer_satisfaction",
+            "decision_layer_provenance",
+            "evidence_independence",
+            "capability_envelope",
+        ):
+            if self._data.get(key) is not None:
+                record_body[key] = self._data[key]
+        if self._data.get("policy"):
+            record_body["provenance"]["policy"] = self._data["policy"]
+            schema_hashes = (self._data["policy"] or {}).get("schema_hashes")
+            if schema_hashes:
+                record_body["provenance"]["schema_hashes"] = schema_hashes
         record_body["record_hash"] = hash_object({k: v for k, v in record_body.items() if k != "record_hash"})
         return AKTARecord(record_body)
 

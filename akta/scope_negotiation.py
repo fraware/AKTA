@@ -200,6 +200,17 @@ def negotiate_scope_contract(
                 )
 
     exact = manifest.get("strict_exact_versions") or {}
+    legacy_ids = {
+        str(x)
+        for x in (
+            manifest.get("legacy_ids_rejected_in_strict")
+            or [
+                "akta-capability-envelope-v1.0",
+                "akta-scope-grant-v1.0",
+                "akta-scope-contract-v1.0",
+            ]
+        )
+    }
     for key, expected in exact.items():
         # Strict: compare only peer-declared values, never local fallback.
         actual = peer.get(key)
@@ -209,6 +220,8 @@ def negotiate_scope_contract(
             actual = peer.get("capability_envelope_version") or peer.get(
                 "authorization_schema_version"
             )
+        if actual is None and key == "grant_status_schema_version":
+            actual = peer.get("grant_status_schema_version")
         if actual is None:
             if not strict:
                 # Non-strict may consult local for warnings only.
@@ -217,13 +230,33 @@ def negotiate_scope_contract(
                     warnings.append(f"missing contract version for {key}")
                 continue
             continue  # already recorded as missing peer key
+        if strict and str(actual) in legacy_ids:
+            errors.append(
+                f"strict rejects legacy contract id for {key}: {actual!r} "
+                "(delete former envelope/grant IDs from peer negotiation)"
+            )
+            continue
         if strict and str(actual) != str(expected):
             errors.append(f"strict mismatch {key}: got {actual!r}, expected {expected!r}")
+
+    # Reject legacy IDs anywhere in peer declarations under strict mode.
+    if strict:
+        for key, value in peer.items():
+            if str(value) in legacy_ids:
+                errors.append(
+                    f"strict rejects legacy peer value {key}={value!r}"
+                )
 
     peer_pkg = peer.get("scope_package_version")
     allowed_pkgs = (manifest.get("compatible_scope_packages") or {}).get("scope-protocol") or []
     if peer_pkg and allowed_pkgs and peer_pkg not in allowed_pkgs:
         msg = f"scope package {peer_pkg!r} not in compatible set {allowed_pkgs}"
+        (errors if strict else warnings).append(msg)
+
+    peer_core = peer.get("scope_core_version")
+    allowed_cores = (manifest.get("compatible_scope_packages") or {}).get("scope-core") or []
+    if peer_core and allowed_cores and peer_core not in allowed_cores:
+        msg = f"scope core {peer_core!r} not in compatible set {allowed_cores}"
         (errors if strict else warnings).append(msg)
 
     peer_policy = peer.get("scope_policy_version") or peer.get("policy_manifest_version")

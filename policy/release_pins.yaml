@@ -1,15 +1,24 @@
-# Institutional full-stack release pins (P1-A).
-# Recorded SHAs are discovery-time pins from local sibling checkouts.
-# Missing components keep placeholder pins and remain fail-closed under
-# institutional_release profile — never silently optionalized.
+# Institutional full-stack release pins (P1-A / WS12).
+# Recorded SHAs are discovery-time pins from sibling checkouts / public remotes.
+# Missing checkouts or SHA mismatches remain fail-closed under
+# institutional_release — never silently optionalized.
+#
+# Checkout existence alone is insufficient: akta.release_pins / sibling_repos
+# compare `git rev-parse HEAD` to the pinned commit.
 #
 # Beta: pins enable reproducible institutional validation; they do not certify
 # production readiness for SCOPE-authorized action.
 
-version: akta-release-pins-v1
+version: akta-release-pins-v1.1
 profile: institutional_release
-recorded_at: "2026-07-23T00:00:00Z"
+recorded_at: "2026-07-23T16:40:00Z"
 recorded_host: local-discovery
+
+shared_contracts:
+  package: scientific-authorization-contracts
+  package_version: "2.1.0"
+  release_artifact_hash: "sha256:d375614f55f8d1a5a9bef5a25fd01591ee2f57ee857e7fa0ad72d7ade950c771"
+  pin_file: policy/shared_contracts_pin.json
 
 components:
   SCOPE:
@@ -50,14 +59,15 @@ components:
   VSA:
     env_var: VSA_REPO_PATH
     path_candidates: ["verified-science-agent", "VSA", "vsa"]
-    commit: "UNAVAILABLE-PLACEHOLDER-FAIL-CLOSED"
-    tag: null
+    commit: 903d834f201535ac1525e3e8907254363209904f
+    tag: v0.7.2
     required: true
-    status: missing_placeholder
+    status: pinned
     note: |
-      No local VSA sibling discovered. Institutional release must fail closed
-      until a real commit SHA is pinned — do not treat VSA-only synthetic
-      validation as sufficient.
+      Pinned from public sibling remote
+      https://github.com/fraware/verified-science-agent.git tag v0.7.2.
+      Institutional release still fail-closes on missing VSA checkout or
+      HEAD/SHA mismatch — never treat synthetic VSA-only validation as enough.
 
 # Hard rejects under institutional_release (P1-A acceptance criteria).
 rejects:
@@ -70,3 +80,5 @@ rejects:
   - missing_scientific_memory_integration
   - empty_issuer_trust_registry
   - unpinned_or_placeholder_required_sibling
+  - sibling_checkout_sha_mismatch
+  - shared_contracts_release_hash_mismatch

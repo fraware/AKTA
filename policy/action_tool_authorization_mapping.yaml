@@ -1,0 +1,84 @@
+version: akta-action-tool-auth-v1
+description: >
+  Maps AKTA action classes and tools to shared authorization (family, operation).
+  A5 distinguishes draft vs update_active; A7 queue priority; A9 per frozen vocab.
+action_class_defaults:
+  A0_informational_or_exploratory:
+    family: interpretation
+    operation: clarify
+  A1_retrieval_or_summary:
+    family: interpretation
+    operation: clarify
+  A2_analysis_or_interpretation:
+    family: interpretation
+    operation: interpret
+  A3_hypothesis_generation:
+    family: interpretation
+    operation: discuss
+  A4_recommendation:
+    family: recommendation
+    operation: draft
+  A5_protocol_modification:
+    family: protocol
+    operation: draft
+    action_overrides:
+      draft: {family: protocol, operation: draft}
+      draft_change: {family: protocol, operation: draft}
+      draft_timing: {family: protocol, operation: draft}
+      update_active: {family: protocol, operation: update_active}
+      update_active_protocol: {family: protocol, operation: update_active}
+    tool_overrides:
+      protocol_editor.draft_change: {family: protocol, operation: draft}
+      protocol_editor.update_active_protocol: {family: protocol, operation: update_active}
+  A6_experimental_planning:
+    family: experiment_plan
+    operation: plan
+    tool_overrides:
+      experiment_planner.create_validation_draft:
+        {family: experiment_plan, operation: run_draft}
+      experiment_planner.create_run_plan:
+        {family: experiment_plan, operation: plan}
+  A7_resource_or_queue_prioritization:
+    family: queue
+    operation: single_run_priority
+    tool_overrides:
+      lab_scheduler.prioritize: {family: queue, operation: single_run_priority}
+  A8_tool_or_workflow_mutation:
+    family: execution
+    operation: prepare_payload
+  A9_execution_adjacent_or_external_action:
+    family: execution
+    operation: prepare_payload
+    tool_overrides:
+      robot_queue.submit: {family: queue, operation: robot_submit}
+  A10_publication_or_claim_escalation:
+    family: publication
+    operation: claim
+tools:
+  protocol_editor.draft_change:
+    family: protocol
+    operation: draft
+  protocol_editor.update_active_protocol:
+    family: protocol
+    operation: update_active
+  experiment_planner.create_validation_draft:
+    family: experiment_plan
+    operation: run_draft
+  experiment_planner.create_run_plan:
+    family: experiment_plan
+    operation: plan
+  lab_scheduler.prioritize:
+    family: queue
+    operation: single_run_priority
+  robot_queue.submit:
+    family: queue
+    operation: robot_submit
+  workflow.update_state:
+    family: execution
+    operation: prepare_payload
+  publication.draft_claim:
+    family: publication
+    operation: claim
+  scientific_memory.import:
+    family: memory
+    operation: import

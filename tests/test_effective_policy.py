@@ -85,14 +85,21 @@ def test_revoked_release_key_hard_fails(
 
 def test_effective_policy_manifest_covers_core_inputs() -> None:
     manifest = build_effective_policy_manifest(ROOT / "policy", overlays_dir=ROOT / "overlays")
-    assert manifest["manifest_version"] == "akta-effective-policy-v1.0"
+    assert manifest["manifest_version"] == "akta-effective-policy-v1.1"
     assert manifest["effective_policy_hash"].startswith("sha256:")
     assert manifest["manifest_hash"].startswith("sha256:")
     assert "action_ontology.yaml" in manifest["files"]
     assert "default_tool_registry.yaml" in manifest["files"]
     assert "scope_grant_override_rules.yaml" in manifest["files"]
     assert "release_keys.yaml" in manifest["files"]
+    assert "shared_contracts_pin.json" in manifest["files"]
+    assert "scope_grant_issuer_registry.yaml" in manifest["files"]
+    assert "release_pins.yaml" in manifest["files"]
+    assert "runtime_capability_mapping.yaml" in manifest["files"]
     assert "overlays" in manifest["overlay_registry"]
+    assert manifest["shared_contracts"]["package_version"]
+    assert manifest["schema_hashes"]
+    assert manifest["registry_hashes"]
 
 
 def test_decision_and_record_bind_policy_block(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -113,6 +120,10 @@ def test_decision_and_record_bind_policy_block(monkeypatch: pytest.MonkeyPatch) 
     assert d["policy"]["effective_policy_hash"].startswith("sha256:")
     assert d["policy"]["integrity_mode"] == gate.policy.integrity_mode
     assert isinstance(d["policy"]["file_versions"], dict)
+    assert "schema_hashes" in d["policy"]
+    assert d["policy"].get("shared_contract_release_hash")
+    assert d["policy"].get("issuer_registry_hash")
+    assert d["policy"].get("compatibility_manifest_hash")
 
     record = decision.to_record().to_dict()
     assert "policy" in record

@@ -242,6 +242,11 @@ class AKTAGate:
         require_capability_envelope: bool | None = None,
         trust_store: dict[str, Any] | None = None,
         ledger_status: dict[str, Any] | None = None,
+        authorization_manifest: dict[str, Any] | None = None,
+        source_artifacts: dict[str, Any] | None = None,
+        action_class: str | None = None,
+        status_trust_store: dict[str, Any] | None = None,
+        manifest_trust_store: dict[str, Any] | None = None,
     ) -> AKTADecision:
         """Re-gate after SCOPE grant or review decision with expiry enforcement (F14).
 
@@ -253,12 +258,27 @@ class AKTAGate:
             enforce_grant_expiry,
         )
         from akta.review_loop import apply_grant_decision_constraints, prepare_grant_context
+        from akta.evidence_independence import (
+            attach_layer_provenance_to_decision,
+            build_decision_layer_provenance,
+            check_evidence_independence,
+        )
 
         ctx_dict: dict[str, Any]
         if isinstance(context, AKTAContext):
             ctx_dict = context.to_dict()
         else:
             ctx_dict = dict(context or {})
+
+        # Capture pre-grant admissibility from prior record/decision when present.
+        pre_grant_adm = None
+        if isinstance(record, dict):
+            pre_grant_adm = (record.get("decision") or {}).get("admissibility")
+        if pre_grant_adm:
+            meta0 = dict(ctx_dict.get("metadata") or {})
+            meta0.setdefault("pre_grant_admissibility", pre_grant_adm)
+            meta0.setdefault("initial_admissibility", pre_grant_adm)
+            ctx_dict["metadata"] = meta0
 
         grant_state: Any = None
         if review_decision is not None:
@@ -274,6 +294,13 @@ class AKTAGate:
                 require_capability_envelope=require_capability_envelope,
                 trust_store=trust_store,
                 ledger_status=ledger_status,
+                authorization_manifest=authorization_manifest,
+                source_artifacts=source_artifacts,
+                requested_tool=requested_tool,
+                requested_action=requested_action,
+                action_class=action_class,
+                status_trust_store=status_trust_store,
+                manifest_trust_store=manifest_trust_store,
             )
             ctx_dict = grant_state.context
 
@@ -294,7 +321,45 @@ class AKTAGate:
                 grant_state,
                 requested_tool=requested_tool,
             )
-            decision = AKTADecision(updated)
+            # WS9: layered Decision provenance + evidence independence check.
+            data = dict(updated)
+            provenance = build_decision_layer_provenance(
+                evidence_decision=data.get("admissibility"),
+                evidence_reason=data.get("reason"),
+                deployment_profile_decision=None,
+                domain_overlay_decision=None,
+                authorization_decision="authorization_satisfied",
+                tool_decision=None,
+                final_decision=data.get("admissibility"),
+                final_reason=data.get("reason"),
+                scope_grant=scope_grant,
+                authorization_satisfied_by_grant=True,
+            )
+            independence = check_evidence_independence(
+                scope_grant=scope_grant,
+                post_decision=data.get("admissibility"),
+                post_reason=data.get("reason"),
+                final_layers=provenance,
+            )
+            data = attach_layer_provenance_to_decision(data, provenance)
+            data["evidence_independence"] = independence.to_dict()
+            # Prefer pre-compose admissibility when grant path recorded initial state.
+            meta = (grant_state.context or {}).get("metadata") or {}
+            if meta.get("pre_grant_admissibility"):
+                auth = dict(data.get("authorization_provenance") or {})
+                auth["initial_admissibility"] = meta["pre_grant_admissibility"]
+                data["authorization_provenance"] = auth
+            if data.get("authorization_provenance") is not None:
+                data["authorization_provenance"]["evidence_layer"] = (
+                    independence.to_dict()
+                )
+                data["authorization_provenance"]["decision_layer_provenance"] = (
+                    provenance.to_dict()
+                )
+                data["authorization_provenance"]["final_decision"] = data.get(
+                    "admissibility"
+                )
+            decision = AKTADecision(data)
             if validate_output:
                 validate_against_schema(decision.to_dict(), "akta_decision.schema.json")
 

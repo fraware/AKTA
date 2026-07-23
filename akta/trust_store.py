@@ -1,8 +1,11 @@
-"""SCOPE issuer / trust-root key registry for grant authentication (P0-C).
+"""SCOPE trust registries for grant, status, and manifest authentication (AKTA 1.1).
 
-Loads approved issuer public keys from AKTA policy and optional SCOPE sibling
-``reviewer_key_registry.yaml`` / issuer registry files. Production and other
-strict modes fail closed when keys are unknown, revoked, or the store is empty.
+Trust domains are separate:
+- ``scope_grant_issuer_registry.yaml`` — grant signatures only
+- ``scope_status_attestation_registry.yaml`` — grant-status attestations
+- ``scope_policy_manifest_signer_registry.yaml`` — SCOPE authorization manifests
+- ``reviewer_decision_registry.yaml`` — optional local reviewer decisions;
+  **never** auto-merged into grant-issuer keys
 """
 
 from __future__ import annotations
@@ -11,6 +14,7 @@ import base64
 import json
 import os
 from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -19,9 +23,33 @@ import yaml
 from akta.shared_contracts import _contracts
 
 _AKTA_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_REGISTRY_NAME = "scope_issuer_key_registry.yaml"
+
+GRANT_ISSUER_REGISTRY_NAME = "scope_grant_issuer_registry.yaml"
+STATUS_ATTESTATION_REGISTRY_NAME = "scope_status_attestation_registry.yaml"
+MANIFEST_SIGNER_REGISTRY_NAME = "scope_policy_manifest_signer_registry.yaml"
+REVIEWER_DECISION_REGISTRY_NAME = "reviewer_decision_registry.yaml"
+# Legacy filename retained for migration messaging only — not auto-loaded as issuer.
+LEGACY_ISSUER_REGISTRY_NAME = "scope_issuer_key_registry.yaml"
+
 SUPPORTED_ALGORITHMS = frozenset({"Ed25519", "ed25519"})
 ACTIVE_STATUSES = frozenset({"active"})
+
+
+class ArtifactType(str, Enum):
+    SCOPE_GRANT = "scope_grant"
+    SCOPE_GRANT_STATUS = "scope_grant_status"
+    SCOPE_AUTHORIZATION_MANIFEST = "scope_authorization_manifest"
+    REVIEWER_DECISION = "reviewer_decision"
+
+
+DEFAULT_ARTIFACT_TYPES: dict[str, frozenset[str]] = {
+    GRANT_ISSUER_REGISTRY_NAME: frozenset({ArtifactType.SCOPE_GRANT.value}),
+    STATUS_ATTESTATION_REGISTRY_NAME: frozenset({ArtifactType.SCOPE_GRANT_STATUS.value}),
+    MANIFEST_SIGNER_REGISTRY_NAME: frozenset(
+        {ArtifactType.SCOPE_AUTHORIZATION_MANIFEST.value}
+    ),
+    REVIEWER_DECISION_REGISTRY_NAME: frozenset({ArtifactType.REVIEWER_DECISION.value}),
+}
 
 
 def _public_key_ref_from_pem(pem: str | bytes) -> str:
@@ -29,10 +57,20 @@ def _public_key_ref_from_pem(pem: str | bytes) -> str:
     return _contracts().compute_hash({"public_key_pem": text})
 
 
+def _require_cryptography():
+    try:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    except ImportError as exc:  # pragma: no cover - cryptography is a hard dep
+        raise ImportError(
+            "cryptography is required for SCOPE grant signature verification"
+        ) from exc
+    return serialization, Ed25519PublicKey
+
+
 def _load_ed25519_public_key(entry: dict[str, Any], *, base_dir: Path):
     """Return cryptography Ed25519PublicKey from registry entry."""
-    from cryptography.hazmat.primitives import serialization
-    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    serialization, Ed25519PublicKey = _require_cryptography()
 
     pem_text = entry.get("public_key_pem")
     if pem_text:
@@ -103,7 +141,7 @@ def _parse_iso8601(value: Any) -> datetime | None:
     return dt.astimezone(timezone.utc)
 
 
-def _entry_within_validity(entry: dict[str, Any], *, now: datetime | None = None) -> bool:
+def entry_within_validity(entry: dict[str, Any], *, now: datetime | None = None) -> bool:
     """Return False when valid_from/valid_until exclude the current time."""
     clock = now or datetime.now(timezone.utc)
     start = _parse_iso8601(entry.get("valid_from"))
@@ -115,27 +153,91 @@ def _entry_within_validity(entry: dict[str, Any], *, now: datetime | None = None
     return True
 
 
+def _entry_within_validity(entry: dict[str, Any], *, now: datetime | None = None) -> bool:
+    return entry_within_validity(entry, now=now)
+
+
 def _entry_algorithm_ok(entry: dict[str, Any]) -> bool:
     algo = entry.get("algorithm")
     if algo is None or algo == "":
-        # Legacy SCOPE reviewer entries omit algorithm; treat as Ed25519.
         return True
     return str(algo) in SUPPORTED_ALGORITHMS
 
 
-def _entry_usable(entry: dict[str, Any], *, now: datetime | None = None) -> bool:
+def _normalize_artifact_types(
+    entry: dict[str, Any],
+    *,
+    default_types: frozenset[str] | None = None,
+) -> frozenset[str]:
+    raw = entry.get("authorized_artifact_types") or entry.get("artifact_types")
+    if raw is None:
+        return frozenset(default_types or ())
+    if isinstance(raw, str):
+        return frozenset({raw.strip()}) if raw.strip() else frozenset()
+    return frozenset(str(x).strip() for x in raw if str(x).strip())
+
+
+def _entry_usable(
+    entry: dict[str, Any],
+    *,
+    now: datetime | None = None,
+    required_artifact_type: str | None = None,
+) -> bool:
     if _entry_status(entry) not in ACTIVE_STATUSES:
         return False
     if not _entry_algorithm_ok(entry):
         return False
-    return _entry_within_validity(entry, now=now)
+    if not _entry_within_validity(entry, now=now):
+        return False
+    if required_artifact_type is not None:
+        allowed = entry.get("_authorized_artifact_types")
+        if allowed is None:
+            allowed = _normalize_artifact_types(entry)
+        if required_artifact_type not in allowed:
+            return False
+    return True
 
 
-def load_issuer_registry(path: str | Path) -> dict[str, Any]:
-    """Load an AKTA or SCOPE-shaped issuer/reviewer key registry YAML/JSON."""
+def _normalize_registry_entry(
+    key_id: str,
+    entry: dict[str, Any],
+    *,
+    default_artifact_types: frozenset[str] | None = None,
+) -> dict[str, Any]:
+    normalized = dict(entry)
+    normalized.setdefault("key_id", str(key_id))
+    types = _normalize_artifact_types(normalized, default_types=default_artifact_types)
+    normalized["authorized_artifact_types"] = sorted(types)
+    normalized["_authorized_artifact_types"] = types
+    if "issuer_identity" not in normalized and normalized.get("identity"):
+        normalized["issuer_identity"] = normalized["identity"]
+    return normalized
+
+
+def load_typed_registry(
+    path: str | Path,
+    *,
+    default_artifact_types: frozenset[str] | None = None,
+    section_keys: tuple[str, ...] = ("issuers", "keys", "signers", "attestors"),
+) -> dict[str, Any]:
+    """Load a typed AKTA trust registry (YAML/JSON).
+
+    Entry schema (authoritative fields):
+      key_id, public key material, authorized_artifact_types, issuer_identity,
+      tenant/institution, status, valid_from/until, replacement_key_id,
+      revocation_reason.
+
+    Multi-role keys are allowed only via explicit ``authorized_artifact_types``.
+    """
     registry_path = Path(path)
     if not registry_path.is_file():
-        return {"version": None, "keys": {}, "revoked_key_ids": [], "source": str(registry_path)}
+        return {
+            "version": None,
+            "keys": {},
+            "revoked_key_ids": [],
+            "source": str(registry_path),
+            "default_artifact_types": sorted(default_artifact_types or ()),
+        }
 
     raw = registry_path.read_text(encoding="utf-8")
     if registry_path.suffix.lower() == ".json":
@@ -143,73 +245,83 @@ def load_issuer_registry(path: str | Path) -> dict[str, Any]:
     else:
         data = yaml.safe_load(raw) or {}
 
+    file_defaults = _normalize_artifact_types(
+        {"authorized_artifact_types": data.get("default_authorized_artifact_types")},
+        default_types=default_artifact_types,
+    )
+    if not file_defaults and default_artifact_types:
+        file_defaults = frozenset(default_artifact_types)
+
     keys: dict[str, dict[str, Any]] = {}
     revoked: set[str] = set(str(x) for x in (data.get("revoked_key_ids") or []))
 
-    # AKTA issuer registry shape
-    issuers = data.get("issuers") or {}
-    for key_id, entry in issuers.items():
-        if not isinstance(entry, dict):
+    for section in section_keys:
+        section_data = data.get(section) or {}
+        if not isinstance(section_data, dict):
             continue
-        normalized = dict(entry)
-        normalized.setdefault("key_id", str(key_id))
-        if _entry_status(normalized) == "revoked":
-            revoked.add(str(key_id))
-            if normalized.get("public_key_ref"):
-                revoked.add(str(normalized["public_key_ref"]))
-        keys[str(key_id)] = normalized
-        ref = normalized.get("public_key_ref")
-        if ref:
-            keys[str(ref)] = normalized
-
-    # SCOPE reviewer_key_registry.yaml shape
-    reviewers = data.get("reviewers") or {}
-    for reviewer_id, entry in reviewers.items():
-        if isinstance(entry, str):
-            entry = {"public_key_ref": entry}
-        if not isinstance(entry, dict):
-            continue
-        normalized = dict(entry)
-        normalized.setdefault("key_id", str(reviewer_id))
-        normalized.setdefault("issuer_identity", str(reviewer_id))
-        if _entry_status(normalized) == "revoked":
-            revoked.add(str(reviewer_id))
-            if normalized.get("public_key_ref"):
-                revoked.add(str(normalized["public_key_ref"]))
-        keys[str(reviewer_id)] = normalized
-        ref = normalized.get("public_key_ref")
-        if ref:
-            keys[str(ref)] = normalized
+        for key_id, entry in section_data.items():
+            if isinstance(entry, str):
+                entry = {"public_key_ref": entry}
+            if not isinstance(entry, dict):
+                continue
+            normalized = _normalize_registry_entry(
+                str(key_id),
+                entry,
+                default_artifact_types=file_defaults,
+            )
+            if _entry_status(normalized) == "revoked":
+                revoked.add(str(key_id))
+                if normalized.get("public_key_ref"):
+                    revoked.add(str(normalized["public_key_ref"]))
+            keys[str(key_id)] = normalized
+            ref = normalized.get("public_key_ref")
+            if ref:
+                keys[str(ref)] = normalized
 
     return {
         "version": data.get("version"),
         "keys": keys,
         "revoked_key_ids": sorted(revoked),
         "source": str(registry_path.resolve()),
+        "default_artifact_types": sorted(file_defaults),
         "raw": data,
     }
 
 
-def _default_registry_candidates(policy_dir: Path | None = None) -> list[Path]:
-    candidates: list[Path] = []
-    env = os.environ.get("AKTA_TRUST_STORE_PATH", "").strip()
-    if env:
-        candidates.append(Path(env))
-    env_reg = os.environ.get("AKTA_ISSUER_KEY_REGISTRY", "").strip()
-    if env_reg:
-        candidates.append(Path(env_reg))
-    base = Path(policy_dir) if policy_dir else _AKTA_ROOT / "policy"
-    candidates.append(base / DEFAULT_REGISTRY_NAME)
+def load_issuer_registry(path: str | Path) -> dict[str, Any]:
+    """Load a grant-issuer registry (backward-compatible name)."""
+    return load_typed_registry(
+        path,
+        default_artifact_types=frozenset({ArtifactType.SCOPE_GRANT.value}),
+        section_keys=("issuers", "keys", "signers"),
+    )
 
-    scope_repo = os.environ.get("SCOPE_REPO_PATH", "").strip()
-    scope_roots: list[Path] = []
-    if scope_repo:
-        scope_roots.append(Path(scope_repo))
-    scope_roots.append(_AKTA_ROOT.parent / "SCOPE")
-    for root in scope_roots:
-        candidates.append(root / "policy" / "reviewer_key_registry.yaml")
-        candidates.append(root / "policy" / "issuer_key_registry.yaml")
-    return candidates
+
+def load_status_attestation_registry(path: str | Path) -> dict[str, Any]:
+    return load_typed_registry(
+        path,
+        default_artifact_types=frozenset({ArtifactType.SCOPE_GRANT_STATUS.value}),
+        section_keys=("attestors", "issuers", "keys", "signers"),
+    )
+
+
+def load_manifest_signer_registry(path: str | Path) -> dict[str, Any]:
+    return load_typed_registry(
+        path,
+        default_artifact_types=frozenset(
+            {ArtifactType.SCOPE_AUTHORIZATION_MANIFEST.value}
+        ),
+        section_keys=("signers", "issuers", "keys"),
+    )
+
+
+def load_reviewer_decision_registry(path: str | Path) -> dict[str, Any]:
+    """Optional reviewer registry — never auto-used as grant-issuer trust."""
+    return load_typed_registry(
+        path,
+        default_artifact_types=frozenset({ArtifactType.REVIEWER_DECISION.value}),
+        section_keys=("reviewers", "keys", "issuers"),
+    )
 
 
 def merge_registries(parts: list[dict[str, Any]]) -> dict[str, Any]:
@@ -232,22 +344,38 @@ def build_trust_store(
     registry: dict[str, Any],
     *,
     base_dir: Path | None = None,
+    required_artifact_type: str | None = None,
 ) -> dict[str, Any]:
     """Build a verifier trust_store dict consumed by ``scope_grant_verifier``."""
     base = base_dir or _AKTA_ROOT / "policy"
     keys = dict(registry.get("keys") or {})
     revoked = set(str(x) for x in (registry.get("revoked_key_ids") or []))
     loaded_keys: dict[str, dict[str, Any]] = {}
+    artifact_type = required_artifact_type or (
+        (registry.get("default_artifact_types") or [None])[0]
+        if registry.get("default_artifact_types")
+        else None
+    )
 
     for key_id, entry in keys.items():
         enriched = dict(entry)
+        if "_authorized_artifact_types" not in enriched:
+            enriched["_authorized_artifact_types"] = _normalize_artifact_types(
+                enriched,
+                default_types=frozenset(registry.get("default_artifact_types") or ()),
+            )
+            enriched["authorized_artifact_types"] = sorted(
+                enriched["_authorized_artifact_types"]
+            )
         try:
             public_key = _load_ed25519_public_key(enriched, base_dir=base)
             pem = None
             if enriched.get("public_key_pem"):
                 pem = str(enriched["public_key_pem"])
             elif enriched.get("public_key_file") or enriched.get("public_key_path"):
-                path_value = enriched.get("public_key_file") or enriched.get("public_key_path")
+                path_value = enriched.get("public_key_file") or enriched.get(
+                    "public_key_path"
+                )
                 path = Path(str(path_value))
                 if not path.is_absolute():
                     path = (base / path).resolve()
@@ -260,16 +388,15 @@ def build_trust_store(
             if ref:
                 loaded_keys[str(ref)] = enriched
         except Exception:
-            # Keep structural entry for unknown-key messaging; crypto verify will fail.
             loaded_keys[str(key_id)] = enriched
 
     def _verify(payload: dict[str, Any], hash_field: str, signature: str) -> bool:
         issuer = payload.get("issuer") or {}
         key_id = (
             issuer.get("issuer_key_id")
-            or payload.get("reviewer_public_key_ref")
             or payload.get("attestation_key_id")
             or payload.get("issuer_key_id")
+            or payload.get("manifest_signature_key_id")
         )
         if not key_id:
             return False
@@ -278,12 +405,11 @@ def build_trust_store(
         entry = loaded_keys.get(str(key_id))
         if entry is None:
             return False
-        if not _entry_usable(entry):
+        if not _entry_usable(entry, required_artifact_type=artifact_type):
             return False
         public_key = entry.get("_public_key")
         if public_key is None:
             return False
-        # SCOPE parity: signed_payload_hash must equal the hashed field when present.
         signed_payload = payload.get("signed_payload_hash")
         if signed_payload is not None and signed_payload != payload.get(hash_field):
             return False
@@ -297,44 +423,190 @@ def build_trust_store(
     return {
         "keys": loaded_keys,
         "revoked_key_ids": sorted(revoked),
-        "sources": list(registry.get("sources") or ([registry.get("source")] if registry.get("source") else [])),
+        "sources": list(
+            registry.get("sources")
+            or ([registry.get("source")] if registry.get("source") else [])
+        ),
+        "required_artifact_type": artifact_type,
         "verify": _verify,
     }
 
 
-def resolve_trust_store(
+def _policy_dir(policy_dir: Path | None) -> Path:
+    return Path(policy_dir) if policy_dir else _AKTA_ROOT / "policy"
+
+
+def _env_path(*names: str) -> Path | None:
+    for name in names:
+        value = os.environ.get(name, "").strip()
+        if value:
+            return Path(value)
+    return None
+
+
+def resolve_grant_issuer_trust_store(
     *,
     policy_dir: str | Path | None = None,
     explicit: dict[str, Any] | None = None,
     require_keys: bool = False,
 ) -> dict[str, Any] | None:
-    """Resolve production trust store from explicit override or on-disk registries."""
+    """Resolve grant-issuer trust store (signatures on scope grants)."""
     if explicit is not None:
         if "verify" not in explicit and explicit.get("keys") is not None:
-            return build_trust_store(explicit, base_dir=Path(policy_dir) if policy_dir else None)
+            return build_trust_store(
+                explicit,
+                base_dir=_policy_dir(Path(policy_dir) if policy_dir else None),
+                required_artifact_type=ArtifactType.SCOPE_GRANT.value,
+            )
         return explicit
 
-    built_parts: list[dict[str, Any]] = []
+    base = _policy_dir(Path(policy_dir) if policy_dir else None)
+    candidates: list[Path] = []
+    env = _env_path("AKTA_GRANT_ISSUER_REGISTRY", "AKTA_TRUST_STORE_PATH", "AKTA_ISSUER_KEY_REGISTRY")
+    if env is not None:
+        candidates.append(env)
+    candidates.append(base / GRANT_ISSUER_REGISTRY_NAME)
+
+    parts: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for candidate in _default_registry_candidates(Path(policy_dir) if policy_dir else None):
+    for candidate in candidates:
         resolved = str(candidate.resolve()) if candidate.exists() else str(candidate)
         if resolved in seen:
             continue
         seen.add(resolved)
         if candidate.is_file():
             part = load_issuer_registry(candidate)
-            built_parts.append(build_trust_store(part, base_dir=candidate.parent))
+            parts.append(
+                build_trust_store(
+                    part,
+                    base_dir=candidate.parent,
+                    required_artifact_type=ArtifactType.SCOPE_GRANT.value,
+                )
+            )
 
-    if not built_parts:
+    if not parts:
         if require_keys:
-            return build_trust_store({"keys": {}, "revoked_key_ids": []})
+            return build_trust_store(
+                {"keys": {}, "revoked_key_ids": []},
+                required_artifact_type=ArtifactType.SCOPE_GRANT.value,
+            )
         return None
+    return _merge_built_stores(parts, required_artifact_type=ArtifactType.SCOPE_GRANT.value)
 
-    # Merge already-built stores so relative public_key_file paths resolve per registry.
+
+def resolve_status_attestation_trust_store(
+    *,
+    policy_dir: str | Path | None = None,
+    explicit: dict[str, Any] | None = None,
+    require_keys: bool = False,
+) -> dict[str, Any] | None:
+    if explicit is not None:
+        if "verify" not in explicit and explicit.get("keys") is not None:
+            return build_trust_store(
+                explicit,
+                base_dir=_policy_dir(Path(policy_dir) if policy_dir else None),
+                required_artifact_type=ArtifactType.SCOPE_GRANT_STATUS.value,
+            )
+        return explicit
+
+    base = _policy_dir(Path(policy_dir) if policy_dir else None)
+    candidates: list[Path] = []
+    env = _env_path("AKTA_STATUS_ATTESTATION_REGISTRY")
+    if env is not None:
+        candidates.append(env)
+    candidates.append(base / STATUS_ATTESTATION_REGISTRY_NAME)
+
+    parts: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        resolved = str(candidate.resolve()) if candidate.exists() else str(candidate)
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if candidate.is_file():
+            part = load_status_attestation_registry(candidate)
+            parts.append(
+                build_trust_store(
+                    part,
+                    base_dir=candidate.parent,
+                    required_artifact_type=ArtifactType.SCOPE_GRANT_STATUS.value,
+                )
+            )
+
+    if not parts:
+        if require_keys:
+            return build_trust_store(
+                {"keys": {}, "revoked_key_ids": []},
+                required_artifact_type=ArtifactType.SCOPE_GRANT_STATUS.value,
+            )
+        return None
+    return _merge_built_stores(
+        parts, required_artifact_type=ArtifactType.SCOPE_GRANT_STATUS.value
+    )
+
+
+def resolve_manifest_signer_trust_store(
+    *,
+    policy_dir: str | Path | None = None,
+    explicit: dict[str, Any] | None = None,
+    require_keys: bool = False,
+) -> dict[str, Any] | None:
+    """Resolve manifest-signer registry (wired in Phase B WS5)."""
+    if explicit is not None:
+        if "verify" not in explicit and explicit.get("keys") is not None:
+            return build_trust_store(
+                explicit,
+                base_dir=_policy_dir(Path(policy_dir) if policy_dir else None),
+                required_artifact_type=ArtifactType.SCOPE_AUTHORIZATION_MANIFEST.value,
+            )
+        return explicit
+
+    base = _policy_dir(Path(policy_dir) if policy_dir else None)
+    candidates: list[Path] = []
+    env = _env_path("AKTA_MANIFEST_SIGNER_REGISTRY")
+    if env is not None:
+        candidates.append(env)
+    candidates.append(base / MANIFEST_SIGNER_REGISTRY_NAME)
+
+    parts: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        resolved = str(candidate.resolve()) if candidate.exists() else str(candidate)
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if candidate.is_file():
+            part = load_manifest_signer_registry(candidate)
+            parts.append(
+                build_trust_store(
+                    part,
+                    base_dir=candidate.parent,
+                    required_artifact_type=ArtifactType.SCOPE_AUTHORIZATION_MANIFEST.value,
+                )
+            )
+
+    if not parts:
+        if require_keys:
+            return build_trust_store(
+                {"keys": {}, "revoked_key_ids": []},
+                required_artifact_type=ArtifactType.SCOPE_AUTHORIZATION_MANIFEST.value,
+            )
+        return None
+    return _merge_built_stores(
+        parts,
+        required_artifact_type=ArtifactType.SCOPE_AUTHORIZATION_MANIFEST.value,
+    )
+
+
+def _merge_built_stores(
+    parts: list[dict[str, Any]],
+    *,
+    required_artifact_type: str | None,
+) -> dict[str, Any]:
     keys: dict[str, dict[str, Any]] = {}
     revoked: set[str] = set()
     sources: list[str] = []
-    for part in built_parts:
+    for part in parts:
         sources.extend(str(s) for s in (part.get("sources") or []) if s)
         revoked.update(str(x) for x in (part.get("revoked_key_ids") or []))
         for key_id, entry in (part.get("keys") or {}).items():
@@ -344,14 +616,16 @@ def resolve_trust_store(
         issuer = payload.get("issuer") or {}
         key_id = (
             issuer.get("issuer_key_id")
-            or payload.get("reviewer_public_key_ref")
             or payload.get("attestation_key_id")
             or payload.get("issuer_key_id")
+            or payload.get("manifest_signature_key_id")
         )
         if not key_id or str(key_id) in revoked:
             return False
         entry = keys.get(str(key_id))
-        if entry is None or not _entry_usable(entry):
+        if entry is None or not _entry_usable(
+            entry, required_artifact_type=required_artifact_type
+        ):
             return False
         public_key = entry.get("_public_key")
         if public_key is None:
@@ -366,15 +640,31 @@ def resolve_trust_store(
             signature=signature,
         )
 
-    store = {
+    return {
         "keys": keys,
         "revoked_key_ids": sorted(revoked),
         "sources": sources,
+        "required_artifact_type": required_artifact_type,
         "verify": _verify,
     }
-    if require_keys and institutional_registry_is_empty(store):
-        return store
-    return store
+
+
+def resolve_trust_store(
+    *,
+    policy_dir: str | Path | None = None,
+    explicit: dict[str, Any] | None = None,
+    require_keys: bool = False,
+) -> dict[str, Any] | None:
+    """Resolve grant-issuer trust store (primary alias for grant authentication).
+
+    Does **not** auto-import SCOPE ``reviewer_key_registry.yaml`` or the local
+    ``reviewer_decision_registry.yaml`` into grant-issuer keys.
+    """
+    return resolve_grant_issuer_trust_store(
+        policy_dir=policy_dir,
+        explicit=explicit,
+        require_keys=require_keys,
+    )
 
 
 def sign_payload_hash_ed25519(private_key_pem: bytes, digest_field_value: str) -> str:
@@ -425,21 +715,40 @@ def institutional_registry_is_empty(store: dict[str, Any] | None) -> bool:
         return True
     keys = store.get("keys") or {}
     revoked = set(str(x) for x in (store.get("revoked_key_ids") or []))
+    required = store.get("required_artifact_type")
     for key_id, entry in keys.items():
         if str(key_id) in revoked:
             continue
-        if isinstance(entry, dict) and _entry_usable(entry) and entry.get("_public_key") is not None:
+        if (
+            isinstance(entry, dict)
+            and _entry_usable(entry, required_artifact_type=required)
+            and entry.get("_public_key") is not None
+        ):
             return False
     return True
 
 
 __all__ = [
+    "ArtifactType",
+    "GRANT_ISSUER_REGISTRY_NAME",
+    "LEGACY_ISSUER_REGISTRY_NAME",
+    "MANIFEST_SIGNER_REGISTRY_NAME",
+    "REVIEWER_DECISION_REGISTRY_NAME",
+    "STATUS_ATTESTATION_REGISTRY_NAME",
     "SUPPORTED_ALGORITHMS",
     "build_trust_store",
+    "entry_within_validity",
     "generate_test_keypair",
     "institutional_registry_is_empty",
     "load_issuer_registry",
+    "load_manifest_signer_registry",
+    "load_reviewer_decision_registry",
+    "load_status_attestation_registry",
+    "load_typed_registry",
     "merge_registries",
+    "resolve_grant_issuer_trust_store",
+    "resolve_manifest_signer_trust_store",
+    "resolve_status_attestation_trust_store",
     "resolve_trust_store",
     "sign_payload_hash_ed25519",
 ]

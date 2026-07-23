@@ -25,6 +25,10 @@ dependencies = [
     "jsonschema>=4.20",
     "PyYAML>=6.0",
     "setuptools>=68",
+    "cryptography>=41.0",
+    # Install from vendor before / with AKTA (no public index yet):
+    #   pip install ./vendor/scientific-authorization-contracts
+    "scientific-authorization-contracts==2.1.0",
 ]
 
 [project.optional-dependencies]
@@ -37,11 +41,16 @@ dev = [
     "build>=1.2",
     "twine>=5.1",
 ]
+# Kept for backwards-compatible extras; cryptography is now a core dependency.
 security = [
     "cryptography>=41.0",
 ]
-# REST server uses stdlib http.server; no extra deps required in v0.1.
-rest = []
+# Institutional REST (WS13): OIDC verification + PostgreSQL persistence.
+# Development/pilot modes work without these; institutional-service fails closed.
+rest = [
+    "PyJWT>=2.8",
+    "psycopg[binary]>=3.1",
+]
 
 [project.scripts]
 akta = "akta.cli:main"

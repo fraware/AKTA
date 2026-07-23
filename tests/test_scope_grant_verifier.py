@@ -64,7 +64,10 @@ def test_release_mode_rejects_missing_allowed_tools() -> None:
         "grant_id": "SCOPE-GRANT-2",
         "authorization": {"approved_scope": "protocol_draft"},
     }
-    with pytest.raises(GrantVerificationError, match="authorization_envelope|allowed_tools"):
+    with pytest.raises(
+        GrantVerificationError,
+        match="authorization_envelope|allowed_tools|trust store",
+    ):
         verify_scope_grant_or_raise(grant, mode="release")
 
 
@@ -76,32 +79,75 @@ def test_release_mode_rejects_scalar_only_grant() -> None:
             "allowed_tools": ["protocol_editor.draft_change"],
         },
     }
-    with pytest.raises(GrantVerificationError, match="authorization_envelope"):
+    with pytest.raises(
+        GrantVerificationError,
+        match="authorization_envelope|trust store",
+    ):
         verify_scope_grant_or_raise(grant, mode="pilot")
 
 
-def test_production_env_rejects_simulated(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_production_env_rejects_simulated(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from akta.trust_store import (
+        build_trust_store,
+        generate_test_keypair,
+        sign_payload_hash_ed25519,
+    )
+
     monkeypatch.setenv("AKTA_PRODUCTION_MODE", "1")
+    keys = generate_test_keypair(tmp_path / "keys")
+    store = build_trust_store(
+        {
+            "keys": {
+                keys["public_key_ref"]: {
+                    "public_key_pem": keys["public_key_pem"],
+                    "public_key_ref": keys["public_key_ref"],
+                    "status": "active",
+                    "algorithm": "Ed25519",
+                    "authorized_artifact_types": ["scope_grant"],
+                }
+            },
+            "revoked_key_ids": [],
+            "default_artifact_types": ["scope_grant"],
+        },
+        base_dir=tmp_path,
+        required_artifact_type="scope_grant",
+    )
+    envelope = _shared_envelope()
     grant = {
         "grant_id": "SCOPE-GRANT-SIM",
         "authorization": {
             "approved_scope": "protocol_draft",
             "allowed_tools": [],
-            "authorization_envelope": _shared_envelope(),
+            "authorization_envelope": envelope,
         },
         "adapter_mode": "simulated",
-        "grant_hash": "sha256:" + ("a" * 64),
-        "issuer": {"issuer_identity": "test", "issuer_key_id": "k1"},
-        "grant_signature": "sig",
+        "issuer": {
+            "issuer_identity": "test",
+            "issuer_key_id": keys["public_key_ref"],
+        },
         "source": {
             "packet_id": "p1",
             "decision_id": "d1",
             "akta_record_id": "r1",
         },
         "provenance": {"scope_trust_root_hash": "sha256:" + ("b" * 64)},
+        "constraints": {},
+        "expiration": {"absolute_expiration": "2030-01-01T00:00:00Z", "expires_after": []},
+        "authorization_schema_version": ENVELOPE_VERSION,
+        "authorization_schema_hash": authorization_envelope_schema_hash(),
     }
+    from akta.shared_contracts import _contracts
+
+    grant = _contracts().attach_hash(grant, "grant_hash")
+    grant["signed_payload_hash"] = grant["grant_hash"]
+    priv = Path(keys["private_key_path"]).read_bytes()
+    grant["grant_signature"] = sign_payload_hash_ed25519(priv, grant["grant_hash"])
+    grant["signature_algorithm"] = "Ed25519"
     with pytest.raises(GrantVerificationError, match="simulated"):
-        verify_scope_grant_or_raise(grant)
+        verify_scope_grant_or_raise(grant, trust_store=store)
+
 
 
 def test_evaluate_with_grant_fail_closed_missing_tools(gate: AKTAGate) -> None:
@@ -110,7 +156,10 @@ def test_evaluate_with_grant_fail_closed_missing_tools(gate: AKTAGate) -> None:
         "authorization": {"approved_scope": "protocol_draft"},
         "expires_at": "2030-01-01T00:00:00Z",
     }
-    with pytest.raises(GrantVerificationError, match="authorization_envelope|allowed_tools"):
+    with pytest.raises(
+        GrantVerificationError,
+        match="authorization_envelope|allowed_tools|trust store",
+    ):
         gate.evaluate_with_grant(
             ai_output={"summary": "Draft"},
             requested_tool="protocol_editor.draft_change",
@@ -203,35 +252,22 @@ def test_require_envelope_rejects_scalar_only() -> None:
         verify_scope_grant_or_raise(grant, mode="unit", require_capability_envelope=True)
 
 
-def test_explicit_envelope_accepted() -> None:
-    from akta.shared_contracts import _contracts
+def test_explicit_envelope_accepted(tmp_path: Path) -> None:
+    from tests.helpers.institutional_grant import make_institutional_kit, make_signed_grant
 
-    envelope = _shared_envelope()
-    grant = {
-        "grant_id": "SCOPE-GRANT-CE",
-        "grant_version": "2.0.0",
-        "created_at": "2026-01-01T00:00:00Z",
-        "authorization": {
-            "approved_scope": "protocol_draft",
-            "allowed_tools": envelope["allowed_tools"],
-            "blocked_tools": envelope["blocked_tools"],
-            "authorization_envelope": envelope,
-        },
-        "authorization_schema_version": ENVELOPE_VERSION,
-        "authorization_schema_hash": authorization_envelope_schema_hash(),
-        "issuer": {"issuer_identity": "scope-test", "issuer_key_id": "k-test"},
-        "grant_signature": "test-sig",
-        "source": {
-            "packet_id": "pkt-1",
-            "decision_id": "dec-1",
-            "akta_record_id": "rec-1",
-        },
-        "provenance": {"scope_trust_root_hash": "sha256:" + ("d" * 64)},
-        "constraints": {},
-        "expiration": {"absolute_expiration": "2030-01-01T00:00:00Z", "expires_after": []},
-    }
-    grant = _contracts().attach_hash(grant, "grant_hash")
-    result = verify_scope_grant_or_raise(grant, mode="release", require_capability_envelope=True)
+    kit = make_institutional_kit(tmp_path)
+    grant, status, arts = make_signed_grant(kit)
+    result = verify_scope_grant_or_raise(
+        grant,
+        mode="release",
+        require_capability_envelope=True,
+        trust_store=kit["issuer_store"],
+        ledger_status=status,
+        authorization_manifest=kit["manifest"],
+        source_artifacts=arts,
+        status_trust_store=kit["status_store"],
+        manifest_trust_store=kit["manifest_store"],
+    )
     assert result.ok, result.errors
     assert result.capability_envelope["family"] == "protocol"
     assert "family" in result.capability_envelope

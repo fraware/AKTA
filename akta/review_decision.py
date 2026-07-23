@@ -128,11 +128,19 @@ def apply_scope_grant_to_context(
     require_capability_envelope: bool | None = None,
     trust_store: dict[str, Any] | None = None,
     ledger_status: dict[str, Any] | None = None,
+    authorization_manifest: dict[str, Any] | None = None,
+    source_artifacts: dict[str, Any] | None = None,
+    requested_tool: str | None = None,
+    requested_action: str | None = None,
+    action_class: str | None = None,
+    status_trust_store: dict[str, Any] | None = None,
+    manifest_trust_store: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Apply SCOPE grant metadata to context after optional grant verification.
 
     When ``validate_grant`` is True, runs ``verify_scope_grant_or_raise`` BEFORE
     any metadata is applied (P0-C). Strict modes require shared envelopes (P0-B).
+    After admissibility auth: grant → status → build request → containment.
     """
     from akta.scope_grant_verifier import (
         STRICT_MODES,
@@ -164,12 +172,18 @@ def apply_scope_grant_to_context(
             context=context,
             trust_store=trust_store,
             ledger_status=ledger_status,
+            authorization_manifest=authorization_manifest,
+            source_artifacts=source_artifacts,
+            status_trust_store=status_trust_store,
+            manifest_trust_store=manifest_trust_store,
         )
         verification = {
             "ok": result.ok,
             "mode": result.mode,
             "warnings": list(result.warnings),
             "checks_run": list(result.checks_run),
+            "authorization_manifest_hash": result.authorization_manifest_hash,
+            "ledger_status": result.ledger_status,
         }
         # Scalar validate_approval_grant is migration-only; skip in strict modes.
         if not strict and granted and requested:
@@ -182,7 +196,6 @@ def apply_scope_grant_to_context(
         metadata["grant_verification"] = verification
     from akta.capability_envelope import (
         extract_capability_envelope,
-        legacy_scope_to_envelope,
         resolve_grant_envelope,
     )
 
@@ -206,7 +219,60 @@ def apply_scope_grant_to_context(
     )
     if metadata["authorization_comparator"] == "legacy_scalar":
         metadata["authorization_comparator_deprecated"] = True
-    if granted and requested and raw_envelope is not None:
+
+    # WS8: build RequestedAuthorizationContext and run containment.
+    tool = (
+        requested_tool
+        or metadata.get("requested_tool")
+        or (context.get("requested_tool") if isinstance(context, dict) else None)
+        or ""
+    )
+    action = requested_action or metadata.get("requested_action") or ""
+    if tool and raw_envelope is not None:
+        from akta.requested_authorization import (
+            build_requested_authorization_context,
+            evaluate_authorization_containment,
+        )
+
+        classification = {}
+        if isinstance(record, dict):
+            classification = dict(record.get("classification") or {})
+        if action_class:
+            classification["action_type"] = action_class
+        requested_ctx = build_requested_authorization_context(
+            requested_tool=str(tool),
+            requested_action=str(action),
+            action_class=action_class or classification.get("action_type"),
+            classification=classification,
+            structured_action=dict(context.get("structured_action") or {}),
+            context=context,
+        )
+        containment = evaluate_authorization_containment(
+            granted_envelope=envelope,
+            requested=requested_ctx,
+            ledger_status=ledger_status
+            or (verification.get("ledger_status") if verification else None),
+        )
+        metadata["requested_authorization"] = requested_ctx.to_dict()
+        metadata["requested_authorization_envelope"] = containment.requested_envelope
+        metadata["envelope_covers_requested_scope"] = containment.covers
+        metadata["authorization_comparator"] = containment.comparator
+        metadata["authorization_containment"] = containment.to_dict()
+        if strict and not containment.covers:
+            from akta.errors import GrantVerificationError
+
+            raise GrantVerificationError(
+                "; ".join(containment.errors)
+                or "requested authorization not covered by grant",
+                errors=containment.errors or ["authorization_containment_failed"],
+            )
+    elif granted and requested and raw_envelope is not None:
+        # Legacy scalar-derived request (unit/migration only).
+        from akta.capability_envelope import (
+            authorization_covers,
+            legacy_scope_to_envelope,
+        )
+
         requested_envelope = legacy_scope_to_envelope(
             approved_scope=requested,
             allowed_tools=list(envelope.get("allowed_tools") or []),
@@ -215,8 +281,6 @@ def apply_scope_grant_to_context(
                 or "R4_methodological_modification"
             ),
         )
-        from akta.capability_envelope import authorization_covers
-
         covers, comparator = authorization_covers(
             granted_envelope=envelope,
             requested_envelope=requested_envelope,
@@ -226,6 +290,7 @@ def apply_scope_grant_to_context(
         )
         metadata["envelope_covers_requested_scope"] = covers
         metadata["authorization_comparator"] = comparator
+
     tools_explicit = (
         "allowed_tools" in scope_grant
         or "allowed_tools" in auth

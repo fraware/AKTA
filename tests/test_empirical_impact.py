@@ -31,8 +31,23 @@ def test_synthetic_dry_run_does_not_claim_completion() -> None:
     report = run_synthetic_dry_run()
     assert report["empirical_complete"] is False
     assert report["synthetic"] is True
+    assert report["synthetic_ci_separated"] is True
     assert report["beta"] is True
     assert "preregistration" in report
+    arms = {a["arm_id"] for a in report["preregistration"]["study_arms"]}
+    assert arms == {
+        "ungated",
+        "vsa_only",
+        "akta_only",
+        "akta_scope",
+        "akta_scope_pf",
+        "full_stack",
+    }
+    assert report["preregistration"]["preregistration_hash"].startswith("sha256:")
+    assert "power_analysis" in report["preregistration"]
+    assert "cost_sensitive_helpful_boundedness" in {
+        m["metric_id"] for m in report["preregistration"]["outcome_metrics"]
+    }
 
 
 def test_write_protocol_artifacts(tmp_path) -> None:
@@ -40,3 +55,6 @@ def test_write_protocol_artifacts(tmp_path) -> None:
     assert "preregistration" in paths
     assert (tmp_path / "preregistration.json").is_file()
     assert (tmp_path / "study_protocol.json").is_file()
+    prereg = __import__("json").loads((tmp_path / "preregistration.json").read_text())
+    assert prereg["empirical_complete"] is False
+    assert prereg["synthetic_ci_separated"] is True

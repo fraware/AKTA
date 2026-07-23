@@ -1,13 +1,19 @@
-"""AKTA generic REST API server (v1.0 service boundary).
+"""AKTA generic REST API server (v1.0 / WS13 service boundary).
 
-Modes (P1-C):
+Modes (P1-C / WS13):
 - ``development-local``: loopback-friendly; in-memory stores; optional API key
-- ``institutional-service``: verified identity registry, tenant binding,
-  persistent artifact/audit stores, trusted proxy, policy manifest verification.
+- ``pilot-service``: credential-digest identity registry + file/sqlite stores
+  (formerly static-registry; non-institutional)
+- ``institutional-service``: OIDC issuer+audience verification, PostgreSQL
+  artifact/audit stores, trusted proxy, policy manifest verification.
   Static bearer-token equality alone is rejected as institutional identity.
 
 TLS termination and trusted-proxy configuration are deployment concerns —
 see docs/deployment_reference.md. Beta reference service — not HA production.
+
+Optional institutional deps (documented in pyproject ``[rest]`` extra):
+- ``PyJWT`` for OIDC JWT verification
+- ``psycopg[binary]`` for PostgreSQL persistence
 """
 
 from __future__ import annotations
@@ -31,6 +37,7 @@ from urllib.parse import urlparse
 from adapters.generic_rest.identity import (
     DEVELOPMENT_LOCAL,
     INSTITUTIONAL_SERVICE,
+    PILOT_SERVICE,
     ServiceIdentity,
     authenticate_request,
     institutional_startup_errors,
@@ -38,10 +45,8 @@ from adapters.generic_rest.identity import (
     resolve_service_mode,
 )
 from adapters.generic_rest.persistence import (
-    FileArtifactStore,
-    FileAuditLedger,
-    InMemoryArtifactStore,
-    InMemoryAuditLedger,
+    build_stores_for_mode,
+    verify_artifact_integrity,
 )
 from adapters.pcs.export_artifact import export_pcs_bundle
 from adapters.pf_core.export_obligation import export_pf_obligation
@@ -49,6 +54,7 @@ from akta.cards import validate_card
 from akta.context import AKTAContext
 from akta.errors import AKTAError, SchemaValidationError
 from akta.gate import AKTAGate
+from akta.hash import hash_object
 from akta.records import AKTADecision
 
 logger = logging.getLogger(__name__)
@@ -191,6 +197,24 @@ class AKTARESTHandler(BaseHTTPRequestHandler):
                 bearer_or_key=token,
                 api_key=self.api_key,
                 service_tokens=self.service_tokens,
+                identity_registry={},
+                tenant_header=tenant,
+            )
+            if identity is None or not identity.verified or not identity.tenant_id:
+                self._send_error_json(
+                    HTTPStatus.UNAUTHORIZED,
+                    "unauthorized",
+                    "Verified OIDC identity with tenant binding required",
+                )
+                self._audit("auth_rejected", reason="institutional_oidc_required")
+                return False
+            self._resolved_identity = identity
+        elif self.service_mode == PILOT_SERVICE:
+            identity = authenticate_request(
+                mode=PILOT_SERVICE,
+                bearer_or_key=token,
+                api_key=self.api_key,
+                service_tokens=self.service_tokens,
                 identity_registry=self.identity_registry,
                 tenant_header=tenant,
             )
@@ -198,9 +222,9 @@ class AKTARESTHandler(BaseHTTPRequestHandler):
                 self._send_error_json(
                     HTTPStatus.UNAUTHORIZED,
                     "unauthorized",
-                    "Verified service identity with tenant binding required",
+                    "Verified pilot-service identity with tenant binding required",
                 )
-                self._audit("auth_rejected", reason="institutional_identity_required")
+                self._audit("auth_rejected", reason="pilot_identity_required")
                 return False
             self._resolved_identity = identity
         else:
@@ -338,18 +362,32 @@ class AKTARESTHandler(BaseHTTPRequestHandler):
             self.gate = AKTAGate.from_policy_dir(self.policy_dir, overlays_dir=self.overlays_dir)
         return self.gate
 
-    def _store_artifact(self, kind: str, data: dict[str, Any]) -> str:
+    def _store_artifact(
+        self,
+        kind: str,
+        data: dict[str, Any],
+        *,
+        source_artifact_id: str | None = None,
+    ) -> str:
         identity = self._identity()
         tenant_id = identity.tenant_id if identity else "dev"
         caller_id = identity.caller_id if identity else "anonymous"
         if self.artifacts is not None:
-            return self.artifacts.put(kind, data, tenant_id=tenant_id, caller_id=caller_id)
+            return self.artifacts.put(
+                kind,
+                data,
+                tenant_id=tenant_id,
+                caller_id=caller_id,
+                source_artifact_id=source_artifact_id,
+            )
         artifact_id = f"AKTA-{kind.upper()}-{uuid.uuid4().hex[:12]}"
         self.artifact_store[artifact_id] = {
             "kind": kind,
             "data": data,
             "tenant_id": tenant_id,
             "caller_id": caller_id,
+            "artifact_hash": hash_object(data),
+            "source_artifact_id": source_artifact_id,
         }
         return artifact_id
 
@@ -497,16 +535,7 @@ class AKTARESTHandler(BaseHTTPRequestHandler):
         self._send_json(HTTPStatus.OK, d)
 
     def _handle_records(self, body: dict[str, Any]) -> None:
-        if "decision" in body:
-            decision = AKTADecision(body["decision"])
-        elif "decision_artifact_id" in body:
-            stored = self._load_artifact(str(body["decision_artifact_id"]))
-            if not stored or stored.get("kind") != "decision":
-                raise ValueError("unknown decision_artifact_id")
-            decision = AKTADecision(stored["data"])
-        else:
-            raise ValueError("Provide 'decision' object or 'decision_artifact_id'.")
-
+        decision, source_artifact_id = self._resolve_canonical_decision(body)
         context = body.get("context", {})
         record = decision.to_record(ai_output=body.get("ai_output"), context=context)
         if body.get("validate", True):
@@ -514,10 +543,82 @@ class AKTARESTHandler(BaseHTTPRequestHandler):
 
             validate_against_schema(record.to_dict(), "akta_record.schema.json")
         payload = record.to_dict()
-        artifact_id = self._store_artifact("record", payload)
+        artifact_id = self._store_artifact(
+            "record", payload, source_artifact_id=source_artifact_id
+        )
         payload["artifact_id"] = artifact_id
         self._audit("record_created", artifact_id=artifact_id)
         self._send_json(HTTPStatus.OK, payload)
+
+    def _resolve_canonical_decision(
+        self, body: dict[str, Any]
+    ) -> tuple[AKTADecision, str | None]:
+        """Load decision for /records.
+
+        Institutional mode requires ``decision_artifact_id`` pointing at a stored
+        canonical decision; arbitrary decision bodies are rejected. Hash and
+        policy provenance are verified before recording.
+        """
+        artifact_id = body.get("decision_artifact_id")
+        if self.service_mode == INSTITUTIONAL_SERVICE:
+            if "decision" in body and not artifact_id:
+                raise ValueError(
+                    "institutional_mode_rejects_inline_decision:"
+                    "provide decision_artifact_id for the canonical stored decision"
+                )
+            if not artifact_id:
+                raise ValueError("decision_artifact_id is required in institutional-service mode")
+            return self._load_verified_decision(str(artifact_id)), str(artifact_id)
+
+        if artifact_id:
+            return self._load_verified_decision(str(artifact_id)), str(artifact_id)
+        if "decision" in body:
+            return AKTADecision(body["decision"]), None
+        raise ValueError("Provide 'decision' object or 'decision_artifact_id'.")
+
+    def _load_verified_decision(self, artifact_id: str) -> AKTADecision:
+        stored = self._load_artifact(artifact_id)
+        if not stored or stored.get("kind") != "decision":
+            raise ValueError("unknown decision_artifact_id")
+        errors = verify_artifact_integrity(stored)
+        data = stored.get("data")
+        if not isinstance(data, dict):
+            raise ValueError("stored decision is not an object")
+        policy = data.get("policy") or {}
+        if self.service_mode == INSTITUTIONAL_SERVICE:
+            if not policy.get("effective_policy_hash"):
+                errors.append("stored decision missing policy.effective_policy_hash")
+            if not policy.get("manifest_hash"):
+                errors.append("stored decision missing policy.manifest_hash")
+            if not (
+                policy.get("shared_contract_release_hash")
+                or (policy.get("schema_hashes") or {})
+            ):
+                errors.append("stored decision missing shared-contract / schema provenance")
+        if errors:
+            raise ValueError("decision_artifact_integrity_failed:" + ";".join(errors))
+        return AKTADecision(data)
+
+    def _load_verified_record(self, artifact_id: str) -> dict[str, Any]:
+        stored = self._load_artifact(artifact_id)
+        if not stored or stored.get("kind") != "record":
+            raise ValueError("unknown record_artifact_id")
+        errors = verify_artifact_integrity(stored)
+        data = stored.get("data")
+        if not isinstance(data, dict):
+            raise ValueError("stored record is not an object")
+        policy = data.get("policy") or (data.get("provenance") or {}).get("policy") or {}
+        if not policy.get("effective_policy_hash"):
+            errors.append("stored record missing policy provenance hash")
+        decision_ref = data.get("decision_id") or data.get("decision_artifact_id")
+        if stored.get("source_artifact_id") is None and not decision_ref:
+            errors.append("stored record missing decision linkage")
+        if errors:
+            raise ValueError("record_artifact_integrity_failed:" + ";".join(errors))
+        from akta.records import validate_against_schema
+
+        validate_against_schema(data, "akta_record.schema.json")
+        return data
 
     def _handle_card_validate(self, body: dict[str, Any]) -> None:
         card = body.get("card")
@@ -530,13 +631,13 @@ class AKTARESTHandler(BaseHTTPRequestHandler):
         )
 
     def _handle_export_pcs(self, body: dict[str, Any]) -> None:
-        record_data = body.get("record")
-        if not isinstance(record_data, dict):
-            raise ValueError("Field 'record' must be an AKTA Record object.")
+        record_data, source_id = self._resolve_export_record(body)
         with tempfile.TemporaryDirectory() as tmp:
             export_pcs_bundle(record_data, Path(tmp))
             manifest = json.loads((Path(tmp) / "manifest.json").read_text(encoding="utf-8"))
-        artifact_id = self._store_artifact("pcs_manifest", manifest)
+        artifact_id = self._store_artifact(
+            "pcs_manifest", manifest, source_artifact_id=source_id
+        )
         self._audit("export_pcs", artifact_id=artifact_id)
         self._send_json(
             HTTPStatus.OK,
@@ -544,18 +645,35 @@ class AKTARESTHandler(BaseHTTPRequestHandler):
         )
 
     def _handle_export_pf(self, body: dict[str, Any]) -> None:
-        record_data = body.get("record")
-        if not isinstance(record_data, dict):
-            raise ValueError("Field 'record' must be an AKTA Record object.")
+        record_data, source_id = self._resolve_export_record(body)
         with tempfile.TemporaryDirectory() as tmp:
             path = export_pf_obligation(record_data, tmp)
             obligation = json.loads(path.read_text(encoding="utf-8"))
-        artifact_id = self._store_artifact("pf_obligation", obligation)
+        artifact_id = self._store_artifact(
+            "pf_obligation", obligation, source_artifact_id=source_id
+        )
         self._audit("export_pf", artifact_id=artifact_id)
         self._send_json(
             HTTPStatus.OK,
             {"exported": True, "obligation": obligation, "artifact_id": artifact_id},
         )
+
+    def _resolve_export_record(self, body: dict[str, Any]) -> tuple[dict[str, Any], str | None]:
+        """PF/PCS export: prefer record_artifact_id → validate → verify → export."""
+        record_id = body.get("record_artifact_id")
+        if record_id:
+            return self._load_verified_record(str(record_id)), str(record_id)
+        if self.service_mode == INSTITUTIONAL_SERVICE:
+            raise ValueError(
+                "institutional export requires record_artifact_id "
+                "(inline record bodies are rejected)"
+            )
+        record_data = body.get("record")
+        if not isinstance(record_data, dict):
+            raise ValueError(
+                "Provide 'record_artifact_id' or inline 'record' (non-institutional only)."
+            )
+        return record_data, None
 
 
 def create_server(
@@ -614,16 +732,32 @@ def create_server(
         or os.environ.get("AKTA_REST_DATA_DIR")
         or (tempfile.gettempdir() + "/akta-rest-data")
     )
+
+    oidc_configured = bool(
+        os.environ.get("AKTA_OIDC_ISSUER", "").strip()
+        and os.environ.get("AKTA_OIDC_AUDIENCE", "").strip()
+    )
+    db_url = (os.environ.get("AKTA_REST_DATABASE_URL") or os.environ.get("DATABASE_URL") or "").strip()
+
+    # Preflight institutional requirements before constructing stores (clearer errors).
     if mode == INSTITUTIONAL_SERVICE:
-        artifacts: Any = FileArtifactStore(resolved_data / "artifacts")
-        audit: Any = FileAuditLedger(resolved_data / "audit.jsonl")
-        artifact_kind = "file"
-        audit_kind = "file"
-    else:
-        artifacts = InMemoryArtifactStore()
-        audit = InMemoryAuditLedger()
-        artifact_kind = "memory"
-        audit_kind = "memory"
+        preflight = institutional_startup_errors(
+            mode=mode,
+            identity_registry=identity_registry,
+            artifact_store_kind="postgresql" if db_url else "missing",
+            audit_ledger_kind="postgresql" if db_url else "missing",
+            trusted_proxy=bool(trust_proxy),
+            policy_manifest_verified=_verify_policy_manifest(policy_dir),
+            oidc_configured=oidc_configured,
+        )
+        if preflight:
+            raise ValueError("institutional-service startup rejected: " + "; ".join(preflight))
+
+    artifacts, audit, artifact_kind, audit_kind = build_stores_for_mode(
+        mode,
+        data_dir=resolved_data,
+        database_url=db_url or None,
+    )
 
     manifest_ok = True
     if mode == INSTITUTIONAL_SERVICE:
@@ -636,15 +770,27 @@ def create_server(
         audit_ledger_kind=audit_kind,
         trusted_proxy=bool(trust_proxy),
         policy_manifest_verified=manifest_ok,
+        oidc_configured=oidc_configured if mode == INSTITUTIONAL_SERVICE else None,
     )
     if startup_errors:
-        raise ValueError("institutional-service startup rejected: " + "; ".join(startup_errors))
+        label = (
+            "institutional-service"
+            if mode == INSTITUTIONAL_SERVICE
+            else "pilot-service"
+            if mode == PILOT_SERVICE
+            else "rest"
+        )
+        raise ValueError(f"{label} startup rejected: " + "; ".join(startup_errors))
 
     if not _is_loopback(host) and not (
-        resolved_api_key or tokens or identity_registry.get("identities")
+        resolved_api_key
+        or tokens
+        or identity_registry.get("identities")
+        or (mode == INSTITUTIONAL_SERVICE and oidc_configured)
     ):
         raise ValueError(
-            "Non-loopback REST bind requires AKTA_REST_API_KEY, service tokens, or identity registry"
+            "Non-loopback REST bind requires AKTA_REST_API_KEY, service tokens, "
+            "identity registry, or OIDC configuration"
         )
 
     class Handler(AKTARESTHandler):
@@ -678,7 +824,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--production", action="store_true")
     parser.add_argument(
         "--mode",
-        choices=["development-local", "institutional-service"],
+        choices=["development-local", "pilot-service", "institutional-service"],
         default=None,
     )
     parser.add_argument("--data-dir", default=None)

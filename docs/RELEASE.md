@@ -54,7 +54,14 @@ When sibling repository variables are configured, also require `Release Gate / s
 |------|---------|----------|
 | AKTA-Bench v1 | `make eval-bench-v1` | Oracle 100%, holdout pass, behavioral smoke |
 | Full v1.0 verifier | `make verify-v1-release` | All orchestrated steps pass |
+| Full sibling matrix | Release-gate `sibling-live-matrix` | PF, PCS-Core, PCS-Bench, VSA clone, Memory all present |
+| Release evidence | `python scripts/build_release_evidence_report.py` | `dist/release_evidence.json` with commits, hashes, SBOM, audit, CodeQL stub |
 | Pilot artifact | GitHub Release upload | `dist/pilot_bundle/` from release-gate workflow |
+| Wheel reproducibility | CI package job | Digests match under `SOURCE_DATE_EPOCH`, or documented normalization token |
+
+VSA is pinned to tag `v0.7.2` (`903d834f201535ac1525e3e8907254363209904f`) from
+https://github.com/fraware/verified-science-agent.git. Institutional release still
+fail-closes on a missing VSA checkout or `git rev-parse HEAD` mismatch.
 
 ## Optional (cross-repo siblings)
 
