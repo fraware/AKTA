@@ -1,76 +1,72 @@
-"""Resolve and load scientific-authorization-contracts (shared SCOPE/AKTA).
+"""Resolve and load the installed scientific-authorization-contracts package.
 
-Preference order:
-1. Installed ``scientific_authorization_contracts`` distribution
-2. Sibling SCOPE repo ``scientific-authorization-contracts``
-3. Vendored copy under ``vendor/scientific-authorization-contracts``
+Runtime imports the installed distribution only. Install from the vendor tree:
+
+    pip install ./vendor/scientific-authorization-contracts
+
+before AKTA editable or wheel installs. Vendor/sibling ``sys.path`` injection
+is intentionally not used.
 """
 
 from __future__ import annotations
 
-import os
-import sys
 from functools import lru_cache
-from pathlib import Path
 from typing import Any
-
-_AKTA_ROOT = Path(__file__).resolve().parent.parent
-_VENDOR_CONTRACTS = _AKTA_ROOT / "vendor" / "scientific-authorization-contracts"
-_VENDOR_PYTHON = _VENDOR_CONTRACTS / "python"
 
 ENVELOPE_VERSION = "scientific-authorization-envelope-v2"
 ENVELOPE_SCHEMA_NAME = "authorization_envelope.v2.schema.json"
 GRANT_V2_SCHEMA_NAME = "scope_grant.v2.schema.json"
 GRANT_STATUS_SCHEMA_NAME = "scope_grant_status.v1.schema.json"
-
-
-def _sibling_contracts_root() -> Path | None:
-    scope_repo = os.environ.get("SCOPE_REPO_PATH", "").strip()
-    candidates: list[Path] = []
-    if scope_repo:
-        candidates.append(Path(scope_repo) / "scientific-authorization-contracts")
-    parent = _AKTA_ROOT.parent
-    candidates.append(parent / "SCOPE" / "scientific-authorization-contracts")
-    for path in candidates:
-        if (path / "schemas" / ENVELOPE_SCHEMA_NAME).is_file():
-            return path.resolve()
-    return None
-
-
-def contracts_root() -> Path:
-    """Prefer vendored contracts (with comparison API); fall back to sibling SCOPE."""
-    if (_VENDOR_CONTRACTS / "schemas" / ENVELOPE_SCHEMA_NAME).is_file():
-        # Prefer vendor when it has the comparison module (envelope.py).
-        vendor_envelope = (
-            _VENDOR_PYTHON / "scientific_authorization_contracts" / "envelope.py"
-        )
-        if vendor_envelope.is_file():
-            return _VENDOR_CONTRACTS.resolve()
-    sibling = _sibling_contracts_root()
-    if sibling is not None:
-        return sibling
-    if (_VENDOR_CONTRACTS / "schemas" / ENVELOPE_SCHEMA_NAME).is_file():
-        return _VENDOR_CONTRACTS.resolve()
-    raise FileNotFoundError(
-        "scientific-authorization-contracts not found (sibling SCOPE or vendor/)"
-    )
-
-
-def _ensure_import_path() -> Path:
-    root = contracts_root()
-    python_path = root / "python"
-    path_str = str(python_path)
-    if path_str not in sys.path:
-        sys.path.insert(0, path_str)
-    return python_path
+CONTRACTS_PACKAGE_NAME = "scientific-authorization-contracts"
+CONTRACTS_PACKAGE_VERSION = "2.1.0"
 
 
 @lru_cache(maxsize=1)
 def _contracts():
-    _ensure_import_path()
-    import scientific_authorization_contracts as contracts
-
+    try:
+        import scientific_authorization_contracts as contracts
+    except ImportError as exc:
+        raise ImportError(
+            "scientific-authorization-contracts is not installed. "
+            "Install from the vendor tree before using AKTA: "
+            "pip install ./vendor/scientific-authorization-contracts"
+        ) from exc
+    version = getattr(contracts, "__version__", None) or getattr(
+        contracts, "PACKAGE_VERSION", None
+    )
+    if version and str(version) != CONTRACTS_PACKAGE_VERSION:
+        raise ImportError(
+            f"scientific-authorization-contracts {version!r} loaded; "
+            f"AKTA requires {CONTRACTS_PACKAGE_VERSION!r}"
+        )
     return contracts
+
+
+def contracts_package_version() -> str:
+    return str(getattr(_contracts(), "__version__", CONTRACTS_PACKAGE_VERSION))
+
+
+def release_artifact_hash() -> str:
+    c = _contracts()
+    if hasattr(c, "release_artifact_hash"):
+        return str(c.release_artifact_hash())
+    # Older/sibling installs may omit the helper; fall back to package metadata hash.
+    version = str(getattr(c, "__version__", None) or getattr(c, "PACKAGE_VERSION", "") or "")
+    try:
+        from akta.hash import hash_object
+
+        return hash_object(
+            {
+                "package": CONTRACTS_PACKAGE_NAME,
+                "package_version": version or CONTRACTS_PACKAGE_VERSION,
+                "envelope_schema_hash": str(c.authorization_envelope_schema_hash()),
+                "grant_schema_hash": str(c.grant_schema_hash()),
+            }
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise AttributeError(
+            "installed contracts package lacks release_artifact_hash()"
+        ) from exc
 
 
 def envelope_version() -> str:
@@ -124,12 +120,15 @@ def operation_vocabulary() -> str:
 def shared_contract_report() -> dict[str, str]:
     """Acceptance report fields for AKTA ↔ SCOPE schema identity."""
     c = _contracts()
-    return {
+    report = {
+        "package": CONTRACTS_PACKAGE_NAME,
+        "package_version": contracts_package_version(),
         "envelope_schema_version": str(c.ENVELOPE_VERSION),
         "envelope_schema_hash": str(c.authorization_envelope_schema_hash()),
         "grant_schema_version": str(c.grant_schema_version()),
         "grant_schema_hash": str(c.grant_schema_hash()),
         "family_vocabulary": ",".join(sorted(c.capability_families())),
         "operation_vocabulary": ",".join(sorted(c.family_operations().keys())),
-        "contracts_root": str(contracts_root()),
+        "release_artifact_hash": release_artifact_hash(),
     }
+    return report

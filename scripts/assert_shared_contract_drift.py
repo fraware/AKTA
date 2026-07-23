@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Fail closed when scientific-authorization-contracts drift from the pinned release.
 
-Compares:
-1. Vendored package vs ``policy/shared_contracts_pin.json``
-2. In-tree ``schemas/`` copies vs vendor
-3. Sibling SCOPE contracts (when present) vs vendor / pin
+Compares the *installed* package (authoritative runtime) and the vendor tree
+against ``policy/shared_contracts_pin.json``. Optionally checks sibling SCOPE
+and in-tree ``schemas/`` copies.
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.metadata
 import json
 import os
 import sys
@@ -20,6 +20,8 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 VENDOR = ROOT / "vendor" / "scientific-authorization-contracts"
 PIN_PATH = ROOT / "policy" / "shared_contracts_pin.json"
+EXPECTED_PACKAGE = "scientific-authorization-contracts"
+EXPECTED_VERSION = "2.1.0"
 SCHEMA_FILES = (
     "authorization_envelope.v2.schema.json",
     "scope_grant.v2.schema.json",
@@ -36,24 +38,29 @@ def _sha256_file(path: Path) -> str:
 
 
 def release_artifact_hash(contracts_root: Path) -> str:
-    """Stable hash over schemas, vocabularies, conformance, and python helpers."""
+    """Stable hash matching ``scientific_authorization_contracts.release_artifact_hash``."""
     digest = hashlib.sha256()
-    for rel_dir in ("schemas", "vocabularies", "conformance", "python", "."):
-        base = contracts_root if rel_dir == "." else contracts_root / rel_dir
-        if not base.exists():
+
+    def _feed(logical: str, path: Path) -> None:
+        digest.update(logical.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+
+    for label in ("schemas", "vocabularies", "conformance"):
+        directory = contracts_root / label
+        if not directory.is_dir():
             continue
-        if rel_dir == ".":
-            paths = [p for p in base.glob("*.md") if p.is_file()]
-        else:
-            paths = sorted(p for p in base.rglob("*") if p.is_file())
-        for path in paths:
-            if "__pycache__" in path.parts or path.suffix not in {".json", ".md", ".py"}:
+        for path in sorted(p for p in directory.rglob("*") if p.is_file()):
+            if path.suffix != ".json" or "__pycache__" in path.parts:
                 continue
-            rel = path.relative_to(contracts_root).as_posix()
-            digest.update(rel.encode("utf-8"))
-            digest.update(b"\0")
-            digest.update(path.read_bytes())
-            digest.update(b"\0")
+            rel = path.relative_to(directory).as_posix()
+            _feed(f"{label}/{rel}", path)
+
+    pkg = contracts_root / "python" / "scientific_authorization_contracts"
+    if pkg.is_dir():
+        for path in sorted(p for p in pkg.glob("*.py") if p.is_file()):
+            _feed(f"python/scientific_authorization_contracts/{path.name}", path)
     return "sha256:" + digest.hexdigest()
 
 
@@ -83,6 +90,17 @@ def _operation_vocab_csv(contracts_root: Path) -> str:
     return ",".join(sorted(data["families"].keys()))
 
 
+def _installed_contracts() -> Any:
+    try:
+        import scientific_authorization_contracts as contracts
+    except ImportError as exc:
+        raise ImportError(
+            "scientific-authorization-contracts must be installed for drift checks: "
+            "pip install ./vendor/scientific-authorization-contracts"
+        ) from exc
+    return contracts
+
+
 def assert_no_drift(*, require_sibling: bool = False) -> dict[str, Any]:
     errors: list[str] = []
     if not VENDOR.is_dir():
@@ -95,6 +113,59 @@ def assert_no_drift(*, require_sibling: bool = False) -> dict[str, Any]:
         "errors": errors,
     }
 
+    # --- Installed package (authoritative runtime) ---
+    try:
+        dist = importlib.metadata.version(EXPECTED_PACKAGE)
+    except importlib.metadata.PackageNotFoundError:
+        errors.append(
+            f"installed package {EXPECTED_PACKAGE!r} not found; "
+            f"pip install ./vendor/scientific-authorization-contracts"
+        )
+        dist = None
+    else:
+        checks["installed_version"] = dist
+        if dist != EXPECTED_VERSION:
+            errors.append(
+                f"installed package version {dist!r} != expected {EXPECTED_VERSION!r}"
+            )
+        pinned_version = pin.get("package_version") or pin.get("version")
+        if pinned_version and pinned_version != dist:
+            errors.append(
+                f"pin package_version {pinned_version!r} != installed {dist!r}"
+            )
+
+    contracts = None
+    try:
+        contracts = _installed_contracts()
+    except ImportError as exc:
+        errors.append(str(exc))
+
+    if contracts is not None:
+        installed_hashes = {
+            "envelope_schema_hash": str(contracts.authorization_envelope_schema_hash()),
+            "grant_schema_hash": str(contracts.grant_schema_hash()),
+            "grant_status_schema_hash": str(
+                getattr(contracts, "grant_status_schema_hash", lambda: "")()
+            ),
+        }
+        if hasattr(contracts, "release_artifact_hash"):
+            installed_hashes["release_artifact_hash"] = str(contracts.release_artifact_hash())
+        checks["installed_hashes"] = installed_hashes
+        for key, value in installed_hashes.items():
+            if not value:
+                continue
+            pinned = pin.get(key)
+            if pinned != value:
+                errors.append(
+                    f"installed package mismatch {key}: pin={pinned!r} installed={value!r}"
+                )
+        pkg_ver = getattr(contracts, "__version__", None)
+        if pkg_ver and str(pkg_ver) != EXPECTED_VERSION:
+            errors.append(
+                f"contracts.__version__ {pkg_ver!r} != {EXPECTED_VERSION!r}"
+            )
+
+    # --- Vendor tree vs pin ---
     envelope_hash = _sha256_file(VENDOR / "schemas" / SCHEMA_FILES[0])
     grant_hash = _sha256_file(VENDOR / "schemas" / SCHEMA_FILES[1])
     status_hash = _sha256_file(VENDOR / "schemas" / SCHEMA_FILES[2])
@@ -105,6 +176,8 @@ def assert_no_drift(*, require_sibling: bool = False) -> dict[str, Any]:
     ops_csv = _operation_vocab_csv(VENDOR)
 
     expected = {
+        "package": EXPECTED_PACKAGE,
+        "package_version": EXPECTED_VERSION,
         "envelope_schema_version": "scientific-authorization-envelope-v2",
         "envelope_schema_hash": envelope_hash,
         "grant_schema_version": "scope-grant-v2",
@@ -151,7 +224,6 @@ def assert_no_drift(*, require_sibling: bool = False) -> dict[str, Any]:
                 errors.append(f"sibling missing vocabularies/{name}")
             elif s_path.read_bytes() != v_bytes:
                 errors.append(f"sibling vocabularies/{name} diverges from AKTA vendor")
-        # Identity fields vs pin (SCOPE may lag python helpers; schemas/vocabs are authoritative)
         sib_envelope = _sha256_file(sibling / "schemas" / SCHEMA_FILES[0])
         if sib_envelope != pin["envelope_schema_hash"]:
             errors.append(
