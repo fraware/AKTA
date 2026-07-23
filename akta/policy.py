@@ -11,7 +11,6 @@ import yaml
 from akta.errors import PolicyError, UnsupportedProfileError
 from akta.hash import hash_file_content, hash_object
 
-
 POLICY_FILES = [
     "action_ontology.yaml",
     "responsibility_levels.yaml",
@@ -119,11 +118,11 @@ class PolicyBundle:
         })
         tool_registry_hash = hash_file_content(registry_content)
 
-        from akta.policy_signing import verify_policy_bundle_integrity
         from akta.effective_policy import (
             build_effective_policy_manifest,
             load_effective_policy_manifest,
         )
+        from akta.policy_signing import verify_policy_bundle_integrity
 
         # required=False must not bypass AKTA_PRODUCTION_MODE / AKTA_REQUIRE_SIGNED_POLICY.
         integrity_result = verify_policy_bundle_integrity(policy_dir, required=False)

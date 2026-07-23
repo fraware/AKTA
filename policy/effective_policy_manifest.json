@@ -1,6 +1,6 @@
 {
   "bundle_version": "akta-core-v1.0",
-  "effective_policy_hash": "sha256:5bf637ada74e6cb2f3dfefd01751a02f73a3b035aa2884c679afc8ae5ef62a9d",
+  "effective_policy_hash": "sha256:2faafa13b8a318a8d4f3f7b13c2a68733e85a20cb41dba8a54131159c2beea0d",
   "file_versions": {
     "action_ontology.yaml": "action_ontology-v0.5",
     "admissibility_matrix.yaml": "admissibility_matrix-v0.5",
@@ -30,7 +30,7 @@
     "policy_manifest.yaml": "sha256:4a00c0cf1cee2f7a3d09dbbd9b8619d75357c4dd2edf1e97aeabdb701410a79b",
     "release_keys.yaml": "sha256:eb1c7c4a02347df8293c110d26d00a0e4e91d79ebf3de3146d1c1a9c04be0ce1",
     "responsibility_levels.yaml": "sha256:e98d3c5488575364f4b5ac9cbf48754f873475235843c5c8405473444e1ac461",
-    "scope_compatibility_manifest.json": "sha256:a2584e6be127030afdaee54562cd0d1b4a7dbc2952d941f7e10c060aa48299fa",
+    "scope_compatibility_manifest.json": "sha256:85c9e21ab29f91b4da544464362e3ff9bb1ab13a0d14bfcf83c5c84d29cb8979",
     "scope_grant_override_rules.yaml": "sha256:6cb9701d36c9a05f343830b8b5f356d8bd2b4479c01d99f775ee8400fac12863",
     "structured_action_schema.yaml": "sha256:89a0a0255e64ac9fc414350708fd14096d255bff1b25b1749e8203fecdd7ba3f",
     "tool_to_requested_scope.yaml": "sha256:c85beea0595b98fc913b8e5b90d22155bf74afb08937edf8147472c6749873cc",
@@ -38,7 +38,7 @@
     "verification_statuses.yaml": "sha256:3b09dcc6c66a52a756c3dd054bc7f7e073bd78187606ed2c8855e1348d6a2128"
   },
   "integrity_mode": "deployment_hmac_attested",
-  "manifest_hash": "sha256:345f176febea28ad3b2daf81aafc21633a76728f41acda86f0001bbd7b661a1e",
+  "manifest_hash": "sha256:5b453acdfe7c5be9a090585b065f55771beb8ef119a37ab70a7329ba87815ca7",
   "manifest_version": "akta-effective-policy-v1.0",
   "missing_optional_inputs": [],
   "overlay_registry": {

@@ -24,6 +24,14 @@ def _policy_with_deploy_key(tmp_path: Path, deploy_key: bytes) -> Path:
     payload = "|".join(f"{k}:{v}" for k, v in sorted(manifest["files"].items()))
     manifest["signature"]["value"] = hmac.new(deploy_key, payload.encode("utf-8"), hashlib.sha256).hexdigest()
     manifest_path.write_text(yaml.dump(manifest, sort_keys=False), encoding="utf-8")
+    # Keep effective provenance aligned after deploy-key HMAC rewrite.
+    from akta.effective_policy import write_effective_policy_manifest
+
+    write_effective_policy_manifest(
+        policy_dir,
+        overlays_dir=ROOT / "overlays",
+        integrity_mode="deployment_hmac_attested",
+    )
     return policy_dir
 
 
