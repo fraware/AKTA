@@ -1,25 +1,52 @@
 {
-  "manifest_version": "akta-scope-compatibility-v1.0",
-  "akta_package_version": "1.0.0",
+  "manifest_version": "akta-scope-compatibility-v1.1",
+  "akta_package_version": "1.1.0",
   "akta_review_contract_version": "scope-akta-review-v1.0",
-  "grant_schema_version": "akta-scope-grant-v1.0",
-  "capability_envelope_version": "akta-capability-envelope-v1.0",
+  "grant_schema_version": "scope-grant-v2",
+  "grant_status_schema_version": "scope-grant-status-v1",
+  "capability_envelope_version": "scientific-authorization-envelope-v2",
+  "authorization_schema_version": "scientific-authorization-envelope-v2",
   "summary_contract_version": "scope-akta-review-summary-v1.0",
-  "fixture_contract_version": "akta-scope-contract-v1.0",
+  "fixture_contract_version": "akta-scope-contract-v2.0",
+  "shared_contracts_package": "scientific-authorization-contracts",
+  "shared_contracts_package_version": "2.1.0",
   "compatible_scope_packages": {
-    "scope-protocol": ["0.9.0", "0.9.1", "1.0.0"],
-    "scope-core": ["scope-core-v0.9", "scope-core-v1.0"]
+    "scope-protocol": ["2.1.0", "2.1.1"],
+    "scope-core": ["scope-core-v2.1", "2.1.0", "2.1.1"]
   },
   "compatible_scope_policy_versions": [
-    "scope-policy-v0.9",
-    "scope-policy-v1.0"
+    "scope-policy-v2.1"
   ],
   "strict_exact_versions": {
     "akta_review_contract_version": "scope-akta-review-v1.0",
-    "grant_schema_version": "akta-scope-grant-v1.0",
-    "capability_envelope_version": "akta-capability-envelope-v1.0",
+    "grant_schema_version": "scope-grant-v2",
+    "grant_status_schema_version": "scope-grant-status-v1",
+    "capability_envelope_version": "scientific-authorization-envelope-v2",
+    "envelope_schema_version": "scientific-authorization-envelope-v2",
+    "authorization_schema_version": "scientific-authorization-envelope-v2",
     "summary_contract_version": "scope-akta-review-summary-v1.0",
-    "fixture_contract_version": "akta-scope-contract-v1.0"
+    "summary_schema_version": "scope-akta-review-summary-v1.0",
+    "fixture_contract_version": "akta-scope-contract-v2.0"
   },
-  "summary_status_values": ["completed", "session_required"]
+  "legacy_ids_rejected_in_strict": [
+    "akta-capability-envelope-v1.0",
+    "akta-scope-grant-v1.0",
+    "akta-scope-contract-v1.0",
+    "scope-core-v0.9",
+    "scope-core-v1.0",
+    "scope-policy-v0.9",
+    "scope-policy-v1.0"
+  ],
+  "required_peer_version_keys": [
+    "scope_package_version",
+    "scope_core_version",
+    "akta_review_contract_version",
+    "grant_schema_version",
+    "envelope_schema_version",
+    "summary_schema_version",
+    "policy_manifest_version"
+  ],
+  "summary_status_values": ["completed", "session_required"],
+  "sibling_integration_checklist": "docs/scope_sibling_integration_checklist.md",
+  "notes": "AKTA 1.1 lands first; peers still on legacy envelope/grant IDs fail closed under strict negotiation."
 }
