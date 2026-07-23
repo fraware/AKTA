@@ -2,10 +2,38 @@
   "grant_id": "SCOPE-GRANT-REAL-OVERBROAD01",
   "grant_version": "0.6.0",
   "authorization": {
-    "approved_scope": "robot_queue_submission"
+    "approved_scope": "robot_queue_submission",
+    "allowed_tools": [
+      "robot_queue.submit"
+    ],
+    "authorization_envelope": {
+      "family": "queue",
+      "operation": "robot_submit",
+      "envelope_version": "scientific-authorization-envelope-v2",
+      "capability_id": "CAP-08395C8DE2A4493E8158F8561064132F",
+      "target": {
+        "type": "queue_entry"
+      },
+      "allowed_tools": [
+        "robot_queue.submit"
+      ],
+      "blocked_tools": [],
+      "cardinality": {
+        "mode": "single"
+      },
+      "environment": {},
+      "responsibility_ceiling": "R4_methodological_modification",
+      "constraints": {},
+      "expiration": {
+        "absolute_expiration": null,
+        "expires_after": []
+      }
+    }
   },
   "source": {
     "requested_scope": "active_protocol_update",
     "packet_id": "SCOPE-PKT-REAL02"
-  }
+  },
+  "authorization_schema_version": "scientific-authorization-envelope-v2",
+  "authorization_schema_hash": "sha256:9881294eed119374c328f1d48bd7edb39d32b15450734716959c2a953b1ea918"
 }

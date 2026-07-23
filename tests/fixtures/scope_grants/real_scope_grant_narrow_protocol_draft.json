@@ -3,10 +3,37 @@
   "grant_version": "0.6.0",
   "authorization": {
     "approved_scope": "protocol_draft",
-    "allowed_tools": ["protocol_editor.draft_change"]
+    "allowed_tools": [
+      "protocol_editor.draft_change"
+    ],
+    "authorization_envelope": {
+      "family": "protocol",
+      "operation": "draft",
+      "envelope_version": "scientific-authorization-envelope-v2",
+      "capability_id": "CAP-CA047EFE4298459084253CE3385C15A9",
+      "target": {
+        "type": "protocol"
+      },
+      "allowed_tools": [
+        "protocol_editor.draft_change"
+      ],
+      "blocked_tools": [],
+      "cardinality": {
+        "mode": "single"
+      },
+      "environment": {},
+      "responsibility_ceiling": "R4_methodological_modification",
+      "constraints": {},
+      "expiration": {
+        "absolute_expiration": null,
+        "expires_after": []
+      }
+    }
   },
   "source": {
     "requested_scope": "active_protocol_update",
     "packet_id": "SCOPE-PKT-REAL01"
-  }
+  },
+  "authorization_schema_version": "scientific-authorization-envelope-v2",
+  "authorization_schema_hash": "sha256:9881294eed119374c328f1d48bd7edb39d32b15450734716959c2a953b1ea918"
 }

@@ -1,5 +1,7 @@
 {
-  "contract_version": "akta-scope-contract-v1.0",
+  "contract_version": "akta-scope-contract-v2.0",
+  "note": "Legacy scalar order retained for migration/unit fixtures only. Production authorization uses scientific-authorization-envelope-v2 partial order.",
+  "authorization_driver": "scientific-authorization-envelope-v2",
   "scope_order": [
     "protocol_draft",
     "single_validation_plan",
@@ -11,5 +13,6 @@
     "publication_claim",
     "scientific_memory_import"
   ],
-  "source_scope_core": "scope-core-v1.0"
+  "source_scope_core": "scope-core-v2.0",
+  "legacy_scalar_forbidden_in": ["pilot", "release", "cross_repo", "production"]
 }
