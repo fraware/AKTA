@@ -1,0 +1,17 @@
+{
+  "name": "missing_envelope_version",
+  "expect": "invalid",
+  "envelope": {
+    "capability_id": "CAP-0123456789ABCDEF0123456789ABCDEF",
+    "family": "protocol",
+    "operation": "draft",
+    "target": { "type": "protocol", "protocol_id": "p1" },
+    "allowed_tools": ["t1"],
+    "blocked_tools": [],
+    "cardinality": { "mode": "single" },
+    "environment": {},
+    "responsibility_ceiling": "R4_methodological_modification",
+    "constraints": {},
+    "expiration": {}
+  }
+}
