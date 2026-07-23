@@ -1,0 +1,21 @@
+version: akta-pilot-exclusions-v1
+description: |
+  Hard exclusions for institutional pilot scaffolding (P1-E).
+  These categories are out of scope for Stages 1–3 unless a future
+  specification explicitly adds governed support.
+exclusions:
+  - id: physical_robot
+    keywords: ["robot_queue", "robot.execute", "physical_robot", "actuator"]
+    metadata_flag: physical_robot
+  - id: clinical_intervention
+    keywords: ["clinical_intervention", "patient_treatment", "ehr.write", "prescribe"]
+    metadata_flag: clinical_intervention
+  - id: high_risk_bio
+    keywords: ["bsl3", "bsl4", "gain_of_function", "select_agent", "high_risk_bio"]
+    metadata_flag: high_risk_bio
+  - id: hazardous_chemical
+    keywords: ["hazardous_chemical", "explosive_precursor", "schedule_i_chem"]
+    metadata_flag: hazardous_chemical
+  - id: unreviewed_publication_claims
+    keywords: ["publication_claim", "press_release_claim", "unreviewed_claim"]
+    metadata_flag: unreviewed_publication_claim
