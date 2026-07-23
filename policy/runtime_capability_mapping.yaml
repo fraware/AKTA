@@ -1,0 +1,62 @@
+# Maps AKTA action classes / tools to shared-authorization (family, operation).
+# Consumed when building RequestedAuthorizationContext (WS8) and hashed into
+# effective-policy provenance (WS11). Keep in sync with shared contract vocab.
+version: akta-runtime-capability-mapping-v1
+policy_file_version: runtime_capability_mapping-v1.0
+shared_contract_envelope: scientific-authorization-envelope-v2
+
+# Default when a tool has no explicit mapping: fail closed at request build.
+default_on_unmapped: abstain_unknown_capability
+
+action_class_defaults:
+  A1_literature_or_hypothesis:
+    family: interpretation
+    operation: discuss
+  A2_evidence_summary:
+    family: interpretation
+    operation: interpret
+  A3_analysis_plan:
+    family: experiment_plan
+    operation: plan
+  A4_analysis_result:
+    family: interpretation
+    operation: interpret
+  A5_protocol_draft_or_update:
+    family: protocol
+    operation: draft
+  A6_validation_plan:
+    family: experiment_plan
+    operation: plan
+  A7_queue_or_priority:
+    family: queue
+    operation: single_run_priority
+  A8_tool_permission:
+    family: permissions
+    operation: escalate
+  A9_execution_payload:
+    family: execution
+    operation: prepare_payload
+  A10_publication_or_claim:
+    family: publication
+    operation: claim
+
+# Tool-level overrides (win over action_class_defaults).
+tool_mappings:
+  protocol.draft:
+    family: protocol
+    operation: draft
+  protocol.update_active:
+    family: protocol
+    operation: update_active
+  protocol.diff_review:
+    family: protocol
+    operation: diff_review
+  queue.single_run_priority:
+    family: queue
+    operation: single_run_priority
+  queue.bounded_batch_priority:
+    family: queue
+    operation: bounded_batch_priority
+  literature_search.query:
+    family: interpretation
+    operation: discuss

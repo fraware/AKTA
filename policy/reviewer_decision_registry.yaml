@@ -1,0 +1,41 @@
+version: akta-reviewer-decision-keys-v1
+description: |
+  Optional local reviewer-decision key registry (AKTA 1.1).
+
+  This registry is NOT auto-merged into grant-issuer trust. Reviewer keys must
+  never masquerade as SCOPE grant issuers. Load explicitly only when verifying
+  local reviewer decision artifacts.
+
+default_authorized_artifact_types:
+  - reviewer_decision
+
+schema:
+  entry_required:
+    - key_id
+    - status
+    - algorithm
+  entry_public_material_one_of:
+    - public_key_ref
+    - public_key_pem
+    - public_key_file
+  status_enum:
+    - active
+    - revoked
+    - expired
+    - pending
+  algorithm_enum:
+    - Ed25519
+  optional_fields:
+    - valid_from
+    - valid_until
+    - issuer_identity
+    - tenant
+    - institution
+    - authorized_artifact_types
+    - replacement_key_id
+    - revocation_reason
+    - notes
+
+reviewers: {}
+
+revoked_key_ids: []
