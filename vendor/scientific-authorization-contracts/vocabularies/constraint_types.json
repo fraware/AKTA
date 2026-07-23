@@ -1,0 +1,75 @@
+{
+  "vocabulary_version": "scientific-authorization-vocab-v1",
+  "description": "Typed constraint algebra. Unknown constraint keys fail closed.",
+  "types": {
+    "maximum_temperature": {
+      "algebra": "min_upper_bound",
+      "value_type": "number"
+    },
+    "minimum_temperature": {
+      "algebra": "max_lower_bound",
+      "value_type": "number"
+    },
+    "allowed_sample_classes": {
+      "algebra": "set_intersection",
+      "value_type": "string_array"
+    },
+    "required_validation_steps": {
+      "algebra": "set_union",
+      "value_type": "string_array"
+    },
+    "forbidden_operations": {
+      "algebra": "set_union",
+      "value_type": "string_array"
+    },
+    "minimum_evidence_level": {
+      "algebra": "max_requirement",
+      "value_type": "string",
+      "ordered_values": ["none", "low", "medium", "high", "validated"]
+    },
+    "max_batch_size": {
+      "algebra": "min_upper_bound",
+      "value_type": "integer"
+    },
+    "single_use": {
+      "algebra": "boolean_and",
+      "value_type": "boolean"
+    },
+    "project_id": {
+      "algebra": "exact_match",
+      "value_type": "string"
+    },
+    "protocol_version": {
+      "algebra": "exact_match",
+      "value_type": "string"
+    },
+    "domain_overlay": {
+      "algebra": "exact_match",
+      "value_type": "string"
+    },
+    "model_version": {
+      "algebra": "exact_match",
+      "value_type": "string"
+    },
+    "tool_registry_version": {
+      "algebra": "exact_match",
+      "value_type": "string"
+    },
+    "evidence_state": {
+      "algebra": "exact_match",
+      "value_type": "string"
+    },
+    "validation_status": {
+      "algebra": "exact_match",
+      "value_type": "string"
+    },
+    "requires_recording": {
+      "algebra": "boolean_and",
+      "value_type": "boolean"
+    },
+    "requires_pf_core_trace": {
+      "algebra": "boolean_and",
+      "value_type": "boolean"
+    }
+  }
+}

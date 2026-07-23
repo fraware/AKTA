@@ -1,0 +1,16 @@
+{
+  "pin_version": "scientific-authorization-contracts-pin-v1",
+  "package": "scientific-authorization-contracts",
+  "status": "beta",
+  "envelope_schema_version": "scientific-authorization-envelope-v2",
+  "envelope_schema_hash": "sha256:9881294eed119374c328f1d48bd7edb39d32b15450734716959c2a953b1ea918",
+  "grant_schema_version": "scope-grant-v2",
+  "grant_schema_hash": "sha256:472e81b99122ed9839eb645dc6f7915c1ca525f63cce71488199e31611163c5c",
+  "grant_status_schema_hash": "sha256:a01507839c35e514ee4c4843223f7f1523709d1f38ff2d62c49b999540c23ac0",
+  "family_vocabulary": "execution,experiment_plan,interpretation,memory,permissions,protocol,publication,queue,recommendation",
+  "operation_vocabulary": "execution,experiment_plan,interpretation,memory,permissions,protocol,publication,queue,recommendation",
+  "family_vocabulary_hash": "sha256:3a3547de8514d0d1488e1c5adceaf62a3034521a80c6ea650a4c91f5a0774b84",
+  "operation_vocabulary_hash": "sha256:857c050866f6b20875fc280fddfe900f044d71305ba5e12fd9ef5845a9afc051",
+  "release_artifact_hash": "sha256:069d9c0ef2e6420a8484595657669fe8fd46a7b30e44d8824732631fbc2c354d",
+  "notes": "Bump this pin only with intentional shared-contract releases. CI asserts vendor, in-tree schemas/, and sibling SCOPE copies match."
+}

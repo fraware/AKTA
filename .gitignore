@@ -16,6 +16,7 @@ parts/
 sdist/
 var/
 wheels/
+requirements-audit.txt
 *.egg-info/
 .installed.cfg
 *.egg

@@ -1,0 +1,13 @@
+{
+  "vocabulary_version": "scientific-authorization-vocab-v1",
+  "types": [
+    "protocol",
+    "instrument",
+    "sample_set",
+    "dataset",
+    "publication",
+    "memory_namespace",
+    "tool_permission",
+    "queue_entry"
+  ]
+}

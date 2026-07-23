@@ -10,9 +10,8 @@ import yaml
 
 from akta.hash import hash_file_content, hash_object
 from akta.policy_integrity import (
-    MANIFEST_FILENAME,
-    compute_file_hash,
     _load_manifest,
+    compute_file_hash,
 )
 
 EFFECTIVE_MANIFEST_FILENAME = "effective_policy_manifest.json"
@@ -166,6 +165,103 @@ def load_effective_policy_manifest(policy_dir: str | Path) -> dict[str, Any] | N
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def verify_effective_policy_manifest(
+    policy_dir: str | Path,
+    *,
+    overlays_dir: str | Path | None = None,
+    integrity_mode: str = "dev_unsigned",
+    stored: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Rebuild effective policy from current files and compare to stored (P0-G).
+
+    Does NOT trust hashes copied from effective_policy_manifest.json without
+    recomputation. Rejects stale/tampered inputs.
+    """
+    policy_dir = Path(policy_dir)
+    recomputed = build_effective_policy_manifest(
+        policy_dir,
+        overlays_dir=overlays_dir,
+        integrity_mode=integrity_mode,
+    )
+    stored_manifest = stored if stored is not None else load_effective_policy_manifest(policy_dir)
+    errors: list[str] = []
+    if stored_manifest is None:
+        return {
+            "ok": True,
+            "recomputed": recomputed,
+            "stored": None,
+            "errors": [],
+            "note": "no stored effective_policy_manifest; recomputed accepted",
+        }
+
+    for key in ("effective_policy_hash", "manifest_hash", "bundle_version"):
+        if stored_manifest.get(key) != recomputed.get(key):
+            errors.append(
+                f"effective policy {key} mismatch: stored={stored_manifest.get(key)!r} "
+                f"recomputed={recomputed.get(key)!r}"
+            )
+
+    stored_files = stored_manifest.get("files") or {}
+    recomputed_files = recomputed.get("files") or {}
+    all_names = sorted(set(stored_files) | set(recomputed_files))
+    for name in all_names:
+        if stored_files.get(name) != recomputed_files.get(name):
+            errors.append(
+                f"policy file hash drift for {name}: "
+                f"stored={stored_files.get(name)!r} recomputed={recomputed_files.get(name)!r}"
+            )
+
+    stored_overlays = (stored_manifest.get("overlay_registry") or {}).get("overlays") or {}
+    recomputed_overlays = (recomputed.get("overlay_registry") or {}).get("overlays") or {}
+    for name in sorted(set(stored_overlays) | set(recomputed_overlays)):
+        if stored_overlays.get(name) != recomputed_overlays.get(name):
+            errors.append(f"overlay registry hash drift for {name}")
+
+    # Mutating critical inputs after manifest generation must fail.
+    critical = {
+        "default_tool_registry.yaml",
+        "tool_to_requested_scope.yaml",
+        "scope_grant_override_rules.yaml",
+        "structured_action_schema.yaml",
+        "scope_compatibility_manifest.json",
+        "release_keys.yaml",
+    }
+    for name in critical:
+        if name in stored_files and name in recomputed_files:
+            if stored_files[name] != recomputed_files[name]:
+                errors.append(
+                    f"mutating {name} after effective manifest generation is rejected"
+                )
+
+    return {
+        "ok": not errors,
+        "recomputed": recomputed,
+        "stored": stored_manifest,
+        "errors": errors,
+    }
+
+
+def require_effective_policy_integrity(
+    policy_dir: str | Path,
+    *,
+    overlays_dir: str | Path | None = None,
+    integrity_mode: str = "dev_unsigned",
+) -> dict[str, Any]:
+    """Raise PolicyError when stored effective policy does not match recomputation."""
+    from akta.errors import PolicyError
+
+    result = verify_effective_policy_manifest(
+        policy_dir,
+        overlays_dir=overlays_dir,
+        integrity_mode=integrity_mode,
+    )
+    if not result["ok"]:
+        raise PolicyError(
+            "effective policy provenance failed: " + "; ".join(result["errors"])
+        )
+    return result["recomputed"]
+
+
 def policy_binding_block(
     *,
     bundle_version: str,
@@ -174,13 +270,22 @@ def policy_binding_block(
     integrity_mode: str,
     signing_key_id: str | None,
     file_versions: dict[str, str],
+    schema_hashes: dict[str, str] | None = None,
+    overlay_hash: str | None = None,
+    release_key_id: str | None = None,
 ) -> dict[str, Any]:
     """Canonical policy provenance block for Decision and Record artifacts."""
-    return {
+    block: dict[str, Any] = {
         "bundle_version": bundle_version,
         "effective_policy_hash": effective_policy_hash,
         "manifest_hash": manifest_hash,
         "integrity_mode": integrity_mode,
         "signing_key_id": signing_key_id,
+        "release_key_id": release_key_id or signing_key_id,
         "file_versions": dict(file_versions),
     }
+    if schema_hashes:
+        block["schema_hashes"] = dict(schema_hashes)
+    if overlay_hash:
+        block["overlay_hash"] = overlay_hash
+    return block

@@ -133,3 +133,32 @@ def test_write_effective_policy_manifest_roundtrip(tmp_path: Path) -> None:
     out.write_text(__import__("json").dumps(manifest, indent=2), encoding="utf-8")
     loaded = __import__("json").loads(out.read_text(encoding="utf-8"))
     assert loaded["effective_policy_hash"] == manifest["effective_policy_hash"]
+
+
+def test_verify_effective_policy_detects_tamper(tmp_path: Path) -> None:
+    from akta.effective_policy import (
+        verify_effective_policy_manifest,
+        write_effective_policy_manifest,
+    )
+
+    policy_dir = tmp_path / "policy"
+    policy_dir.mkdir()
+    (policy_dir / "action_ontology.yaml").write_text("v: 1\n", encoding="utf-8")
+    (policy_dir / "scope_compatibility_manifest.json").write_text(
+        '{"manifest_version":"t","akta_package_version":"1.0.0",'
+        '"akta_review_contract_version":"x","grant_schema_version":"g",'
+        '"capability_envelope_version":"e","summary_contract_version":"s",'
+        '"fixture_contract_version":"f"}\n',
+        encoding="utf-8",
+    )
+    write_effective_policy_manifest(policy_dir)
+    (policy_dir / "scope_compatibility_manifest.json").write_text(
+        '{"manifest_version":"TAMPERED","akta_package_version":"1.0.0",'
+        '"akta_review_contract_version":"x","grant_schema_version":"g",'
+        '"capability_envelope_version":"e","summary_contract_version":"s",'
+        '"fixture_contract_version":"f"}\n',
+        encoding="utf-8",
+    )
+    result = verify_effective_policy_manifest(policy_dir)
+    assert not result["ok"]
+    assert any("scope_compatibility_manifest" in e for e in result["errors"])

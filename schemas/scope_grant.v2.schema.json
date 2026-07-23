@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scientific-authorization.dev/schemas/scope_grant.v2.schema.json",
+  "title": "SCOPE Grant v2",
+  "description": "Issuer-signed capability grant. Requires authorization_envelope. Beta/reference.",
+  "type": "object",
+  "required": [
+    "grant_id",
+    "grant_version",
+    "created_at",
+    "source",
+    "authorization",
+    "constraints",
+    "expiration",
+    "provenance",
+    "grant_hash",
+    "issuer",
+    "authorization_schema_version",
+    "authorization_schema_hash"
+  ],
+  "properties": {
+    "grant_id": { "type": "string" },
+    "grant_version": { "type": "string" },
+    "created_at": { "type": "string" },
+    "authorization_schema_version": {
+      "type": "string",
+      "const": "scientific-authorization-envelope-v2"
+    },
+    "authorization_schema_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "source": {
+      "type": "object",
+      "required": ["packet_id", "decision_id", "akta_record_id"],
+      "properties": {
+        "packet_id": { "type": "string" },
+        "decision_id": { "type": "string" },
+        "akta_record_id": { "type": "string" },
+        "session_id": { "type": "string" },
+        "contributing_decision_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "quorum_policy_hash": { "type": "string", "pattern": "^sha256:" },
+        "resolution_hash": { "type": "string", "pattern": "^sha256:" },
+        "decision_signature_refs": { "type": "array" }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "required": ["authorization_envelope", "allowed_tools", "blocked_tools"],
+      "properties": {
+        "authorization_envelope": {
+          "$ref": "authorization_envelope.v2.schema.json"
+        },
+        "approved_scope": {
+          "type": "string",
+          "description": "Deprecated display/migration field only; must not drive authorization"
+        },
+        "approved_actions": { "type": "array", "items": { "type": "string" } },
+        "allowed_tools": { "type": "array", "items": { "type": "string" } },
+        "blocked_tools": { "type": "array", "items": { "type": "string" } },
+        "max_responsibility_level": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "constraints": { "type": "object" },
+    "expiration": { "type": "object" },
+    "provenance": { "type": "object" },
+    "issuer": {
+      "type": "object",
+      "required": ["issuer_identity", "issuer_key_id"],
+      "properties": {
+        "issuer_identity": { "type": "string", "minLength": 1 },
+        "issuer_key_id": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "grant_hash": { "type": "string", "pattern": "^sha256:" },
+    "signed_payload_hash": { "type": "string", "pattern": "^sha256:" },
+    "grant_signature": { "type": "string", "minLength": 1 },
+    "signature_algorithm": {
+      "type": "string",
+      "const": "Ed25519"
+    }
+  },
+  "additionalProperties": true
+}

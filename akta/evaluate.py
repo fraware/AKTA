@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
 from typing import Any
 
 from akta.classify import action_rank, responsibility_rank
 from akta.consequentiality import ConsequentialityResult, classify_consequentiality
 from akta.context import AKTAContext
+from akta.evaluation_types import EvaluationLayer, EvaluationResult
 from akta.overlays import DomainOverlay
 from akta.policy import PolicyBundle
 from akta.review_context import (
@@ -17,7 +17,6 @@ from akta.review_context import (
     evaluate_prior_review,
 )
 from akta.tool_registry import ToolSpec
-
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +44,6 @@ PERMISSION_TO_DECISION = {
     "blocked": "blocked",
     "abstain_insufficient_context": "abstain_insufficient_context",
 }
-
-
-from akta.evaluation_types import EvaluationLayer, EvaluationResult
 
 
 def strictest(*decisions: str) -> str:
@@ -332,7 +328,7 @@ def handoff_escalation_decision(context: AKTAContext) -> EvaluationLayer | None:
     if len(chain) < 2:
         return None
     levels = [hop.get("responsibility_level", "") for hop in chain]
-    ranks = [responsibility_rank(l) for l in levels if l]
+    ranks = [responsibility_rank(level) for level in levels if level]
     if not ranks:
         return None
 

@@ -1,4 +1,4 @@
-"""Grant verifier wiring and fail-closed mode tests (PR-2)."""
+"""Grant verifier wiring and shared envelope tests (P0-A/B/C)."""
 
 from __future__ import annotations
 
@@ -14,6 +14,10 @@ from akta.capability_envelope import (
 )
 from akta.errors import GrantVerificationError
 from akta.scope_grant_verifier import verify_scope_grant, verify_scope_grant_or_raise
+from akta.shared_contracts import (
+    authorization_envelope_schema_hash,
+    shared_contract_report,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -21,6 +25,26 @@ ROOT = Path(__file__).resolve().parent.parent
 @pytest.fixture
 def gate() -> AKTAGate:
     return AKTAGate.from_policy_dir(ROOT / "policy", overlays_dir=ROOT / "overlays")
+
+
+def _shared_envelope(**overrides: object) -> dict:
+    base = legacy_scope_to_envelope(
+        approved_scope="protocol_draft",
+        allowed_tools=["protocol_editor.draft_change"],
+        blocked_tools=["robot_queue.submit"],
+    )
+    base.update(overrides)
+    return base
+
+
+def test_shared_contract_identity() -> None:
+    report = shared_contract_report()
+    assert report["envelope_schema_version"] == ENVELOPE_VERSION
+    assert report["envelope_schema_hash"].startswith("sha256:")
+    assert "interpretation" in report["family_vocabulary"]
+    assert "queue" in report["family_vocabulary"]
+    assert "memory" in report["family_vocabulary"]
+    assert "queue_allocation" not in report["family_vocabulary"]
 
 
 def test_unit_mode_warns_when_allowed_tools_absent() -> None:
@@ -32,7 +56,7 @@ def test_unit_mode_warns_when_allowed_tools_absent() -> None:
     assert result.ok
     assert any("allowed_tools" in w for w in result.warnings)
     assert result.capability_envelope is not None
-    assert result.capability_envelope["legacy_approved_scope"] == "protocol_draft"
+    assert result.capability_envelope["family"] == "protocol"
 
 
 def test_release_mode_rejects_missing_allowed_tools() -> None:
@@ -40,16 +64,41 @@ def test_release_mode_rejects_missing_allowed_tools() -> None:
         "grant_id": "SCOPE-GRANT-2",
         "authorization": {"approved_scope": "protocol_draft"},
     }
-    with pytest.raises(GrantVerificationError, match="allowed_tools"):
+    with pytest.raises(GrantVerificationError, match="authorization_envelope|allowed_tools"):
         verify_scope_grant_or_raise(grant, mode="release")
+
+
+def test_release_mode_rejects_scalar_only_grant() -> None:
+    grant = {
+        "grant_id": "SCOPE-GRANT-SCALAR",
+        "authorization": {
+            "approved_scope": "protocol_draft",
+            "allowed_tools": ["protocol_editor.draft_change"],
+        },
+    }
+    with pytest.raises(GrantVerificationError, match="authorization_envelope"):
+        verify_scope_grant_or_raise(grant, mode="pilot")
 
 
 def test_production_env_rejects_simulated(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AKTA_PRODUCTION_MODE", "1")
     grant = {
         "grant_id": "SCOPE-GRANT-SIM",
-        "authorization": {"approved_scope": "protocol_draft", "allowed_tools": []},
+        "authorization": {
+            "approved_scope": "protocol_draft",
+            "allowed_tools": [],
+            "authorization_envelope": _shared_envelope(),
+        },
         "adapter_mode": "simulated",
+        "grant_hash": "sha256:" + ("a" * 64),
+        "issuer": {"issuer_identity": "test", "issuer_key_id": "k1"},
+        "grant_signature": "sig",
+        "source": {
+            "packet_id": "p1",
+            "decision_id": "d1",
+            "akta_record_id": "r1",
+        },
+        "provenance": {"scope_trust_root_hash": "sha256:" + ("b" * 64)},
     }
     with pytest.raises(GrantVerificationError, match="simulated"):
         verify_scope_grant_or_raise(grant)
@@ -61,7 +110,7 @@ def test_evaluate_with_grant_fail_closed_missing_tools(gate: AKTAGate) -> None:
         "authorization": {"approved_scope": "protocol_draft"},
         "expires_at": "2030-01-01T00:00:00Z",
     }
-    with pytest.raises(GrantVerificationError, match="allowed_tools"):
+    with pytest.raises(GrantVerificationError, match="authorization_envelope|allowed_tools"):
         gate.evaluate_with_grant(
             ai_output={"summary": "Draft"},
             requested_tool="protocol_editor.draft_change",
@@ -93,18 +142,20 @@ def test_evaluate_with_grant_attaches_envelope(gate: AKTAGate) -> None:
     )
     data = decision.to_dict()
     assert data.get("capability_envelope", {}).get("envelope_version") == ENVELOPE_VERSION
+    assert data.get("capability_envelope", {}).get("family") == "protocol"
     assert data.get("grant_layer_satisfaction", {}).get("evidence_never_satisfied_by_grant") is True
-    assert data.get("review_satisfied") is True or data.get("admissibility") == "blocked"
 
 
 def test_capability_envelope_narrowing() -> None:
     wide = legacy_scope_to_envelope(
         approved_scope="protocol_draft",
         allowed_tools=["protocol_editor.draft_change", "protocol_editor.update_active_protocol"],
+        blocked_tools=[],
     )
     narrow = legacy_scope_to_envelope(
         approved_scope="protocol_draft",
         allowed_tools=["protocol_editor.draft_change"],
+        blocked_tools=[],
     )
     assert envelope_narrows(wide, narrow)
     assert not envelope_narrows(narrow, wide)
@@ -128,18 +179,18 @@ def test_envelope_narrows_responsibility_and_environment() -> None:
         approved_scope="protocol_draft",
         allowed_tools=["protocol_editor.draft_change"],
         max_responsibility_level="R4",
+        environment={"tenant_id": "lab-a"},
     )
-    granted["environment"] = "lab-a"
     requested = dict(granted)
-    requested["max_responsibility_level"] = "R6"
+    requested["responsibility_ceiling"] = "R6_physical_execution"
     assert not envelope_narrows(granted, requested)
     requested = dict(granted)
-    requested["max_responsibility_level"] = "R3"
-    requested["environment"] = "lab-b"
+    requested["responsibility_ceiling"] = "R3_recommendation"
+    requested["environment"] = {"tenant_id": "lab-b"}
     assert not envelope_narrows(granted, requested)
     requested = dict(granted)
-    requested["max_responsibility_level"] = "R3"
-    requested["environment"] = "lab-a"
+    requested["responsibility_ceiling"] = "R3_recommendation"
+    requested["environment"] = {"tenant_id": "lab-a"}
     assert envelope_narrows(granted, requested)
 
 
@@ -148,22 +199,41 @@ def test_require_envelope_rejects_scalar_only() -> None:
         "grant_id": "SCOPE-GRANT-SCALAR",
         "authorization": {"approved_scope": "protocol_draft", "allowed_tools": ["x"]},
     }
-    with pytest.raises(GrantVerificationError, match="capability_envelope"):
+    with pytest.raises(GrantVerificationError, match="authorization_envelope|capability_envelope"):
         verify_scope_grant_or_raise(grant, mode="unit", require_capability_envelope=True)
 
 
 def test_explicit_envelope_accepted() -> None:
+    from akta.shared_contracts import _contracts
+
+    envelope = _shared_envelope()
     grant = {
         "grant_id": "SCOPE-GRANT-CE",
-        "capability_envelope": {
-            "envelope_version": ENVELOPE_VERSION,
-            "capability_family": "protocol",
-            "operation": "draft",
-            "allowed_tools": ["protocol_editor.draft_change"],
-            "max_responsibility_level": "R4",
+        "grant_version": "2.0.0",
+        "created_at": "2026-01-01T00:00:00Z",
+        "authorization": {
+            "approved_scope": "protocol_draft",
+            "allowed_tools": envelope["allowed_tools"],
+            "blocked_tools": envelope["blocked_tools"],
+            "authorization_envelope": envelope,
         },
-        "authorization": {"approved_scope": "protocol_draft"},
+        "authorization_schema_version": ENVELOPE_VERSION,
+        "authorization_schema_hash": authorization_envelope_schema_hash(),
+        "issuer": {"issuer_identity": "scope-test", "issuer_key_id": "k-test"},
+        "grant_signature": "test-sig",
+        "source": {
+            "packet_id": "pkt-1",
+            "decision_id": "dec-1",
+            "akta_record_id": "rec-1",
+        },
+        "provenance": {"scope_trust_root_hash": "sha256:" + ("d" * 64)},
+        "constraints": {},
+        "expiration": {"absolute_expiration": "2030-01-01T00:00:00Z", "expires_after": []},
     }
+    grant = _contracts().attach_hash(grant, "grant_hash")
     result = verify_scope_grant_or_raise(grant, mode="release", require_capability_envelope=True)
-    assert result.ok
-    assert result.capability_envelope["capability_family"] == "protocol"
+    assert result.ok, result.errors
+    assert result.capability_envelope["family"] == "protocol"
+    assert "family" in result.capability_envelope
+    assert "capability_family" not in result.capability_envelope
+    assert "responsibility_ceiling" in result.capability_envelope

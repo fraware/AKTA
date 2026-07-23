@@ -44,8 +44,33 @@ class AKTAGate:
         policy_dir: str | Path = "policy/",
         overlays_dir: str | Path | None = None,
         tool_registry_path: str | Path | None = None,
+        *,
+        verify_effective_policy: bool | None = None,
     ) -> AKTAGate:
+        """Load policy bundle. Recomputes effective-policy provenance (P0-G).
+
+        When ``verify_effective_policy`` is True (or production/signed mode),
+        rejects stale/tampered policy inputs vs stored effective_policy_manifest.
+        """
+        import os
+
+        from akta.effective_policy import require_effective_policy_integrity
+        from akta.policy_integrity import is_production_mode, require_signed_policy
+
         policy = PolicyBundle.from_dir(policy_dir, tool_registry_path=tool_registry_path)
+        if verify_effective_policy is None:
+            verify_effective_policy = (
+                is_production_mode()
+                or require_signed_policy()
+                or os.environ.get("AKTA_VERIFY_EFFECTIVE_POLICY", "").lower()
+                in ("1", "true", "yes")
+            )
+        if verify_effective_policy:
+            require_effective_policy_integrity(
+                policy_dir,
+                overlays_dir=overlays_dir,
+                integrity_mode=getattr(policy, "integrity_mode", "dev_unsigned"),
+            )
         return cls(policy, overlays_dir=overlays_dir)
 
     def evaluate(
@@ -215,6 +240,8 @@ class AKTAGate:
         validate_output: bool = True,
         verification_mode: str | None = None,
         require_capability_envelope: bool | None = None,
+        trust_store: dict[str, Any] | None = None,
+        ledger_status: dict[str, Any] | None = None,
     ) -> AKTADecision:
         """Re-gate after SCOPE grant or review decision with expiry enforcement (F14).
 
@@ -245,6 +272,8 @@ class AKTAGate:
                 deployment_profile=deployment_profile,
                 verification_mode=verification_mode,
                 require_capability_envelope=require_capability_envelope,
+                trust_store=trust_store,
+                ledger_status=ledger_status,
             )
             ctx_dict = grant_state.context
 

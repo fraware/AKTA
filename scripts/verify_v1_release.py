@@ -49,7 +49,34 @@ def _run(
     return result
 
 
-def verify_v1_release(*, skip_ci: bool = False) -> dict[str, Any]:
+def _institutional_flags_from_env() -> dict[str, bool]:
+    """Detect institutional reject conditions from env/config (fail-closed inputs)."""
+    return {
+        "simulated_scope": os.environ.get("AKTA_ALLOW_SIMULATED_SCOPE", "").lower()
+        in ("1", "true", "yes"),
+        "legacy_scalar_scope_grant": os.environ.get("AKTA_ALLOW_LEGACY_SCALAR_GRANT", "").lower()
+        in ("1", "true", "yes"),
+        "mock_pf_validator": os.environ.get("AKTA_USE_MOCK_PF", "").lower() in ("1", "true", "yes"),
+        "mock_pcs_validator": os.environ.get("AKTA_USE_MOCK_PCS", "").lower() in ("1", "true", "yes"),
+        "missing_pcs_bench": not bool(os.environ.get("PCS_BENCH_REPO_PATH", "").strip()),
+        "synthetic_vsa_only_validation": os.environ.get("AKTA_VSA_SYNTHETIC_ONLY", "").lower()
+        in ("1", "true", "yes"),
+        "missing_scientific_memory_integration": not bool(
+            os.environ.get("MEMORY_REPO_PATH", "").strip()
+        ),
+        "empty_issuer_trust_registry": not bool(
+            os.environ.get("AKTA_TRUST_STORE_PATH", "").strip()
+            or os.environ.get("AKTA_ISSUER_KEY_REGISTRY", "").strip()
+        ),
+    }
+
+
+def verify_v1_release(
+    *,
+    skip_ci: bool = False,
+    institutional: bool = False,
+) -> dict[str, Any]:
+    from akta.release_pins import institutional_release_gate, pins_for_release_report
     from akta.sibling_repos import apply_sibling_env_defaults
 
     if skip_ci and not os.environ.get("AKTA_ALLOW_SKIP_CI"):
@@ -58,7 +85,14 @@ def verify_v1_release(*, skip_ci: bool = False) -> dict[str, Any]:
         )
 
     discovered = apply_sibling_env_defaults()
-    report: dict[str, Any] = {"steps": [], "passed": False, "sibling_discovery": discovered}
+    report: dict[str, Any] = {
+        "steps": [],
+        "passed": False,
+        "sibling_discovery": discovered,
+        "pinned_siblings": pins_for_release_report(),
+        "beta": True,
+        "profile": "institutional_release" if institutional else "reference_release",
+    }
 
     def step(name: str, fn) -> None:
         try:
@@ -68,9 +102,33 @@ def verify_v1_release(*, skip_ci: bool = False) -> dict[str, Any]:
             report["steps"].append({"name": name, "passed": False, "error": str(exc)})
             raise
 
+    if institutional:
+        gate = institutional_release_gate(
+            flags=_institutional_flags_from_env(),
+            require_checkouts=True,
+        )
+        report["institutional_gate"] = gate
+        if not gate["ok"]:
+            report["steps"].append(
+                {
+                    "name": "institutional_release_gate",
+                    "passed": False,
+                    "error": "; ".join(gate["errors"]),
+                }
+            )
+            raise RuntimeError(
+                "institutional_release fail-closed: " + "; ".join(gate["errors"])
+            )
+        report["steps"].append(
+            {"name": "institutional_release_gate", "passed": True, "detail": gate}
+        )
+
     if not skip_ci:
         if os.name == "nt":
-            step("make_ci", lambda: _run([sys.executable, "-m", "pytest", "tests/", "-q", "--tb=no"]))
+            step(
+                "make_ci",
+                lambda: _run([sys.executable, "-m", "pytest", "tests/", "-q", "--tb=no"]),
+            )
         else:
             step("make_ci", lambda: _run(["make", "ci"]))
 
@@ -89,7 +147,7 @@ def verify_v1_release(*, skip_ci: bool = False) -> dict[str, Any]:
                     [sys.executable, "scripts/verify_scope_live_chain.py", "--mode", m]
                     + (["--scope-repo", scope_repo] if m == "python-import" else []),
                     env=e,
-                    optional=(m in ("cli", "akta-review")),
+                    optional=(m in ("cli", "akta-review")) and not institutional,
                 ),
             )
         step(
@@ -104,70 +162,131 @@ def verify_v1_release(*, skip_ci: bool = False) -> dict[str, Any]:
                 env={"AKTA_STRICT_SCOPE_CONTRACT": "1", "SCOPE_REPO_PATH": scope_repo},
             ),
         )
-        step("sync_scope_fixtures", lambda: _run(
-            [sys.executable, "scripts/sync_scope_contract_fixtures.py", "--scope-repo", scope_repo],
-        ))
+        step(
+            "sync_scope_fixtures",
+            lambda: _run(
+                [
+                    sys.executable,
+                    "scripts/sync_scope_contract_fixtures.py",
+                    "--scope-repo",
+                    scope_repo,
+                ],
+            ),
+        )
         step("demo_pilot_bundle", lambda: _run([sys.executable, "scripts/generate_pilot_bundle.py"]))
-        step("verify_pilot_bundle", lambda: _run(
-            [sys.executable, "scripts/verify_reconstructable_cross_repo.py", "--pilot-mode"],
-        ))
-        step("strict_cross_repo", lambda: _run(
-            [sys.executable, "scripts/demo_reconstructable_experiment.py", "--cross-repo"],
-            env={"AKTA_STRICT_SCOPE_CONTRACT": "1", "SCOPE_REPO_PATH": scope_repo},
-        ))
+        step(
+            "verify_pilot_bundle",
+            lambda: _run(
+                [sys.executable, "scripts/verify_reconstructable_cross_repo.py", "--pilot-mode"],
+            ),
+        )
+        step(
+            "strict_cross_repo",
+            lambda: _run(
+                [sys.executable, "scripts/demo_reconstructable_experiment.py", "--cross-repo"],
+                env={"AKTA_STRICT_SCOPE_CONTRACT": "1", "SCOPE_REPO_PATH": scope_repo},
+            ),
+        )
     else:
-        report["steps"].append({
-            "name": "scope_live",
-            "passed": False,
-            "error": "SCOPE_REPO_PATH not set; live SCOPE gate required for v1.0 release verify",
-        })
+        report["steps"].append(
+            {
+                "name": "scope_live",
+                "passed": False,
+                "error": "SCOPE_REPO_PATH not set; live SCOPE gate required for v1.0 release verify",
+            }
+        )
         raise RuntimeError("SCOPE_REPO_PATH required for verify_v1_release")
 
-    step("pf_runtime_proof", lambda: _run(
-        [sys.executable, "scripts/demo_pf_runtime_proof.py"],
-        require_repo="PF_CORE_REPO_PATH",
-        optional=not os.environ.get("PF_CORE_REPO_PATH"),
-    ))
-    step("pcs_core_ingest", lambda: _run(
-        [sys.executable, "-m", "pytest", "tests/contracts/test_pcs_core_live_ingest.py", "-v", "-m", "integration"],
-        require_repo="PCS_CORE_REPO_PATH",
-        optional=not os.environ.get("PCS_CORE_REPO_PATH"),
-    ))
-    step("vsa_live", lambda: _run(
-        [sys.executable, "-m", "pytest", "tests/contracts/test_vsa_live_contract.py", "-v", "-m", "integration"],
-        require_repo="VSA_REPO_PATH",
-        optional=not os.environ.get("VSA_REPO_PATH"),
-    ))
-    step("memory_roundtrip", lambda: _run(
-        [sys.executable, "-m", "pytest", "tests/contracts/test_scientific_memory_roundtrip.py", "-v", "-m", "integration"],
-        require_repo="MEMORY_REPO_PATH",
-        optional=not os.environ.get("MEMORY_REPO_PATH"),
-    ))
-    step("pcs_bench_live", lambda: _run(
-        [sys.executable, "-m", "adapters.pcs_bench.external_harness"],
-        require_repo="PCS_BENCH_REPO_PATH",
-        optional=not os.environ.get("PCS_BENCH_REPO_PATH"),
-    ))
-
-    if os.environ.get("VSA_REPO_PATH"):
-        step("vsa_pilot_bundle", lambda: _run(
+    # Sibling steps: optional for reference profile; fail-closed when institutional.
+    sibling_optional = not institutional
+    step(
+        "pf_runtime_proof",
+        lambda: _run(
+            [sys.executable, "scripts/demo_pf_runtime_proof.py"],
+            require_repo="PF_CORE_REPO_PATH",
+            optional=sibling_optional and not os.environ.get("PF_CORE_REPO_PATH"),
+        ),
+    )
+    step(
+        "pcs_core_ingest",
+        lambda: _run(
             [
                 sys.executable,
-                "-c",
-                "import json; from pathlib import Path; "
-                "from tests.contracts.cross_repo_helpers import validate_vsa_report_live; "
-                "p=Path('dist/pilot_bundle/00_vsa_report.json'); "
-                "assert p.is_file(), 'pilot VSA report missing'; "
-                "r=json.loads(p.read_text(encoding='utf-8')); "
-                "skip=validate_vsa_report_live(r); assert skip is None, skip",
+                "-m",
+                "pytest",
+                "tests/contracts/test_pcs_core_live_ingest.py",
+                "-v",
+                "-m",
+                "integration",
+            ],
+            require_repo="PCS_CORE_REPO_PATH",
+            optional=sibling_optional and not os.environ.get("PCS_CORE_REPO_PATH"),
+        ),
+    )
+    step(
+        "vsa_live",
+        lambda: _run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "tests/contracts/test_vsa_live_contract.py",
+                "-v",
+                "-m",
+                "integration",
             ],
             require_repo="VSA_REPO_PATH",
-        ))
+            optional=sibling_optional and not os.environ.get("VSA_REPO_PATH"),
+        ),
+    )
+    step(
+        "memory_roundtrip",
+        lambda: _run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "tests/contracts/test_scientific_memory_roundtrip.py",
+                "-v",
+                "-m",
+                "integration",
+            ],
+            require_repo="MEMORY_REPO_PATH",
+            optional=sibling_optional and not os.environ.get("MEMORY_REPO_PATH"),
+        ),
+    )
+    step(
+        "pcs_bench_live",
+        lambda: _run(
+            [sys.executable, "-m", "adapters.pcs_bench.external_harness"],
+            require_repo="PCS_BENCH_REPO_PATH",
+            optional=sibling_optional and not os.environ.get("PCS_BENCH_REPO_PATH"),
+        ),
+    )
+
+    if os.environ.get("VSA_REPO_PATH"):
+        step(
+            "vsa_pilot_bundle",
+            lambda: _run(
+                [
+                    sys.executable,
+                    "-c",
+                    "import json; from pathlib import Path; "
+                    "from tests.contracts.cross_repo_helpers import validate_vsa_report_live; "
+                    "p=Path('dist/pilot_bundle/00_vsa_report.json'); "
+                    "assert p.is_file(), 'pilot VSA report missing'; "
+                    "r=json.loads(p.read_text(encoding='utf-8')); "
+                    "skip=validate_vsa_report_live(r); assert skip is None, skip",
+                ],
+                require_repo="VSA_REPO_PATH",
+            ),
+        )
 
     if os.name == "nt":
-        step("eval_bench_v1", lambda: _run(
-            [sys.executable, "-m", "pytest", "tests/test_eval_bench_v1.py", "-v"],
-        ))
+        step(
+            "eval_bench_v1",
+            lambda: _run([sys.executable, "-m", "pytest", "tests/test_eval_bench_v1.py", "-v"]),
+        )
         step("behavioral_smoke", lambda: _run([sys.executable, "evals/behavioral_runner.py"]))
     else:
         step("eval_bench_v1", lambda: _run(["make", "eval-bench-v1"]))
@@ -185,17 +304,43 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Skip make ci (requires AKTA_ALLOW_SKIP_CI=1; not for release tags)",
     )
-    parser.add_argument("--out", type=Path, default=ROOT / "evals" / "reports" / "verify_v1_release.json")
+    parser.add_argument(
+        "--institutional",
+        action="store_true",
+        help="Fail-closed institutional_release profile (pinned siblings + rejects)",
+    )
+    parser.add_argument(
+        "--out", type=Path, default=ROOT / "evals" / "reports" / "verify_v1_release.json"
+    )
     args = parser.parse_args(argv)
 
     try:
-        report = verify_v1_release(skip_ci=args.skip_ci)
+        report = verify_v1_release(skip_ci=args.skip_ci, institutional=args.institutional)
     except RuntimeError as exc:
-        report = {"passed": False, "error": str(exc), "steps": []}
+        from akta.release_pins import pins_for_release_report
+
+        report = {
+            "passed": False,
+            "error": str(exc),
+            "steps": [],
+            "pinned_siblings": pins_for_release_report(),
+            "beta": True,
+            "profile": "institutional_release" if args.institutional else "reference_release",
+        }
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2), encoding="utf-8")
-    print(json.dumps({"passed": report.get("passed"), "steps": len(report.get("steps", []))}, indent=2))
+    print(
+        json.dumps(
+            {
+                "passed": report.get("passed"),
+                "steps": len(report.get("steps", [])),
+                "profile": report.get("profile"),
+                "pinned_siblings": report.get("pinned_siblings"),
+            },
+            indent=2,
+        )
+    )
     return 0 if report.get("passed") else 1
 
 

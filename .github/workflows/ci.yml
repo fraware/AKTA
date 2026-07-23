@@ -24,6 +24,67 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev,security]"
 
+      - name: Shared contract drift gate
+        run: python scripts/assert_shared_contract_drift.py
+
+      - name: Ruff (P1-B fail-closed on security paths)
+        run: |
+          ruff check \
+            akta/scope_grant_verifier.py \
+            akta/trust_store.py \
+            akta/shared_contracts.py \
+            akta/capability_envelope.py \
+            akta/policy_integrity.py \
+            akta/review_decision.py \
+            akta/release_pins.py \
+            akta/pilot_workflow.py \
+            tests/test_grant_forgery_lifecycle.py \
+            tests/test_shared_contract_drift.py \
+            tests/test_institutional_trust_store.py \
+            scripts/assert_shared_contract_drift.py
+
+      - name: Ruff (akta package fail-closed)
+        run: ruff check akta --ignore E501
+
+      - name: Ruff (adapters/tests progressive fail-closed after autofix surface)
+        run: |
+          ruff check adapters/generic_rest tests/test_rest_api.py tests/test_rest_institutional.py \
+            tests/test_release_pins.py tests/test_pilot_workflow.py tests/test_empirical_impact.py \
+            --ignore E501
+
+      - name: Mypy (security-critical modules fail-closed)
+        run: |
+          mypy \
+            akta/scope_grant_verifier.py \
+            akta/trust_store.py \
+            akta/shared_contracts.py \
+            akta/capability_envelope.py \
+            akta/policy_integrity.py \
+            akta/release_pins.py \
+            akta/pilot_workflow.py \
+            adapters/generic_rest/identity.py \
+            adapters/generic_rest/persistence.py \
+            --ignore-missing-imports
+
+      - name: pip-audit (fail-closed on declared deps)
+        run: |
+          python - <<'PY'
+          import pathlib
+          try:
+              import tomllib
+          except ModuleNotFoundError:
+              import tomli as tomllib  # type: ignore
+          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text(encoding="utf-8"))
+          deps = list(data["project"]["dependencies"])
+          for extra in ("dev", "security"):
+              deps.extend(data["project"].get("optional-dependencies", {}).get(extra, []))
+          pathlib.Path("requirements-audit.txt").write_text("\n".join(deps) + "\n", encoding="utf-8")
+          PY
+          pip-audit -r requirements-audit.txt --progress-spinner off
+
+      - name: Grant forgery lifecycle tests
+        run: pytest tests/test_grant_forgery_lifecycle.py tests/test_institutional_trust_store.py -v
+
       - name: Run pytest
         run: pytest tests/ skills/akta-scientific-action-admissibility/tests/ -v
 
@@ -32,6 +93,15 @@ jobs:
 
       - name: Validate JSON schemas
         run: pytest tests/test_schemas.py -v
+
+      - name: Policy manifest / integrity tests
+        run: pytest tests/test_policy_integrity_v05.py tests/test_policy_signing_modes.py -v
+
+      - name: Empirical dry-run (no empirical completion claim)
+        run: python -m evals.empirical_impact --dry-run --write-protocol
+
+      - name: Institutional release pins unit gate
+        run: pytest tests/test_release_pins.py tests/test_pilot_workflow.py -v
 
       - name: Run canonical scenario eval
         run: |
@@ -74,6 +144,93 @@ jobs:
         with:
           name: eval-reports-py${{ matrix.python-version }}
           path: evals/reports/
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Install build tooling
+        run: pip install -e ".[dev,security]"
+      - name: Shared contract drift gate
+        run: python scripts/assert_shared_contract_drift.py
+      - name: Build wheel and sdist
+        run: python -m build
+      - name: Twine check
+        run: twine check dist/*
+      - name: Wheel install smoke
+        run: |
+          python -m venv /tmp/akta-wheel-smoke
+          /tmp/akta-wheel-smoke/bin/pip install dist/*.whl
+          /tmp/akta-wheel-smoke/bin/python -c "import akta; from akta.trust_store import resolve_trust_store; print('ok', akta.__name__)"
+      - name: SBOM (CycloneDX when available)
+        run: |
+          pip install cyclonedx-bom >/dev/null 2>&1 || true
+          if command -v cyclonedx-py >/dev/null 2>&1; then
+            cyclonedx-py environment -o dist/akta.cdx.json || cyclonedx-py pyproject -o dist/akta.cdx.json
+          else
+            python - <<'PY'
+          import json, pathlib
+          # Minimal fallback SBOM stub when cyclonedx tooling unavailable.
+          pathlib.Path("dist").mkdir(exist_ok=True)
+          pathlib.Path("dist/akta.sbom.stub.json").write_text(
+              json.dumps({
+                  "bomFormat": "CycloneDX",
+                  "specVersion": "1.5",
+                  "version": 1,
+                  "metadata": {"component": {"type": "library", "name": "akta-protocol", "version": "1.0.0"}},
+                  "note": "stub SBOM — install cyclonedx-bom for full generation",
+              }, indent=2),
+              encoding="utf-8",
+          )
+          print("wrote stub SBOM")
+          PY
+          fi
+      - name: Reproducibility comparison (second build hash)
+        run: |
+          python -m build -o dist-repro
+          python - <<'PY'
+          import hashlib, pathlib, sys
+          def digest(pattern):
+              paths = sorted(pathlib.Path('.').glob(pattern))
+              h = hashlib.sha256()
+              for p in paths:
+                  if p.suffix == '.whl':
+                      h.update(p.read_bytes())
+              return h.hexdigest(), [str(p) for p in paths if p.suffix == '.whl']
+          a, pa = digest('dist/*.whl')
+          b, pb = digest('dist-repro/*.whl')
+          print({'dist': pa, 'dist_repro': pb, 'sha256_dist': a, 'sha256_repro': b, 'match': a == b})
+          # Record comparison; do not fail CI on non-bit-identical wheels (setuptools metadata).
+          pathlib.Path('dist/reproducibility.json').write_text(
+              __import__('json').dumps({'sha256_dist': a, 'sha256_repro': b, 'match': a == b}, indent=2),
+              encoding='utf-8',
+          )
+          PY
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: akta-packages
+          path: |
+            dist/
+            dist-repro/
+      - name: pip-audit (fail-closed on declared deps)
+        run: |
+          python - <<'PY'
+          import pathlib
+          try:
+              import tomllib
+          except ModuleNotFoundError:
+              import tomli as tomllib  # type: ignore
+          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text(encoding="utf-8"))
+          deps = list(data["project"]["dependencies"])
+          for extra in ("dev", "security"):
+              deps.extend(data["project"].get("optional-dependencies", {}).get(extra, []))
+          pathlib.Path("requirements-audit.txt").write_text("\n".join(deps) + "\n", encoding="utf-8")
+          PY
+          pip-audit -r requirements-audit.txt --progress-spinner off
 
   cross-repo-pf-pcs:
     runs-on: ubuntu-latest

@@ -59,7 +59,49 @@
     "domain_overlay_version": "generic_lab_v0.2",
     "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
     "tool_registry_hash": "sha256:cba4cdc66bd1574063c1915be40e9d4ec89e075f72d045d2ea44a5478bf8f5be",
-    "integrity_mode": "deployment_hmac_attested"
+    "integrity_mode": "deployment_hmac_attested",
+    "policy": {
+      "bundle_version": "akta-core-v0.5",
+      "effective_policy_hash": "sha256:2faafa13b8a318a8d4f3f7b13c2a68733e85a20cb41dba8a54131159c2beea0d",
+      "manifest_hash": "sha256:53cba68cdbb02d1d76d3c5414d4440f360c5e5be332043f16ee83225b3a03674",
+      "integrity_mode": "deployment_hmac_attested",
+      "signing_key_id": null,
+      "release_key_id": null,
+      "file_versions": {
+        "action_ontology.yaml": "action_ontology-v0.5",
+        "responsibility_levels.yaml": "responsibility_levels-v0.5",
+        "evidence_states.yaml": "evidence_states-v0.5",
+        "validation_statuses.yaml": "validation_statuses-v0.5",
+        "verification_statuses.yaml": "verification_statuses-v0.5",
+        "deployment_profiles.yaml": "deployment_profiles-v0.5",
+        "admissibility_matrix.yaml": "admissibility_matrix-v0.5",
+        "evidence_to_action_matrix.yaml": "evidence_to_action_matrix-v0.5",
+        "evidence_to_action_rules.yaml": "evidence_to_action_rules-v0.5",
+        "default_tool_registry.yaml": "default_tool_registry-v1.0",
+        "tool_to_requested_scope.yaml": "tool_to_requested_scope-v0.5"
+      }
+    }
+  },
+  "policy": {
+    "bundle_version": "akta-core-v0.5",
+    "effective_policy_hash": "sha256:2faafa13b8a318a8d4f3f7b13c2a68733e85a20cb41dba8a54131159c2beea0d",
+    "manifest_hash": "sha256:53cba68cdbb02d1d76d3c5414d4440f360c5e5be332043f16ee83225b3a03674",
+    "integrity_mode": "deployment_hmac_attested",
+    "signing_key_id": null,
+    "release_key_id": null,
+    "file_versions": {
+      "action_ontology.yaml": "action_ontology-v0.5",
+      "responsibility_levels.yaml": "responsibility_levels-v0.5",
+      "evidence_states.yaml": "evidence_states-v0.5",
+      "validation_statuses.yaml": "validation_statuses-v0.5",
+      "verification_statuses.yaml": "verification_statuses-v0.5",
+      "deployment_profiles.yaml": "deployment_profiles-v0.5",
+      "admissibility_matrix.yaml": "admissibility_matrix-v0.5",
+      "evidence_to_action_matrix.yaml": "evidence_to_action_matrix-v0.5",
+      "evidence_to_action_rules.yaml": "evidence_to_action_rules-v0.5",
+      "default_tool_registry.yaml": "default_tool_registry-v1.0",
+      "tool_to_requested_scope.yaml": "tool_to_requested_scope-v0.5"
+    }
   },
   "integrations": {
     "vsa_report_ref": null,
@@ -103,7 +145,7 @@
     "allowed_next_steps": [],
     "approval_effect": "Allows scoped next step only; not global permission.",
     "default_expiration": "single_run",
-    "expires_at": "2026-06-29T22:50:19Z",
+    "expires_at": "2026-07-23T09:06:36Z",
     "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
     "tool_registry_hash": "sha256:cba4cdc66bd1574063c1915be40e9d4ec89e075f72d045d2ea44a5478bf8f5be",
     "classifier_confidence": 0.98,
@@ -117,7 +159,7 @@
     },
     "review_route": "active_protocol_review",
     "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
-    "review_trigger_hash": "sha256:8fb4cc3a8307637ab673fe1c781db02cc0734d22e9b9240791f6eeebf1176c2b"
+    "review_trigger_hash": "sha256:c713688343c18ff44cc72815f3874b9cf57df0618e47dca0066ddc7df2b3371a"
   },
-  "record_hash": "sha256:b03373229ae1da6ddd8ccac63f0d5943a8f142faa6e77bdba33dd57b620ab475"
+  "record_hash": "sha256:bfe61018479da03dc7d2d0b83ee843ec624528e2d7b8dc5ee408422c72da9649"
 }

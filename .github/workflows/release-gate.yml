@@ -34,6 +34,10 @@ jobs:
             echo "FAIL: SCOPE_REPO_PATH not set after clone (release gate requires live SCOPE)"
             exit 1
           fi
+      - name: Shared contract drift gate (require SCOPE sibling)
+        env:
+          SCOPE_REPO_PATH: ${{ env.SCOPE_REPO_PATH }}
+        run: python scripts/assert_shared_contract_drift.py --require-sibling
       - name: Sync SCOPE contract fixtures
         env:
           SCOPE_REPO_PATH: ${{ env.SCOPE_REPO_PATH }}

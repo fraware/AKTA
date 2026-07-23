@@ -1,25 +1,32 @@
 {
-  "contract_version": "akta-scope-contract-v1.0",
+  "contract_version": "akta-scope-contract-v2.0",
+  "note": "Legacy scalar narrowing pairs for migration/unit fixtures only. Prefer shared envelope conformance vectors under vendor/scientific-authorization-contracts/conformance/.",
+  "authorization_driver": "scientific-authorization-envelope-v2",
   "valid_narrowing_pairs": [
     {
       "requested_scope": "active_protocol_update",
       "granted_scope": "protocol_draft",
-      "rationale": "Protocol owner may approve draft-only changes instead of active update"
+      "rationale": "Protocol owner may approve draft-only changes instead of active update",
+      "envelope_equivalent": "protocol/draft narrower than protocol/update_active"
     },
     {
       "requested_scope": "single_validation_plan",
       "granted_scope": "protocol_draft",
-      "rationale": "Validation plan request narrowed to protocol draft only"
+      "rationale": "Validation plan request narrowed to protocol draft only",
+      "cross_family": true,
+      "note": "Cross-family scalar pair is migration-only; envelope comparison rejects cross-family"
     },
     {
       "requested_scope": "single_run_queue_priority",
       "granted_scope": "single_validation_plan",
-      "rationale": "Queue priority narrowed to validation planning"
+      "rationale": "Queue priority narrowed to validation planning",
+      "cross_family": true
     },
     {
       "requested_scope": "robot_queue_submission",
       "granted_scope": "single_run_queue_priority",
-      "rationale": "Robot submission narrowed to queue prioritization only"
+      "rationale": "Robot submission narrowed to queue prioritization only",
+      "envelope_equivalent": "queue/single_run_priority narrower than queue/robot_submit"
     }
   ]
 }
