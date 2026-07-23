@@ -1,0 +1,40 @@
+version: akta-scope-status-attestation-keys-v1
+description: |
+  Approved public keys for SCOPE grant-status attestations (AKTA 1.1).
+
+  Separate trust domain from grant issuers. Ships EMPTY for fail-closed
+  institutional deploys. Populate via AKTA_STATUS_ATTESTATION_REGISTRY.
+
+default_authorized_artifact_types:
+  - scope_grant_status
+
+schema:
+  entry_required:
+    - key_id
+    - status
+    - algorithm
+  entry_public_material_one_of:
+    - public_key_ref
+    - public_key_pem
+    - public_key_file
+  status_enum:
+    - active
+    - revoked
+    - expired
+    - pending
+  algorithm_enum:
+    - Ed25519
+  optional_fields:
+    - valid_from
+    - valid_until
+    - issuer_identity
+    - tenant
+    - institution
+    - authorized_artifact_types
+    - replacement_key_id
+    - revocation_reason
+    - notes
+
+attestors: {}
+
+revoked_key_ids: []
