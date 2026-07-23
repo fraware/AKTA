@@ -126,24 +126,44 @@ def apply_scope_grant_to_context(
     validate_grant: bool = True,
     verification_mode: str | None = None,
     require_capability_envelope: bool | None = None,
+    trust_store: dict[str, Any] | None = None,
+    ledger_status: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Apply SCOPE grant metadata to context after optional grant verification.
 
     When ``validate_grant`` is True, runs ``verify_scope_grant_or_raise`` BEFORE
-    any metadata is applied (directive §4).
+    any metadata is applied (P0-C). Strict modes require shared envelopes (P0-B).
     """
+    from akta.scope_grant_verifier import (
+        STRICT_MODES,
+        resolve_grant_verification_mode,
+        verify_scope_grant_or_raise,
+    )
+
     verification: dict[str, Any] | None = None
     granted = _scope_grant_approved_scope(scope_grant) or ""
     requested = _scope_grant_requested_scope(scope_grant, record, trigger) or ""
+    resolved_mode = resolve_grant_verification_mode(verification_mode)
+    strict = resolved_mode in STRICT_MODES
+    require_envelope = (
+        True
+        if strict
+        else (
+            require_capability_envelope
+            if require_capability_envelope is not None
+            else False
+        )
+    )
     if validate_grant:
-        from akta.scope_grant_verifier import verify_scope_grant_or_raise
-
         result = verify_scope_grant_or_raise(
             scope_grant,
             mode=verification_mode,
-            require_capability_envelope=require_capability_envelope,
+            require_capability_envelope=require_envelope,
             record=record,
             trigger=trigger,
+            context=context,
+            trust_store=trust_store,
+            ledger_status=ledger_status,
         )
         verification = {
             "ok": result.ok,
@@ -151,7 +171,8 @@ def apply_scope_grant_to_context(
             "warnings": list(result.warnings),
             "checks_run": list(result.checks_run),
         }
-        if granted and requested:
+        # Scalar validate_approval_grant is migration-only; skip in strict modes.
+        if not strict and granted and requested:
             validate_approval_grant(granted_scope=granted, requested_scope=requested)
 
     context = dict(context)
@@ -159,8 +180,6 @@ def apply_scope_grant_to_context(
     metadata.update(scope_grant_to_context_metadata(scope_grant, record=record, trigger=trigger))
     if verification is not None:
         metadata["grant_verification"] = verification
-    # Attach resolved capability envelope. Explicit envelopes are the primary
-    # authorization comparator; scalar approved_scope is a deprecated adapter.
     from akta.capability_envelope import (
         extract_capability_envelope,
         legacy_scope_to_envelope,
@@ -169,24 +188,31 @@ def apply_scope_grant_to_context(
 
     envelope = resolve_grant_envelope(
         scope_grant,
-        require_envelope=False,
-        allow_legacy_adapter=True,
+        require_envelope=require_envelope,
+        allow_legacy_adapter=not require_envelope,
     )
     metadata["capability_envelope"] = envelope
     auth = scope_grant.get("authorization") or {}
     raw_envelope = extract_capability_envelope(scope_grant)
+    if strict and raw_envelope is None:
+        from akta.errors import GrantVerificationError
+
+        raise GrantVerificationError(
+            "authorization_envelope required in strict mode (P0-B)",
+            errors=["authorization_envelope_missing"],
+        )
     metadata["authorization_comparator"] = (
         "envelope" if raw_envelope is not None else "legacy_scalar"
     )
     if metadata["authorization_comparator"] == "legacy_scalar":
         metadata["authorization_comparator_deprecated"] = True
     if granted and requested and raw_envelope is not None:
-        # Prefer envelope inclusion over scalar ranks when both sides resolve.
         requested_envelope = legacy_scope_to_envelope(
             approved_scope=requested,
             allowed_tools=list(envelope.get("allowed_tools") or []),
-            max_responsibility_level=str(
-                envelope.get("max_responsibility_level") or "R5"
+            responsibility_ceiling=str(
+                envelope.get("responsibility_ceiling")
+                or "R4_methodological_modification"
             ),
         )
         from akta.capability_envelope import authorization_covers
@@ -196,6 +222,7 @@ def apply_scope_grant_to_context(
             requested_envelope=requested_envelope,
             granted_scope=granted,
             requested_scope=requested,
+            allow_legacy_scalar=False,
         )
         metadata["envelope_covers_requested_scope"] = covers
         metadata["authorization_comparator"] = comparator
