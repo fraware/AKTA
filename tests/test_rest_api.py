@@ -49,7 +49,10 @@ def test_health(server_url: str) -> None:
     data = _get(server_url, "/v0/health")
     assert data["status"] == "ok"
     assert data["api_version"] == "v1.0"
-    assert data["version"] == "1.0.0"
+    from akta import __version__
+
+    assert data["version"] == __version__
+    assert data["version"] == "1.2.0"
 
 
 def test_policy(server_url: str) -> None:

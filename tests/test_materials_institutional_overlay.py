@@ -19,6 +19,9 @@ ROOT = Path(__file__).resolve().parent.parent
 def _policy_with_deploy_key(tmp_path: Path, deploy_key: bytes) -> Path:
     policy_dir = tmp_path / "policy"
     shutil.copytree(ROOT / "policy", policy_dir)
+    overlays_dir = tmp_path / "overlays"
+    if not overlays_dir.exists():
+        shutil.copytree(ROOT / "overlays", overlays_dir)
     manifest_path = policy_dir / "policy_manifest.yaml"
     manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
     payload = "|".join(f"{k}:{v}" for k, v in sorted(manifest["files"].items()))
@@ -29,8 +32,10 @@ def _policy_with_deploy_key(tmp_path: Path, deploy_key: bytes) -> Path:
 
     write_effective_policy_manifest(
         policy_dir,
-        overlays_dir=ROOT / "overlays",
+        overlays_dir=overlays_dir,
         integrity_mode="deployment_hmac_attested",
+        hmac_key=deploy_key,
+        sign=True,
     )
     return policy_dir
 
@@ -48,7 +53,7 @@ def test_materials_institutional_allowed_in_production(
     policy_dir = _policy_with_deploy_key(tmp_path, deploy_key)
     monkeypatch.setenv("AKTA_PRODUCTION_MODE", "1")
     monkeypatch.setenv("AKTA_POLICY_HMAC_KEY", deploy_key.decode("utf-8"))
-    gate = AKTAGate.from_policy_dir(policy_dir, overlays_dir=ROOT / "overlays")
+    gate = AKTAGate.from_policy_dir(policy_dir, overlays_dir=tmp_path / "overlays")
     decision = gate.evaluate(
         ai_output={"summary": "Capture microscopy image."},
         requested_tool="microscopy.capture_image",
