@@ -52,6 +52,7 @@ jobs:
         run: |
           ruff check adapters/generic_rest tests/test_rest_api.py tests/test_rest_institutional.py \
             tests/test_release_pins.py tests/test_pilot_workflow.py tests/test_empirical_impact.py \
+            tests/test_preregistration_verification.py \
             --ignore E501
 
       - name: Mypy (security-critical modules fail-closed)
@@ -103,6 +104,9 @@ jobs:
 
       - name: Policy manifest / integrity tests
         run: pytest tests/test_policy_integrity_v05.py tests/test_policy_signing_modes.py -v
+
+      - name: Verify locked preregistration (never rewrite)
+        run: python -m evals.preregistration_lock
 
       - name: Empirical dry-run (no empirical completion claim)
         run: python -m evals.empirical_impact --dry-run --write-protocol
@@ -198,7 +202,7 @@ jobs:
                   "bomFormat": "CycloneDX",
                   "specVersion": "1.5",
                   "version": 1,
-                  "metadata": {"component": {"type": "library", "name": "akta-protocol", "version": "1.0.0"}},
+                  "metadata": {"component": {"type": "library", "name": "akta-protocol", "version": "1.2.0"}},
                   "note": "stub SBOM — install cyclonedx-bom for full generation",
               }, indent=2),
               encoding="utf-8",
