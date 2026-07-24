@@ -1,10 +1,9 @@
 """Shared authorization capability envelopes (scientific-authorization-envelope-v2).
 
 AKTA no longer defines an independent capability-envelope vocabulary.
-Security-critical comparison uses EXACT shared fields only:
-envelope_version, capability_id, family, operation, target, allowed_tools,
-blocked_tools, cardinality, environment, responsibility_ceiling, constraints,
-expiration.
+Runtime request containment uses the canonical contracts evaluator via
+``request_contained_by_envelope`` (same symbol SCOPE uses). Local wrappers
+must not change containment outcomes.
 
 Legacy scalar adapters exist only for unit tests and migration tooling.
 """
@@ -13,6 +12,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from akta.contracts_runtime_api import request_contained_by_envelope
 from akta.errors import GrantVerificationError
 from akta.shared_contracts import (
     ENVELOPE_VERSION,
@@ -139,11 +139,10 @@ def envelope_narrows(
     granted: dict[str, Any],
     requested: dict[str, Any],
 ) -> bool:
-    """True when requested is a set-inclusion narrowing of granted (same family).
+    """True when requested envelope narrows granted (contracts ``envelope_covers``).
 
-    Checks: family, operation, target, allowed-tools subset, blocked-tools
-    superset, cardinality, environment, responsibility ceiling, constraints,
-    expiration. Unknown values invalidate (raise → treated as not covering).
+    Thin pass-through only — must not diverge from the shared package. Prefer
+    ``request_contained_by_envelope`` for runtime request vs grant evaluation.
     """
     try:
         return bool(_api().envelope_covers(granted, requested))
@@ -151,20 +150,45 @@ def envelope_narrows(
         return False
 
 
+def request_covered_by_grant(
+    granted_envelope: dict[str, Any],
+    request: dict[str, Any],
+    *,
+    uses_consumed: int = 0,
+    require_bound_context: bool = True,
+) -> tuple[bool, str | None]:
+    """Thin adapter to canonical ``request_contained_by_envelope`` (SCOPE-identical)."""
+    return request_contained_by_envelope(
+        granted_envelope,
+        request,
+        uses_consumed=uses_consumed,
+        require_bound_context=require_bound_context,
+    )
+
+
 def authorization_covers(
     *,
     granted_envelope: dict[str, Any] | None = None,
     requested_envelope: dict[str, Any] | None = None,
+    requested_action: dict[str, Any] | None = None,
     granted_scope: str = "",
     requested_scope: str = "",
     scalar_covers: Any = None,
     allow_legacy_scalar: bool = False,
+    uses_consumed: int = 0,
 ) -> tuple[bool, str]:
-    """Primary authorization comparator: shared envelopes only by default.
+    """Authorization comparator.
 
-    Returns ``(covers, comparator)`` where comparator is ``envelope`` or
-    ``legacy_scalar`` (legacy only when explicitly allowed for unit/migration).
+    Prefer ``requested_action`` + ``request_contained_by_envelope``. Envelope
+    vs envelope uses contracts ``envelope_covers`` only (no AKTA-local algebra).
     """
+    if granted_envelope is not None and requested_action is not None:
+        ok, _reason = request_contained_by_envelope(
+            granted_envelope,
+            requested_action,
+            uses_consumed=uses_consumed,
+        )
+        return ok, "request_contained_by_envelope"
     if granted_envelope is not None and requested_envelope is not None:
         return envelope_narrows(granted_envelope, requested_envelope), "envelope"
     if not allow_legacy_scalar:
