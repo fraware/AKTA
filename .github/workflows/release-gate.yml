@@ -53,6 +53,31 @@ jobs:
           else
             echo "WARN: SCOPE_REPO_PATH missing pyproject.toml; CLI install skipped"
           fi
+      - name: Native SCOPE interop (wheel install + acceptance)
+        env:
+          SCOPE_REPO_PATH: ${{ env.SCOPE_REPO_PATH }}
+          AKTA_REQUIRE_NATIVE_SCOPE: "1"
+          AKTA_RELEASE_GATE: "1"
+          SOURCE_DATE_EPOCH: "1700000000"
+        run: |
+          set -euo pipefail
+          # Steps 1–3: install pinned contract / SCOPE / AKTA wheels into clean venv
+          python -m build
+          python -m venv /tmp/akta-native-scope
+          /tmp/akta-native-scope/bin/pip install --upgrade pip
+          /tmp/akta-native-scope/bin/pip install ./vendor/scientific-authorization-contracts
+          /tmp/akta-native-scope/bin/pip install -e "$SCOPE_REPO_PATH"
+          /tmp/akta-native-scope/bin/pip install dist/*.whl
+          /tmp/akta-native-scope/bin/pip install hypothesis pytest pyyaml
+          cp -a policy overlays /tmp/akta-native-scope/
+          cd /tmp/akta-native-scope
+          # Steps 4–14 via wheel smoke native phase (real SCOPE APIs, no invented fields)
+          SCOPE_REPO_PATH="$SCOPE_REPO_PATH" AKTA_REQUIRE_NATIVE_SCOPE=1 \
+            ./bin/python -m akta.wheel_smoke
+          # Required acceptance scenario
+          cd "${{ github.workspace }}"
+          SCOPE_REPO_PATH="$SCOPE_REPO_PATH" AKTA_REQUIRE_NATIVE_SCOPE=1 AKTA_RELEASE_GATE=1 \
+            /tmp/akta-native-scope/bin/python -m pytest tests/test_native_scope_acceptance_1_2.py -v
       - name: SCOPE live chain (python-import)
         env:
           SCOPE_REPO_PATH: ${{ env.SCOPE_REPO_PATH }}
