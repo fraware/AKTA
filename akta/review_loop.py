@@ -86,7 +86,12 @@ def envelope_covers_request(
     granted_envelope: dict[str, Any],
     requested_envelope: dict[str, Any],
 ) -> bool:
-    """Primary authorization comparator (directive §3): same-family set inclusion."""
+    """Envelope-vs-envelope narrowing via contracts ``envelope_covers`` only.
+
+    Runtime request facts must use ``request_contained_by_envelope`` /
+    ``evaluate_authorization_containment`` instead of inventing grant fields
+    onto the request.
+    """
     from akta.capability_envelope import authorization_covers
 
     covers, _ = authorization_covers(
@@ -94,6 +99,23 @@ def envelope_covers_request(
         requested_envelope=requested_envelope,
     )
     return covers
+
+
+def request_covers_by_grant(
+    granted_envelope: dict[str, Any],
+    requested_action: dict[str, Any],
+    *,
+    uses_consumed: int = 0,
+) -> bool:
+    """Canonical runtime containment (same evaluator as SCOPE)."""
+    from akta.capability_envelope import request_covered_by_grant
+
+    ok, _reason = request_covered_by_grant(
+        granted_envelope,
+        requested_action,
+        uses_consumed=uses_consumed,
+    )
+    return ok
 
 
 def akta_cannot_broaden_grant(

@@ -7,6 +7,7 @@ import json
 import sys
 from pathlib import Path
 
+from akta import __version__
 from akta.cards import validate_card_file
 from akta.context import AKTAContext
 from akta.gate import AKTAGate
@@ -131,7 +132,15 @@ def cmd_migrate_legacy_grant(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="akta", description="AKTA v0.2 — Open Scientific Action Protocol")
+    parser = argparse.ArgumentParser(
+        prog="akta",
+        description=f"AKTA {__version__} — Open Scientific Action Protocol",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"AKTA {__version__}",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     gate = sub.add_parser("gate", help="Evaluate scientific action admissibility")
