@@ -1,12 +1,14 @@
-"""Service identity model for REST modes (P1-C / WS13).
+"""Service identity model for REST modes (P1-C / WS13 / P1-14).
 
 Modes:
 - ``development-local``: loopback-friendly; optional API key
 - ``pilot-service``: static credential-digest registry (non-institutional)
-- ``institutional-service``: OIDC issuer + audience verification
+- ``institutional-service``: OIDC issuer + audience + signature verification
 
 Institutional mode rejects static bearer-token equality and pilot registry
-digests as the sole identity mechanism.
+digests as the sole identity mechanism. Signature verification cannot be
+disabled via environment variables; tests may inject ``allow_unverified``
+only through explicit dependency injection.
 """
 
 from __future__ import annotations
@@ -17,7 +19,7 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 DEVELOPMENT_LOCAL = "development-local"
 PILOT_SERVICE = "pilot-service"
@@ -35,6 +37,11 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
     ),
 }
 
+_SUPPORTED_OIDC_ALGORITHMS = frozenset(
+    {"RS256", "RS384", "RS512", "ES256", "ES384", "ES512", "EdDSA"}
+)
+_UNVERIFIED_ENV = "AKTA_OIDC_ALLOW_UNVERIFIED"
+
 
 @dataclass(frozen=True)
 class ServiceIdentity:
@@ -45,6 +52,21 @@ class ServiceIdentity:
     verified: bool
     auth_method: str = "unknown"
     token_claims: tuple[tuple[str, str], ...] = ()
+
+
+@dataclass(frozen=True)
+class OidcSettings:
+    """Resolved institutional OIDC configuration (env + optional overrides)."""
+
+    issuer: str
+    audience: str
+    jwks_url: str
+    public_key: str
+    algorithms: tuple[str, ...]
+    tenant_claim: str
+    role_claim: str
+    subject_claim: str
+    role_map: Mapping[str, str]
 
 
 def resolve_service_mode(explicit: str | None = None) -> str:
@@ -90,16 +112,169 @@ def _digest(token: str) -> str:
     return "sha256:" + hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def _oidc_settings() -> dict[str, str]:
-    return {
-        "issuer": os.environ.get("AKTA_OIDC_ISSUER", "").strip(),
-        "audience": os.environ.get("AKTA_OIDC_AUDIENCE", "").strip(),
-        "jwks_url": os.environ.get("AKTA_OIDC_JWKS_URL", "").strip(),
-        "tenant_claim": os.environ.get("AKTA_OIDC_TENANT_CLAIM", "tenant_id").strip()
-        or "tenant_id",
-        "role_claim": os.environ.get("AKTA_OIDC_ROLE_CLAIM", "role").strip() or "role",
-        "subject_claim": os.environ.get("AKTA_OIDC_SUBJECT_CLAIM", "sub").strip() or "sub",
-    }
+def _truthy_env(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes"}
+
+
+def _parse_algorithms(raw: str) -> tuple[str, ...]:
+    algs = tuple(a.strip() for a in raw.split(",") if a.strip())
+    unknown = [a for a in algs if a not in _SUPPORTED_OIDC_ALGORITHMS]
+    if unknown:
+        raise ValueError(
+            "unsupported OIDC algorithm(s): "
+            + ", ".join(unknown)
+            + f"; allowed: {', '.join(sorted(_SUPPORTED_OIDC_ALGORITHMS))}"
+        )
+    return algs
+
+
+def _load_public_key_material() -> str:
+    path = os.environ.get("AKTA_OIDC_PUBLIC_KEY_FILE", "").strip()
+    if path:
+        return Path(path).read_text(encoding="utf-8").strip()
+    inline = os.environ.get("AKTA_OIDC_PUBLIC_KEY", "").strip()
+    if not inline:
+        return ""
+    return inline.replace("\\n", "\n").strip()
+
+
+def _load_role_map() -> dict[str, str]:
+    """Load claim-value → local AKTA role policy.
+
+    Accepts inline JSON via ``AKTA_OIDC_ROLE_MAP`` or a file via
+    ``AKTA_OIDC_ROLE_MAP_FILE``. Values must be keys of ``ROLE_PERMISSIONS``.
+    """
+    path = os.environ.get("AKTA_OIDC_ROLE_MAP_FILE", "").strip()
+    raw = os.environ.get("AKTA_OIDC_ROLE_MAP", "").strip()
+    if path:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    elif raw:
+        data = json.loads(raw)
+    else:
+        return {}
+    if not isinstance(data, dict):
+        raise ValueError("AKTA_OIDC_ROLE_MAP must be a JSON object")
+    out: dict[str, str] = {}
+    for claim_value, local_role in data.items():
+        role = str(local_role).strip()
+        if role not in ROLE_PERMISSIONS:
+            raise ValueError(
+                f"OIDC role map maps {str(claim_value)!r} to unknown local role {role!r}"
+            )
+        out[str(claim_value)] = role
+    return out
+
+
+def load_oidc_settings(
+    *,
+    issuer: str | None = None,
+    audience: str | None = None,
+    jwks_url: str | None = None,
+    public_key: str | None = None,
+    algorithms: tuple[str, ...] | list[str] | None = None,
+    tenant_claim: str | None = None,
+    role_claim: str | None = None,
+    subject_claim: str | None = None,
+    role_map: Mapping[str, str] | None = None,
+) -> OidcSettings:
+    """Resolve OIDC settings from explicit overrides and environment."""
+    algs_env = os.environ.get("AKTA_OIDC_ALGORITHMS", "").strip()
+    if algorithms is not None:
+        resolved_algs = tuple(algorithms)
+        unknown = [a for a in resolved_algs if a not in _SUPPORTED_OIDC_ALGORITHMS]
+        if unknown:
+            raise ValueError(
+                "unsupported OIDC algorithm(s): "
+                + ", ".join(unknown)
+                + f"; allowed: {', '.join(sorted(_SUPPORTED_OIDC_ALGORITHMS))}"
+            )
+    elif algs_env:
+        resolved_algs = _parse_algorithms(algs_env)
+    else:
+        resolved_algs = ()
+
+    resolved_map: Mapping[str, str]
+    if role_map is not None:
+        resolved_map = dict(role_map)
+        for claim_value, local_role in resolved_map.items():
+            if str(local_role) not in ROLE_PERMISSIONS:
+                raise ValueError(
+                    f"OIDC role map maps {str(claim_value)!r} to unknown local "
+                    f"role {str(local_role)!r}"
+                )
+    else:
+        resolved_map = _load_role_map()
+
+    return OidcSettings(
+        issuer=(issuer if issuer is not None else os.environ.get("AKTA_OIDC_ISSUER", "")).strip(),
+        audience=(
+            audience if audience is not None else os.environ.get("AKTA_OIDC_AUDIENCE", "")
+        ).strip(),
+        jwks_url=(
+            jwks_url if jwks_url is not None else os.environ.get("AKTA_OIDC_JWKS_URL", "")
+        ).strip(),
+        public_key=(
+            public_key if public_key is not None else _load_public_key_material()
+        ).strip(),
+        algorithms=resolved_algs,
+        tenant_claim=(
+            tenant_claim
+            if tenant_claim is not None
+            else os.environ.get("AKTA_OIDC_TENANT_CLAIM", "")
+        ).strip(),
+        role_claim=(
+            role_claim if role_claim is not None else os.environ.get("AKTA_OIDC_ROLE_CLAIM", "")
+        ).strip(),
+        subject_claim=(
+            subject_claim
+            if subject_claim is not None
+            else os.environ.get("AKTA_OIDC_SUBJECT_CLAIM", "sub").strip() or "sub"
+        ).strip()
+        or "sub",
+        role_map=resolved_map,
+    )
+
+
+def institutional_oidc_config_errors(settings: OidcSettings | None = None) -> list[str]:
+    """Return institutional OIDC configuration errors (empty if ready)."""
+    errors: list[str] = []
+    if _truthy_env(_UNVERIFIED_ENV):
+        errors.append(
+            "institutional-service forbids AKTA_OIDC_ALLOW_UNVERIFIED "
+            "(signature verification cannot be disabled via environment)"
+        )
+
+    try:
+        cfg = settings if settings is not None else load_oidc_settings()
+    except ValueError as exc:
+        errors.append(str(exc))
+        return errors
+
+    if not cfg.issuer:
+        errors.append("institutional-service requires AKTA_OIDC_ISSUER")
+    if not cfg.audience:
+        errors.append("institutional-service requires AKTA_OIDC_AUDIENCE")
+    if not cfg.jwks_url and not cfg.public_key:
+        errors.append(
+            "institutional-service requires AKTA_OIDC_JWKS_URL or "
+            "AKTA_OIDC_PUBLIC_KEY / AKTA_OIDC_PUBLIC_KEY_FILE"
+        )
+    if not cfg.algorithms:
+        errors.append("institutional-service requires AKTA_OIDC_ALGORITHMS")
+    if not cfg.tenant_claim:
+        errors.append("institutional-service requires AKTA_OIDC_TENANT_CLAIM")
+    if not cfg.role_claim:
+        errors.append("institutional-service requires AKTA_OIDC_ROLE_CLAIM")
+    if not cfg.role_map:
+        errors.append(
+            "institutional-service requires AKTA_OIDC_ROLE_MAP or "
+            "AKTA_OIDC_ROLE_MAP_FILE (local claim-to-role policy)"
+        )
+    return errors
+
+
+def oidc_institutional_ready(settings: OidcSettings | None = None) -> bool:
+    return not institutional_oidc_config_errors(settings)
 
 
 def verify_oidc_bearer(
@@ -108,19 +283,37 @@ def verify_oidc_bearer(
     issuer: str | None = None,
     audience: str | None = None,
     jwks_url: str | None = None,
+    public_key: str | None = None,
+    algorithms: tuple[str, ...] | list[str] | None = None,
     now: float | None = None,
+    allow_unverified: bool = False,
 ) -> dict[str, Any]:
-    """Verify an OIDC access/ID token (issuer + audience).
+    """Verify an OIDC access/ID token (issuer + audience + signature).
 
     Requires optional dependency ``PyJWT`` (and ``cryptography`` for RS*/ES*).
-    Set ``AKTA_OIDC_JWKS_URL`` or pass ``jwks_url`` for signature verification.
+
+    Signature verification uses ``jwks_url`` or a pinned ``public_key``.
+    ``allow_unverified=True`` is a **test-only** dependency-injection escape
+    hatch; this function never enables unverified mode from environment
+    variables (``AKTA_OIDC_ALLOW_UNVERIFIED`` is rejected at institutional
+    startup instead).
     """
-    settings = _oidc_settings()
-    iss = (issuer or settings["issuer"]).strip()
-    aud = (audience or settings["audience"]).strip()
-    jwks = (jwks_url or settings["jwks_url"]).strip()
+    settings = load_oidc_settings(
+        issuer=issuer,
+        audience=audience,
+        jwks_url=jwks_url,
+        public_key=public_key,
+        algorithms=algorithms,
+    )
+    iss = settings.issuer
+    aud = settings.audience
+    jwks = settings.jwks_url
+    key_pem = settings.public_key
+    algs = list(settings.algorithms)
     if not iss or not aud:
         raise ValueError("institutional OIDC requires AKTA_OIDC_ISSUER and AKTA_OIDC_AUDIENCE")
+    if not algs:
+        raise ValueError("institutional OIDC requires AKTA_OIDC_ALGORITHMS")
 
     try:
         import jwt
@@ -137,33 +330,33 @@ def verify_oidc_bearer(
         "verify_iss": True,
     }
     decode_kwargs: dict[str, Any] = {
-        "algorithms": ["RS256", "RS384", "RS512", "ES256", "ES384", "ES512", "EdDSA"],
+        "algorithms": algs,
         "audience": aud,
         "issuer": iss,
         "options": options,
         "leeway": 30,
     }
+
     if jwks:
         client = PyJWKClient(jwks, cache_keys=True)
         signing_key = client.get_signing_key_from_jwt(token)
         claims = jwt.decode(token, signing_key.key, **decode_kwargs)
-    else:
-        # Explicit insecure escape hatch for offline unit tests only.
-        if os.environ.get("AKTA_OIDC_ALLOW_UNVERIFIED", "").strip().lower() not in (
-            "1",
-            "true",
-            "yes",
-        ):
-            raise ValueError(
-                "institutional OIDC requires AKTA_OIDC_JWKS_URL "
-                "(or AKTA_OIDC_ALLOW_UNVERIFIED=1 for offline tests only)"
-            )
+    elif key_pem:
+        claims = jwt.decode(token, key_pem, **decode_kwargs)
+    elif allow_unverified:
+        # Test-only DI path: never gated by environment in production code.
         claims = jwt.decode(
             token,
             options={**options, "verify_signature": False},
+            algorithms=algs,
             audience=aud,
             issuer=iss,
             leeway=30,
+        )
+    else:
+        raise ValueError(
+            "institutional OIDC requires AKTA_OIDC_JWKS_URL or a pinned public "
+            "verification key (AKTA_OIDC_PUBLIC_KEY / AKTA_OIDC_PUBLIC_KEY_FILE)"
         )
 
     # Defense-in-depth clock check even when library already verified exp.
@@ -174,46 +367,88 @@ def verify_oidc_bearer(
     return dict(claims)
 
 
+def _resolve_local_role(
+    claims: Mapping[str, Any],
+    *,
+    role_claim: str,
+    role_map: Mapping[str, str],
+) -> str | None:
+    """Map an IdP role claim through the configured local claim-to-role policy.
+
+    Raw ``permissions`` / ``akta_permissions`` claims are never accepted as
+    authorization without a local role mapping that yields ``ROLE_PERMISSIONS``.
+    """
+    if not role_map:
+        return None
+    if not role_claim:
+        return None
+    raw = claims.get(role_claim)
+    if raw is None:
+        return None
+    local = role_map.get(str(raw))
+    if local is None:
+        return None
+    if local not in ROLE_PERMISSIONS:
+        return None
+    return local
+
+
 def authenticate_oidc_request(
     *,
     bearer_token: str | None,
     tenant_header: str | None,
     oidc_claims: dict[str, Any] | None = None,
+    settings: OidcSettings | None = None,
+    allow_unverified: bool = False,
 ) -> ServiceIdentity | None:
     """Resolve institutional identity from a verified OIDC token."""
     if not bearer_token and oidc_claims is None:
         return None
+
     try:
-        claims = oidc_claims if oidc_claims is not None else verify_oidc_bearer(bearer_token or "")
+        cfg = settings if settings is not None else load_oidc_settings()
+    except ValueError:
+        return None
+
+    try:
+        if oidc_claims is not None:
+            claims = dict(oidc_claims)
+        else:
+            claims = verify_oidc_bearer(
+                bearer_token or "",
+                issuer=cfg.issuer,
+                audience=cfg.audience,
+                jwks_url=cfg.jwks_url or None,
+                public_key=cfg.public_key or None,
+                algorithms=cfg.algorithms,
+                allow_unverified=allow_unverified,
+            )
     except Exception:
         return None
 
-    settings = _oidc_settings()
-    caller_id = str(claims.get(settings["subject_claim"]) or claims.get("sub") or "").strip()
+    caller_id = str(claims.get(cfg.subject_claim) or claims.get("sub") or "").strip()
     if not caller_id:
         return None
-    tenant_id = str(
-        claims.get(settings["tenant_claim"])
-        or claims.get("tenant")
-        or claims.get("org_id")
-        or ""
-    ).strip()
+
+    tenant_id = ""
+    if cfg.tenant_claim:
+        tenant_id = str(claims.get(cfg.tenant_claim) or "").strip()
     if tenant_header and tenant_id and tenant_header != tenant_id:
         return None
     if tenant_header and not tenant_id:
         tenant_id = tenant_header
     if not tenant_id:
         return None
-    role = str(claims.get(settings["role_claim"]) or claims.get("akta_role") or "evaluator")
-    raw_perms = claims.get("permissions") or claims.get("akta_permissions")
-    if raw_perms is None:
-        perms = ROLE_PERMISSIONS.get(role, frozenset())
-    else:
-        perms = frozenset(str(p) for p in raw_perms)
+
+    role = _resolve_local_role(claims, role_claim=cfg.role_claim, role_map=cfg.role_map)
+    if role is None:
+        return None
+    # Permissions come only from the local role policy — never from token claims.
+    perms = ROLE_PERMISSIONS[role]
     claim_pairs = tuple(
         (str(k), str(v))
         for k, v in sorted(claims.items())
-        if k in {"iss", "aud", "sub", settings["tenant_claim"], settings["role_claim"]}
+        if k in {"iss", "aud", "sub", cfg.tenant_claim, cfg.role_claim}
     )
     return ServiceIdentity(
         caller_id=caller_id,
@@ -235,6 +470,8 @@ def authenticate_request(
     identity_registry: dict[str, Any],
     tenant_header: str | None,
     oidc_claims: dict[str, Any] | None = None,
+    oidc_settings: OidcSettings | None = None,
+    allow_unverified_oidc: bool = False,
 ) -> ServiceIdentity | None:
     """Resolve caller identity for the active REST mode."""
     if mode == DEVELOPMENT_LOCAL:
@@ -275,6 +512,8 @@ def authenticate_request(
             bearer_token=bearer_or_key,
             tenant_header=tenant_header,
             oidc_claims=oidc_claims,
+            settings=oidc_settings,
+            allow_unverified=allow_unverified_oidc,
         )
 
     # pilot-service (formerly static-registry / institutional digest path)
@@ -321,6 +560,7 @@ def institutional_startup_errors(
     trusted_proxy: bool,
     policy_manifest_verified: bool,
     oidc_configured: bool | None = None,
+    oidc_settings: OidcSettings | None = None,
 ) -> list[str]:
     if mode == PILOT_SERVICE:
         errors: list[str] = []
@@ -335,18 +575,16 @@ def institutional_startup_errors(
     if mode != INSTITUTIONAL_SERVICE:
         return []
 
-    errors = []
-    settings = _oidc_settings()
-    oidc_ok = (
-        oidc_configured
-        if oidc_configured is not None
-        else bool(settings["issuer"] and settings["audience"])
-    )
-    if not oidc_ok:
+    errors: list[str] = []
+    if oidc_configured is False:
         errors.append(
-            "institutional-service requires OIDC issuer+audience "
-            "(AKTA_OIDC_ISSUER, AKTA_OIDC_AUDIENCE)"
+            "institutional-service requires OIDC configuration "
+            "(issuer, audience, JWKS or pinned key, algorithms, "
+            "tenant/role claim mapping, claim-to-role policy)"
         )
+    else:
+        errors.extend(institutional_oidc_config_errors(oidc_settings))
+
     if artifact_store_kind != "postgresql":
         errors.append("institutional-service requires PostgreSQL artifact store")
     if audit_ledger_kind != "postgresql":
@@ -361,14 +599,18 @@ def institutional_startup_errors(
 __all__ = [
     "DEVELOPMENT_LOCAL",
     "INSTITUTIONAL_SERVICE",
+    "OidcSettings",
     "PILOT_SERVICE",
     "ROLE_PERMISSIONS",
     "STATIC_REGISTRY",
     "ServiceIdentity",
     "authenticate_oidc_request",
     "authenticate_request",
+    "institutional_oidc_config_errors",
     "institutional_startup_errors",
+    "load_oidc_settings",
     "load_service_identity_registry",
+    "oidc_institutional_ready",
     "resolve_service_mode",
     "verify_oidc_bearer",
 ]

@@ -19,6 +19,9 @@ AKTA-Bench has two distinct products. Do not conflate them.
 - Synthetic fixture: `evals/fixtures/synthetic_inter_rater.json` (`synthetic: true`)
 - Helpful boundedness is preregistered mathematically (`HB = |A ∩ B| / |A ∪ B|`) **before**
   observing results; see `HelpfulBoundednessDefinition` in `evals/empirical_impact.py`
+- Cost-sensitive companion uses **class-specific loss weights** (`CostHB = HB − Σ w_c·Spill_c`), not a single λ
+- `preregistration.json` is an **immutable signed artifact** (P1-16); CI verifies hash/signature and never rewrites it
+- Amendments require parent hash, reason, changed fields, approval, signature, and a timestamp before observations (`evals/empirical/amendment.schema.json`)
 - **Do not** treat developer policy outputs as empirical ground truth
 - **Do not** claim helpful boundedness from policy-conformance accuracy alone
 - Preserve raw annotation schema fields in fixtures; do not invent fake reviewer identities as if real
@@ -27,6 +30,7 @@ AKTA-Bench has two distinct products. Do not conflate them.
 ## Agreement metrics
 
 ```bash
+python -m evals.preregistration_lock
 python -m evals.empirical_impact --dry-run --write-protocol
-python -m pytest tests/test_agreement.py tests/test_empirical_impact.py -q
+python -m pytest tests/test_agreement.py tests/test_empirical_impact.py tests/test_preregistration_verification.py -q
 ```

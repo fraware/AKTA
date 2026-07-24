@@ -1,33 +1,52 @@
-# Institutional full-stack release pins (P1-A / WS12).
+# Institutional full-stack release pins (P1-A / WS12 / AKTA 1.2 P0-12).
 # Recorded SHAs are discovery-time pins from sibling checkouts / public remotes.
 # Missing checkouts or SHA mismatches remain fail-closed under
 # institutional_release — never silently optionalized.
 #
 # Checkout existence alone is insufficient: akta.release_pins / sibling_repos
-# compare `git rev-parse HEAD` to the pinned commit.
+# compare `git rev-parse HEAD` to the pinned commit, require a clean working
+# tree, resolve declared tags to the pin, and check submodule HEADs.
+#
+# SCOPE 2.2 + contracts 2.2 co-release: do not invent sibling commit SHAs.
+# Current component commits are real discovery pins with extended verification.
+# shared_contracts wheel_sha256 + source_archive_sha256 are real 2.2.0 digests;
+# release_manifest_sha256 uses contracts_package_content_hash (unsigned content
+# identity). release_signer remains PLACEHOLDER until signing keys publish.
 #
 # Beta: pins enable reproducible institutional validation; they do not certify
 # production readiness for SCOPE-authorized action.
 
-version: akta-release-pins-v1.1
+version: akta-release-pins-v1.2
 profile: institutional_release
 recorded_at: "2026-07-23T16:40:00Z"
 recorded_host: local-discovery
+target_ecosystem:
+  akta: "1.2.0"
+  scope: "2.2"  # pending canonical co-release; component commits remain current discovery pins
+  contracts: "2.2.0"  # wheel SHA pinned; signed release manifest/signer still pending
 
 shared_contracts:
   package: scientific-authorization-contracts
-  package_version: "2.1.0"
-  release_artifact_hash: "sha256:d375614f55f8d1a5a9bef5a25fd01591ee2f57ee857e7fa0ad72d7ade950c771"
+  package_version: "2.2.0"
+  wheel_sha256: "sha256:02c1b71a31bf2fe8db775d9a89558ac5cc35f8c54a0cae1c622ea504dda133e5"
+  source_archive_sha256: "sha256:612db3ef245ccb658162ea009273e7f39f901ea6d41fa56dac047751d625dd70"
+  release_manifest_sha256: "sha256:95b7082ad3bf36892424208504c985ebeaf89ac4deb61a518e3a4388d4523925"
+  release_signer: "PLACEHOLDER-CONTRACTS-2.2-RELEASE-SIGNER-FAIL-CLOSED"
+  release_artifact_hash: "sha256:95b7082ad3bf36892424208504c985ebeaf89ac4deb61a518e3a4388d4523925"
   pin_file: policy/shared_contracts_pin.json
 
 components:
   SCOPE:
     env_var: SCOPE_REPO_PATH
     path_candidates: ["SCOPE"]
+    # Real discovery pin (not invented 2.2 SHA). Replace when SCOPE 2.2 lands.
     commit: 41b0faf2094179d154996fcf78d77ce0c1347dcd
     tag: v1.0.0
     required: true
     status: pinned
+    note: |
+      Awaiting SCOPE 2.2 co-release commit/tag. Until then this pin is the
+      last verified discovery SHA with extended HEAD/tag/clean-tree checks.
   PF-Core:
     env_var: PF_CORE_REPO_PATH
     path_candidates: ["provability-fabric-core", "provability-fabric", "PF-Core"]
@@ -81,4 +100,8 @@ rejects:
   - empty_issuer_trust_registry
   - unpinned_or_placeholder_required_sibling
   - sibling_checkout_sha_mismatch
+  - sibling_working_tree_dirty
+  - sibling_tag_mismatch
+  - sibling_submodule_mismatch
   - shared_contracts_release_hash_mismatch
+  - shared_contracts_pin_incomplete

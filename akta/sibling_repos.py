@@ -22,7 +22,7 @@ _SIBLING_CANDIDATES: dict[str, list[str]] = {
 
 
 def _is_repo(path: Path) -> bool:
-    return path.is_dir() and (path / ".git").is_dir()
+    return path.is_dir() and ((path / ".git").is_dir() or (path / ".git").is_file())
 
 
 def discover_sibling(env_var: str) -> Path | None:
@@ -43,6 +43,19 @@ def discover_sibling(env_var: str) -> Path | None:
     return None
 
 
+def _git(repo_path: Path, *args: str, timeout: int = 30) -> subprocess.CompletedProcess[str] | None:
+    try:
+        return subprocess.run(
+            ["git", "-C", str(repo_path), *args],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
 def git_rev_parse_head(repo_path: str | Path) -> str | None:
     """Return ``git rev-parse HEAD`` for a checkout, or None on failure.
 
@@ -52,17 +65,8 @@ def git_rev_parse_head(repo_path: str | Path) -> str | None:
     path = Path(repo_path)
     if not path.is_dir():
         return None
-    try:
-        completed = subprocess.run(
-            ["git", "-C", str(path), "rev-parse", "HEAD"],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return None
-    if completed.returncode != 0:
+    completed = _git(path, "rev-parse", "HEAD")
+    if completed is None or completed.returncode != 0:
         return None
     sha = (completed.stdout or "").strip()
     return sha or None
@@ -78,6 +82,76 @@ def checkout_matches_pin(repo_path: str | Path, pinned_commit: str) -> bool:
         return False
     head = head.lower()
     return head == pinned or head.startswith(pinned) or pinned.startswith(head)
+
+
+def git_working_tree_clean(repo_path: str | Path) -> bool:
+    """True when ``git status --porcelain`` is empty (clean working tree)."""
+    path = Path(repo_path)
+    if not path.is_dir():
+        return False
+    completed = _git(path, "status", "--porcelain")
+    if completed is None or completed.returncode != 0:
+        return False
+    return not (completed.stdout or "").strip()
+
+
+def git_tag_resolves_to(repo_path: str | Path, tag: str, pinned_commit: str) -> bool:
+    """True when ``tag`` resolves to an object that matches ``pinned_commit``."""
+    path = Path(repo_path)
+    tag_name = str(tag or "").strip()
+    pinned = str(pinned_commit or "").strip().lower()
+    if not tag_name or not pinned or "placeholder" in pinned:
+        return False
+    completed = _git(path, "rev-parse", f"{tag_name}^{{}}")
+    if completed is None or completed.returncode != 0:
+        # Lightweight tag or missing peel — try bare rev-parse.
+        completed = _git(path, "rev-parse", tag_name)
+    if completed is None or completed.returncode != 0:
+        return False
+    resolved = (completed.stdout or "").strip().lower()
+    if not resolved:
+        return False
+    return resolved == pinned or resolved.startswith(pinned) or pinned.startswith(resolved)
+
+
+def git_submodule_errors(repo_path: str | Path) -> list[str]:
+    """Return errors when recorded submodules are missing or SHA-mismatched.
+
+    Repositories without submodules yield an empty list. Uninitialized or
+    divergent submodule HEADs produce descriptive errors.
+    """
+    path = Path(repo_path)
+    errors: list[str] = []
+    gitmodules = path / ".gitmodules"
+    if not gitmodules.is_file():
+        return errors
+
+    # Ensure submodule metadata is readable.
+    completed = _git(path, "submodule", "status", "--recursive")
+    if completed is None or completed.returncode != 0:
+        stderr = (completed.stderr if completed else "") or "git submodule status failed"
+        errors.append(f"submodule_status_unavailable:{stderr.strip()}")
+        return errors
+
+    for line in (completed.stdout or "").splitlines():
+        raw = line.rstrip()
+        if not raw:
+            continue
+        # git submodule status prefixes: ' ' ok, '-' not initialized, '+' SHA mismatch, 'U' conflicts
+        prefix = raw[0]
+        rest = raw[1:].strip()
+        parts = rest.split()
+        if not parts:
+            continue
+        sha = parts[0]
+        name = parts[1] if len(parts) > 1 else sha
+        if prefix == "-":
+            errors.append(f"submodule_not_initialized:{name}")
+        elif prefix == "+":
+            errors.append(f"submodule_sha_mismatch:{name}:{sha}")
+        elif prefix == "U":
+            errors.append(f"submodule_merge_conflict:{name}")
+    return errors
 
 
 def apply_sibling_env_defaults() -> dict[str, str]:
@@ -98,4 +172,7 @@ __all__ = [
     "checkout_matches_pin",
     "discover_sibling",
     "git_rev_parse_head",
+    "git_submodule_errors",
+    "git_tag_resolves_to",
+    "git_working_tree_clean",
 ]

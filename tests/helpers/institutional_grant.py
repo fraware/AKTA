@@ -22,6 +22,10 @@ def make_source_artifacts() -> dict[str, Any]:
     decision = {"decision_id": "dec-1", "admissibility": "review_required"}
     packet = {"packet_id": "pkt-1", "payload": "packet"}
     trigger = {"review_trigger_id": "trg-1", "packet_id": "pkt-1"}
+    scope_decision = {
+        "scope_decision_id": "scope-dec-1",
+        "outcome": "approved",
+    }
     record["record_hash"] = hash_object(
         {k: v for k, v in record.items() if k != "record_hash"}
     )
@@ -34,11 +38,15 @@ def make_source_artifacts() -> dict[str, Any]:
     trigger["review_trigger_hash"] = hash_object(
         {k: v for k, v in trigger.items() if k != "review_trigger_hash"}
     )
+    scope_decision["scope_decision_hash"] = hash_object(
+        {k: v for k, v in scope_decision.items() if k != "scope_decision_hash"}
+    )
     return {
         "record": record,
         "decision": decision,
         "packet": packet,
         "review_trigger": trigger,
+        "scope_decision": scope_decision,
     }
 
 
@@ -184,6 +192,8 @@ def make_signed_grant(
             "akta_record_hash": arts["record"]["record_hash"],
             "review_trigger_id": arts["review_trigger"]["review_trigger_id"],
             "review_trigger_hash": arts["review_trigger"]["review_trigger_hash"],
+            "scope_decision_id": arts["scope_decision"]["scope_decision_id"],
+            "scope_decision_hash": arts["scope_decision"]["scope_decision_hash"],
         },
         "provenance": {"scope_trust_root_hash": kit["trust_root"]},
         "constraints": {"single_use": True, "tenant_id": "tenant-a"},

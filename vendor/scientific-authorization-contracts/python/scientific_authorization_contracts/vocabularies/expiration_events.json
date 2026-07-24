@@ -1,0 +1,14 @@
+{
+  "vocabulary_version": "scientific-authorization-vocab-v1",
+  "events": [
+    "protocol_version_change",
+    "policy_version_change",
+    "evidence_state_change",
+    "model_version_change",
+    "tool_registry_change",
+    "reviewer_key_revocation",
+    "grant_revocation",
+    "session_superseded",
+    "absolute_time_reached"
+  ]
+}

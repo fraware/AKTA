@@ -168,6 +168,14 @@ class AKTAGate:
             if validate_output:
                 validate_against_schema(review_trigger, "review_trigger.schema.json")
 
+        evaluation_layers = [
+            {
+                "source": layer.source,
+                "decision": layer.decision,
+                "reason": layer.reason,
+            }
+            for layer in evaluation.layers
+        ]
         decision_data: dict[str, Any] = {
             "decision_id": decision_id,
             "timestamp": utc_now_iso(),
@@ -192,6 +200,7 @@ class AKTAGate:
             "authorization_required": evaluation.authorization_required,
             "consequentiality": evaluation.consequentiality,
             "consequentiality_reason": evaluation.consequentiality_reason,
+            "evaluation_layers": evaluation_layers,
             "policy_version": self.policy.version,
             "policy_hash": self.policy.policy_hash,
             "policy_file_versions": dict(self.policy.policy_file_versions),
@@ -262,6 +271,8 @@ class AKTAGate:
             attach_layer_provenance_to_decision,
             build_decision_layer_provenance,
             check_evidence_independence,
+            extract_layer_snapshots,
+            provenance_objects_for_authorization,
         )
 
         ctx_dict: dict[str, Any]
@@ -321,40 +332,76 @@ class AKTAGate:
                 grant_state,
                 requested_tool=requested_tool,
             )
-            # WS9: layered Decision provenance + evidence independence check.
+            # P0-11: layered Decision provenance + evidence independence check.
+            # Distinct layer objects — never feed final composition into evidence_layer.
             data = dict(updated)
+            eval_layers = data.get("evaluation_layers") or []
+            snapshots = extract_layer_snapshots(eval_layers)
+            pre_layers = {
+                "evidence": snapshots["evidence"],
+                "deployment_profile": snapshots["deployment_profile"],
+                "domain_overlay": snapshots["domain_overlay"],
+                "unknown_consequential_tool": snapshots["tool"],
+            }
+            # Prefer pre-grant evidence snapshot when recorded on the prior path.
+            meta = (grant_state.context or {}).get("metadata") or {}
+            if meta.get("pre_grant_evidence_decision"):
+                pre_layers["evidence"] = {
+                    "decision": meta.get("pre_grant_evidence_decision"),
+                    "reason": meta.get("pre_grant_evidence_reason"),
+                    "source": "evidence_rules",
+                }
             provenance = build_decision_layer_provenance(
-                evidence_decision=data.get("admissibility"),
-                evidence_reason=data.get("reason"),
-                deployment_profile_decision=None,
-                domain_overlay_decision=None,
+                evaluation_layers=eval_layers,
+                evidence_decision=(pre_layers.get("evidence") or {}).get("decision"),
+                evidence_reason=(pre_layers.get("evidence") or {}).get("reason"),
+                deployment_profile_decision=(
+                    (pre_layers.get("deployment_profile") or {}).get("decision")
+                ),
+                deployment_profile_reason=(
+                    (pre_layers.get("deployment_profile") or {}).get("reason")
+                ),
+                domain_overlay_decision=(
+                    (pre_layers.get("domain_overlay") or {}).get("decision")
+                ),
+                domain_overlay_reason=(
+                    (pre_layers.get("domain_overlay") or {}).get("reason")
+                ),
                 authorization_decision="authorization_satisfied",
-                tool_decision=None,
+                tool_decision=(pre_layers.get("unknown_consequential_tool") or {}).get(
+                    "decision"
+                ),
+                tool_reason=(pre_layers.get("unknown_consequential_tool") or {}).get(
+                    "reason"
+                ),
                 final_decision=data.get("admissibility"),
-                final_reason=data.get("reason"),
+                final_reason=data.get("decision_reason") or data.get("reason"),
                 scope_grant=scope_grant,
                 authorization_satisfied_by_grant=True,
             )
             independence = check_evidence_independence(
                 scope_grant=scope_grant,
+                pre_layers=pre_layers,
                 post_decision=data.get("admissibility"),
-                post_reason=data.get("reason"),
+                post_reason=data.get("decision_reason") or data.get("reason"),
                 final_layers=provenance,
             )
             data = attach_layer_provenance_to_decision(data, provenance)
             data["evidence_independence"] = independence.to_dict()
-            # Prefer pre-compose admissibility when grant path recorded initial state.
-            meta = (grant_state.context or {}).get("metadata") or {}
             if meta.get("pre_grant_admissibility"):
                 auth = dict(data.get("authorization_provenance") or {})
                 auth["initial_admissibility"] = meta["pre_grant_admissibility"]
                 data["authorization_provenance"] = auth
             if data.get("authorization_provenance") is not None:
-                data["authorization_provenance"]["evidence_layer"] = (
-                    independence.to_dict()
+                # Distinct layer objects — not the independence composition blob.
+                data["authorization_provenance"].update(
+                    provenance_objects_for_authorization(provenance)
                 )
                 data["authorization_provenance"]["decision_layer_provenance"] = (
                     provenance.to_dict()
+                )
+                data["authorization_provenance"]["evidence_independence"] = (
+                    independence.to_dict()
                 )
                 data["authorization_provenance"]["final_decision"] = data.get(
                     "admissibility"

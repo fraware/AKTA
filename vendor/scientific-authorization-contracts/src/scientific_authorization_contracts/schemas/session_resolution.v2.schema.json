@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scientific-authorization.dev/schemas/session_resolution.v2.schema.json",
+  "title": "SCOPE Session Resolution v2",
+  "description": "Canonical signed multi-review session resolution. Only this artifact may authorize session grant issuance.",
+  "type": "object",
+  "required": [
+    "session_id",
+    "packet_id",
+    "packet_hash",
+    "verified_decision_ids",
+    "verified_reviewer_ids",
+    "verified_roles",
+    "excluded_vote_ids",
+    "superseded_vote_ids",
+    "quorum_policy_hash",
+    "resolved_authorization_envelope",
+    "resolution_hash",
+    "resolver_identity",
+    "resolver_signature",
+    "resolved_at"
+  ],
+  "properties": {
+    "session_id": { "type": "string", "minLength": 1 },
+    "packet_id": { "type": "string", "minLength": 1 },
+    "packet_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "verified_decision_ids": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "verified_reviewer_ids": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "verified_roles": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    },
+    "excluded_vote_ids": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["vote_id", "reason"],
+        "properties": {
+          "vote_id": { "type": "string" },
+          "decision_id": { "type": "string" },
+          "reviewer_id": { "type": "string" },
+          "reviewer_role": { "type": "string" },
+          "reason": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "superseded_vote_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "quorum_policy_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "resolved_authorization_envelope": {
+      "type": "object"
+    },
+    "resolution_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "resolver_identity": {
+      "type": "object",
+      "required": ["resolver_id"],
+      "properties": {
+        "resolver_id": { "type": "string", "minLength": 1 },
+        "resolver_key_id": { "type": "string" },
+        "tenant_id": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "resolver_signature": { "type": "string", "minLength": 1 },
+    "resolved_at": { "type": "string", "minLength": 1 },
+    "signed_payload_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "signature_algorithm": { "type": "string" },
+    "provisional_status": { "type": "string" },
+    "cryptographically_verified_status": { "type": "string" },
+    "contributing_verified_decisions": {
+      "type": "array",
+      "items": { "type": "object" }
+    }
+  },
+  "additionalProperties": true
+}

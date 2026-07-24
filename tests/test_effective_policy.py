@@ -84,8 +84,10 @@ def test_revoked_release_key_hard_fails(
 
 
 def test_effective_policy_manifest_covers_core_inputs() -> None:
+    from akta.effective_policy import MANDATORY_RELEASE_INPUTS
+
     manifest = build_effective_policy_manifest(ROOT / "policy", overlays_dir=ROOT / "overlays")
-    assert manifest["manifest_version"] == "akta-effective-policy-v1.1"
+    assert manifest["manifest_version"] == "akta-effective-policy-v1.2"
     assert manifest["effective_policy_hash"].startswith("sha256:")
     assert manifest["manifest_hash"].startswith("sha256:")
     assert "action_ontology.yaml" in manifest["files"]
@@ -100,6 +102,11 @@ def test_effective_policy_manifest_covers_core_inputs() -> None:
     assert manifest["shared_contracts"]["package_version"]
     assert manifest["schema_hashes"]
     assert manifest["registry_hashes"]
+    assert manifest["missing_optional_inputs"] == []
+    assert manifest["missing_mandatory_inputs"] == []
+    for name in MANDATORY_RELEASE_INPUTS:
+        assert name not in manifest["missing_optional_inputs"]
+        assert name in manifest["files"]
 
 
 def test_decision_and_record_bind_policy_block(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -173,3 +180,125 @@ def test_verify_effective_policy_detects_tamper(tmp_path: Path) -> None:
     result = verify_effective_policy_manifest(policy_dir)
     assert not result["ok"]
     assert any("scope_compatibility_manifest" in e for e in result["errors"])
+
+
+def test_mandatory_release_inputs_not_optional(tmp_path: Path) -> None:
+    from akta.effective_policy import MANDATORY_RELEASE_INPUTS, build_effective_policy_manifest
+
+    policy_dir = tmp_path / "policy"
+    policy_dir.mkdir()
+    (policy_dir / "action_ontology.yaml").write_text("v: 1\n", encoding="utf-8")
+    manifest = build_effective_policy_manifest(policy_dir, strict_mandatory=False)
+    for name in MANDATORY_RELEASE_INPUTS:
+        assert name in manifest["missing_mandatory_inputs"]
+        assert name not in manifest["missing_optional_inputs"]
+    assert "action_ontology.yaml" not in manifest["missing_optional_inputs"]
+
+
+def test_production_rejects_missing_mandatory_inputs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from akta.effective_policy import build_effective_policy_manifest
+
+    policy_dir = tmp_path / "policy"
+    policy_dir.mkdir()
+    (policy_dir / "action_ontology.yaml").write_text("v: 1\n", encoding="utf-8")
+    monkeypatch.setenv("AKTA_PRODUCTION_MODE", "1")
+    monkeypatch.delenv("AKTA_REQUIRE_SIGNED_POLICY", raising=False)
+    with pytest.raises(PolicyError, match="missing mandatory release inputs"):
+        build_effective_policy_manifest(policy_dir)
+
+
+def test_production_requires_signed_stored_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from akta.effective_policy import (
+        require_effective_policy_integrity,
+        write_effective_policy_manifest,
+    )
+
+    policy_dir = tmp_path / "policy"
+    policy_dir.mkdir()
+    for name in (
+        "shared_contracts_pin.json",
+        "scope_compatibility_manifest.json",
+    ):
+        if name.endswith(".json"):
+            (policy_dir / name).write_text("{}\n", encoding="utf-8")
+    for name in (
+        "scope_grant_issuer_registry.yaml",
+        "scope_status_attestation_registry.yaml",
+        "scope_policy_manifest_signer_registry.yaml",
+        "release_pins.yaml",
+        "runtime_capability_mapping.yaml",
+    ):
+        (policy_dir / name).write_text("version: t\n", encoding="utf-8")
+
+    # Unsigned stored manifest is insufficient in production.
+    write_effective_policy_manifest(policy_dir, sign=False)
+    monkeypatch.setenv("AKTA_PRODUCTION_MODE", "1")
+    monkeypatch.setenv("AKTA_POLICY_HMAC_KEY", "production-effective-test-key")
+    with pytest.raises(PolicyError, match="missing signature|insufficient for production"):
+        require_effective_policy_integrity(policy_dir)
+
+
+def test_production_accepts_signed_stored_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from akta.effective_policy import (
+        require_effective_policy_integrity,
+        write_effective_policy_manifest,
+    )
+
+    policy_dir = tmp_path / "policy"
+    policy_dir.mkdir()
+    (policy_dir / "shared_contracts_pin.json").write_text("{}\n", encoding="utf-8")
+    (policy_dir / "scope_compatibility_manifest.json").write_text("{}\n", encoding="utf-8")
+    for name in (
+        "scope_grant_issuer_registry.yaml",
+        "scope_status_attestation_registry.yaml",
+        "scope_policy_manifest_signer_registry.yaml",
+        "release_pins.yaml",
+        "runtime_capability_mapping.yaml",
+    ):
+        (policy_dir / name).write_text("version: t\n", encoding="utf-8")
+
+    deploy_key = b"production-effective-signed-key"
+    write_effective_policy_manifest(
+        policy_dir,
+        integrity_mode="deployment_hmac_attested",
+        hmac_key=deploy_key,
+        sign=True,
+    )
+    monkeypatch.setenv("AKTA_PRODUCTION_MODE", "1")
+    monkeypatch.setenv("AKTA_POLICY_HMAC_KEY", deploy_key.decode("utf-8"))
+    stored = require_effective_policy_integrity(
+        policy_dir, integrity_mode="deployment_hmac_attested"
+    )
+    assert (stored.get("signature") or {}).get("algorithm") == "HMAC-SHA256"
+    assert (stored.get("signature") or {}).get("value")
+
+
+def test_production_rejects_recompute_without_store(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from akta.effective_policy import verify_effective_policy_manifest
+
+    policy_dir = tmp_path / "policy"
+    policy_dir.mkdir()
+    (policy_dir / "shared_contracts_pin.json").write_text("{}\n", encoding="utf-8")
+    (policy_dir / "scope_compatibility_manifest.json").write_text("{}\n", encoding="utf-8")
+    for name in (
+        "scope_grant_issuer_registry.yaml",
+        "scope_status_attestation_registry.yaml",
+        "scope_policy_manifest_signer_registry.yaml",
+        "release_pins.yaml",
+        "runtime_capability_mapping.yaml",
+    ):
+        (policy_dir / name).write_text("version: t\n", encoding="utf-8")
+
+    monkeypatch.setenv("AKTA_PRODUCTION_MODE", "1")
+    monkeypatch.setenv("AKTA_POLICY_HMAC_KEY", "k")
+    result = verify_effective_policy_manifest(policy_dir)
+    assert not result["ok"]
+    assert any("insufficient for production" in e for e in result["errors"])

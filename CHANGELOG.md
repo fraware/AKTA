@@ -4,6 +4,23 @@ All notable changes to AKTA are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.0] - 2026-07-23
+
+### Added
+
+- Contract pin model v2: `wheel_sha256`, `source_archive_sha256`, `release_manifest_sha256`, `release_signer` with runtime verification in release/production/institutional modes
+- Package version agreement test across declared surfaces
+- Sibling release-pin checks: clean working tree, tag resolution, submodule consistency, compat-manifest agreement
+
+### Changed
+
+- Unified declared package identity to **1.2.0** (`pyproject.toml`, `akta.__version__`, README, CITATION.cff, compatibility manifest, CLI `--version`)
+- Release pins profile bumped to `akta-release-pins-v1.2` (SCOPE/contracts 2.2 co-release structured; incomplete wheel pins fail closed)
+
+### Notes
+
+- Canonical contracts **2.2** wheel hashes are not yet published; placeholders fail closed in release modes. Vendor tree remains the byte-identical 2.1.0 archive until the 2.2 wheel lands.
+
 ## [1.0.0] - 2026-06-29
 
 ### Added

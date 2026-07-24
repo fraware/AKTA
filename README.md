@@ -201,11 +201,11 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for pull-request expectations, [GOVERNAN
 
 ## Project status
 
-**v1.0.0** (`akta-protocol`) is the current reference kernel on `release/v1.0`.
+**v1.2.0** (`akta-protocol`) is the current reference kernel targeting native SCOPE 2.2 consumption.
 
 | Claim | What CI proves | What requires local siblings |
 |-------|----------------|------------------------------|
-| Reference kernel + policy v1.0 | `make ci` on every PR (359+ tests, evals, demos) | — |
+| Reference kernel + policy v1.2 | `make ci` on every PR (359+ tests, evals, demos) | — |
 | AKTA-Bench v1 | `make eval-bench-v1` in release-gate (105 oracle scenarios, holdout, behavioral middleware) | — |
 | Live SCOPE pilot gate | Release-gate clones public SCOPE and runs python-import + pilot bundle | SCOPE CLI / akta-review modes need `scope` on runner |
 | PF / PCS / VSA / Memory / PCS-Bench matrix | Release-gate sibling job when clone URLs or `*_REPO_PATH` vars set | Full matrix locally: `python scripts/verify_v1_release.py` |

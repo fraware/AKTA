@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 VENDOR = ROOT / "vendor" / "scientific-authorization-contracts"
 PIN_PATH = ROOT / "policy" / "shared_contracts_pin.json"
 EXPECTED_PACKAGE = "scientific-authorization-contracts"
-EXPECTED_VERSION = "2.1.0"
+EXPECTED_VERSION = "2.2.0"
 SCHEMA_FILES = (
     "authorization_envelope.v2.schema.json",
     "scope_grant.v2.schema.json",
@@ -38,7 +38,12 @@ def _sha256_file(path: Path) -> str:
 
 
 def release_artifact_hash(contracts_root: Path) -> str:
-    """Stable hash matching ``scientific_authorization_contracts.release_artifact_hash``."""
+    """Stable hash matching ``contracts_package_content_hash`` (schemas + vocabularies).
+
+    Prefers the package layout used by scientific-authorization-contracts 2.2
+    (``src/`` or ``python/``). Falls back to top-level ``schemas/`` +
+    ``vocabularies/`` for older vendor archives.
+    """
     digest = hashlib.sha256()
 
     def _feed(logical: str, path: Path) -> None:
@@ -47,22 +52,32 @@ def release_artifact_hash(contracts_root: Path) -> str:
         digest.update(path.read_bytes())
         digest.update(b"\0")
 
-    for label in ("schemas", "vocabularies", "conformance"):
-        directory = contracts_root / label
+    package_roots = (
+        contracts_root / "src" / "scientific_authorization_contracts",
+        contracts_root / "python" / "scientific_authorization_contracts",
+        contracts_root,
+    )
+    package_root = next(
+        (
+            root
+            for root in package_roots
+            if (root / "schemas").is_dir() and (root / "vocabularies").is_dir()
+        ),
+        None,
+    )
+    if package_root is None:
+        return "sha256:" + ("0" * 64)
+
+    for label in ("schemas", "vocabularies"):
+        directory = package_root / label
         if not directory.is_dir():
             continue
         for path in sorted(p for p in directory.rglob("*") if p.is_file()):
-            if path.suffix != ".json" or "__pycache__" in path.parts:
+            if "__pycache__" in path.parts:
                 continue
-            rel = path.relative_to(directory).as_posix()
-            _feed(f"{label}/{rel}", path)
-
-    pkg = contracts_root / "python" / "scientific_authorization_contracts"
-    if pkg.is_dir():
-        for path in sorted(p for p in pkg.glob("*.py") if p.is_file()):
-            _feed(f"python/scientific_authorization_contracts/{path.name}", path)
+            rel = path.relative_to(package_root).as_posix()
+            _feed(rel, path)
     return "sha256:" + digest.hexdigest()
-
 
 def _sibling_scope_contracts() -> Path | None:
     env = os.environ.get("SCOPE_REPO_PATH", "").strip()

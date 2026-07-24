@@ -18,6 +18,7 @@ _VSA_PIN = "903d834f201535ac1525e3e8907254363209904f"
 
 def test_release_pins_record_sibling_shas() -> None:
     pins = load_release_pins()
+    assert pins["version"] == "akta-release-pins-v1.2"
     components = pins["components"]
     assert components["SCOPE"]["commit"].startswith("41b0faf")
     assert components["PF-Core"]["commit"].startswith("629984c")
@@ -29,14 +30,19 @@ def test_release_pins_record_sibling_shas() -> None:
     assert components["VSA"]["commit"] == _VSA_PIN
     assert _SHA40.match(str(components["VSA"]["commit"]))
     shared = pins["shared_contracts"]
-    assert shared["package_version"] == "2.1.0"
+    assert shared["package_version"] == "2.2.0"
     assert shared["release_artifact_hash"].startswith("sha256:")
+    assert shared["source_archive_sha256"].startswith("sha256:")
+    assert "wheel_sha256" in shared
+    assert "release_manifest_sha256" in shared
+    assert "release_signer" in shared
 
 
-def test_institutional_gate_ok_without_checkouts_when_pins_real() -> None:
+def test_institutional_gate_fail_closed_on_incomplete_contract_wheel_pin() -> None:
+    """Until contracts 2.2 wheel hashes land, institutional gate stays fail-closed."""
     result = institutional_release_gate(require_checkouts=False, flags={})
-    assert result["ok"] is True
-    assert not any("VSA" in e for e in result["errors"])
+    assert result["ok"] is False
+    assert any("shared_contracts_pin_incomplete" in e for e in result["errors"])
     assert result["beta"] is True
     assert result["components"]["VSA"]["status"] == "pinned"
 
@@ -85,6 +91,31 @@ def test_sibling_sha_mismatch_flagged(tmp_path, monkeypatch) -> None:
     assert any("sibling_checkout_sha_mismatch:SCOPE" in e for e in errors)
 
 
+def test_sibling_clean_tree_and_tag_checks(tmp_path, monkeypatch) -> None:
+    from akta import release_pins as rp
+
+    fake_repo = tmp_path / "SCOPE"
+    fake_repo.mkdir()
+    (fake_repo / ".git").mkdir()
+    monkeypatch.setenv("SCOPE_REPO_PATH", str(fake_repo))
+    pin_sha = load_release_pins()["components"]["SCOPE"]["commit"]
+    monkeypatch.setattr(rp, "git_rev_parse_head", lambda _p: pin_sha)
+    monkeypatch.setattr(rp, "checkout_matches_pin", lambda _p, _c: True)
+    monkeypatch.setattr(rp, "git_working_tree_clean", lambda _p: False)
+    monkeypatch.setattr(rp, "git_tag_resolves_to", lambda _p, _t, _c: False)
+    monkeypatch.setattr(rp, "git_submodule_errors", lambda _p: ["submodule_not_initialized:deps"])
+    errors = component_pin_errors(
+        require_checkouts=True,
+        require_sha_match=True,
+        require_clean_tree=True,
+        require_tag_match=True,
+        require_submodules=True,
+    )
+    assert any("sibling_working_tree_dirty:SCOPE" in e for e in errors)
+    assert any("sibling_tag_mismatch:SCOPE" in e for e in errors)
+    assert any("sibling_submodule_mismatch:SCOPE" in e for e in errors)
+
+
 def test_synthetic_placeholder_commit_still_fail_closed() -> None:
     pins = load_release_pins()
     bad = dict(pins)
@@ -111,6 +142,10 @@ def test_institutional_rejects_simulated_and_mocks() -> None:
         "missing_scientific_memory_integration",
         "sibling_checkout_sha_mismatch",
         "shared_contracts_release_hash_mismatch",
+        "shared_contracts_pin_incomplete",
+        "sibling_working_tree_dirty",
+        "sibling_tag_mismatch",
+        "sibling_submodule_mismatch",
     ):
         assert key in INSTITUTIONAL_REJECTS
         gated = institutional_release_gate(
@@ -128,9 +163,10 @@ def test_pins_for_release_report_shape() -> None:
     assert report["VSA"]["status"] == "pinned"
     assert report["VSA"]["commit"] == _VSA_PIN
     assert "shared_contracts" in report
+    assert "wheel_sha256" in report["shared_contracts"]
 
 
-def test_component_pin_errors_without_checkouts_accepts_real_pins() -> None:
+def test_component_pin_errors_without_checkouts_flags_incomplete_wheel() -> None:
     errors = component_pin_errors(require_checkouts=False)
-    assert not any("VSA" in e for e in errors)
     assert not any("unpinned_or_placeholder" in e for e in errors)
+    assert any("shared_contracts_pin_incomplete" in e for e in errors)

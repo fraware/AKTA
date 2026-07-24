@@ -1,0 +1,14 @@
+{
+  "vocabulary_version": "scientific-authorization-vocab-v1",
+  "families": [
+    "interpretation",
+    "recommendation",
+    "protocol",
+    "experiment_plan",
+    "queue",
+    "permissions",
+    "execution",
+    "publication",
+    "memory"
+  ]
+}

@@ -177,6 +177,7 @@ def status_lifecycle_errors(
     if status in {
         "revoked",
         "consumed",
+        "exhausted",
         "expired",
         "superseded",
         "invalid",

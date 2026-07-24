@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "akta-protocol"
-version = "1.0.0"
+version = "1.2.0"
 description = "Open protocol for deciding when AI-generated scientific outputs are admissible to shape what science does next"
 readme = "README.md"
 license = { text = "MIT" }
@@ -28,13 +28,15 @@ dependencies = [
     "cryptography>=41.0",
     # Install from vendor before / with AKTA (no public index yet):
     #   pip install ./vendor/scientific-authorization-contracts
-    "scientific-authorization-contracts==2.1.0",
+    # Pin must match SCOPE docs/release_identity/scientific-authorization-contracts-2.2.0.json
+    "scientific-authorization-contracts==2.2.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
+    "hypothesis>=6.100",
     "ruff>=0.6",
     "mypy>=1.11",
     "pip-audit>=2.7",

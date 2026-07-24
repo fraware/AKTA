@@ -1,75 +1,112 @@
 {
-  "vocabulary_version": "scientific-authorization-vocab-v1",
-  "description": "Typed constraint algebra. Unknown constraint keys fail closed.",
+  "vocabulary_version": "scientific-authorization-vocab-v2",
+  "description": "Typed constraint algebra. Unknown constraint keys fail closed. Mandatory controls use boolean_or (true wins on intersection); permission booleans use boolean_and.",
   "types": {
     "maximum_temperature": {
       "algebra": "min_upper_bound",
-      "value_type": "number"
+      "value_type": "number",
+      "class": "bound"
     },
     "minimum_temperature": {
       "algebra": "max_lower_bound",
-      "value_type": "number"
+      "value_type": "number",
+      "class": "bound"
     },
     "allowed_sample_classes": {
       "algebra": "set_intersection",
-      "value_type": "string_array"
+      "value_type": "string_array",
+      "class": "set"
     },
     "required_validation_steps": {
       "algebra": "set_union",
-      "value_type": "string_array"
+      "value_type": "string_array",
+      "class": "set"
     },
     "forbidden_operations": {
       "algebra": "set_union",
-      "value_type": "string_array"
+      "value_type": "string_array",
+      "class": "set"
     },
     "minimum_evidence_level": {
       "algebra": "max_requirement",
       "value_type": "string",
-      "ordered_values": ["none", "low", "medium", "high", "validated"]
+      "ordered_values": ["none", "low", "medium", "high", "validated"],
+      "class": "ordered"
     },
     "max_batch_size": {
       "algebra": "min_upper_bound",
-      "value_type": "integer"
+      "value_type": "integer",
+      "class": "bound"
     },
     "single_use": {
-      "algebra": "boolean_and",
-      "value_type": "boolean"
+      "algebra": "boolean_or",
+      "value_type": "boolean",
+      "class": "mandatory_control"
     },
     "project_id": {
       "algebra": "exact_match",
-      "value_type": "string"
+      "value_type": "string",
+      "class": "binding"
     },
     "protocol_version": {
       "algebra": "exact_match",
-      "value_type": "string"
+      "value_type": "string",
+      "class": "binding"
     },
     "domain_overlay": {
       "algebra": "exact_match",
-      "value_type": "string"
+      "value_type": "string",
+      "class": "binding"
     },
     "model_version": {
       "algebra": "exact_match",
-      "value_type": "string"
+      "value_type": "string",
+      "class": "binding"
     },
     "tool_registry_version": {
       "algebra": "exact_match",
-      "value_type": "string"
+      "value_type": "string",
+      "class": "binding"
     },
     "evidence_state": {
       "algebra": "exact_match",
-      "value_type": "string"
+      "value_type": "string",
+      "class": "binding"
     },
     "validation_status": {
       "algebra": "exact_match",
-      "value_type": "string"
+      "value_type": "string",
+      "class": "binding"
     },
     "requires_recording": {
-      "algebra": "boolean_and",
-      "value_type": "boolean"
+      "algebra": "boolean_or",
+      "value_type": "boolean",
+      "class": "mandatory_control"
     },
     "requires_pf_core_trace": {
+      "algebra": "boolean_or",
+      "value_type": "boolean",
+      "class": "mandatory_control"
+    },
+    "requires_human_observation": {
+      "algebra": "boolean_or",
+      "value_type": "boolean",
+      "class": "mandatory_control"
+    },
+    "requires_release_manifest": {
+      "algebra": "boolean_or",
+      "value_type": "boolean",
+      "class": "mandatory_control"
+    },
+    "allow_unattended_execution": {
       "algebra": "boolean_and",
-      "value_type": "boolean"
+      "value_type": "boolean",
+      "class": "permission_boolean"
+    },
+    "allow_external_export": {
+      "algebra": "boolean_and",
+      "value_type": "boolean",
+      "class": "permission_boolean"
     }
   }
 }

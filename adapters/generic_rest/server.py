@@ -4,9 +4,10 @@ Modes (P1-C / WS13):
 - ``development-local``: loopback-friendly; in-memory stores; optional API key
 - ``pilot-service``: credential-digest identity registry + file/sqlite stores
   (formerly static-registry; non-institutional)
-- ``institutional-service``: OIDC issuer+audience verification, PostgreSQL
-  artifact/audit stores, trusted proxy, policy manifest verification.
-  Static bearer-token equality alone is rejected as institutional identity.
+- ``institutional-service``: OIDC issuer+audience+JWKS/pinned-key verification,
+  claim-to-role policy, PostgreSQL artifact/audit stores, trusted proxy,
+  policy manifest verification. Static bearer-token equality alone is rejected
+  as institutional identity. ``AKTA_OIDC_ALLOW_UNVERIFIED`` fails startup.
 
 TLS termination and trusted-proxy configuration are deployment concerns —
 see docs/deployment_reference.md. Beta reference service — not HA production.
@@ -42,6 +43,7 @@ from adapters.generic_rest.identity import (
     authenticate_request,
     institutional_startup_errors,
     load_service_identity_registry,
+    oidc_institutional_ready,
     resolve_service_mode,
 )
 from adapters.generic_rest.persistence import (
@@ -733,10 +735,7 @@ def create_server(
         or (tempfile.gettempdir() + "/akta-rest-data")
     )
 
-    oidc_configured = bool(
-        os.environ.get("AKTA_OIDC_ISSUER", "").strip()
-        and os.environ.get("AKTA_OIDC_AUDIENCE", "").strip()
-    )
+    oidc_configured = mode == INSTITUTIONAL_SERVICE and oidc_institutional_ready()
     db_url = (os.environ.get("AKTA_REST_DATABASE_URL") or os.environ.get("DATABASE_URL") or "").strip()
 
     # Preflight institutional requirements before constructing stores (clearer errors).
@@ -748,7 +747,6 @@ def create_server(
             audit_ledger_kind="postgresql" if db_url else "missing",
             trusted_proxy=bool(trust_proxy),
             policy_manifest_verified=_verify_policy_manifest(policy_dir),
-            oidc_configured=oidc_configured,
         )
         if preflight:
             raise ValueError("institutional-service startup rejected: " + "; ".join(preflight))
@@ -770,7 +768,6 @@ def create_server(
         audit_ledger_kind=audit_kind,
         trusted_proxy=bool(trust_proxy),
         policy_manifest_verified=manifest_ok,
-        oidc_configured=oidc_configured if mode == INSTITUTIONAL_SERVICE else None,
     )
     if startup_errors:
         label = (

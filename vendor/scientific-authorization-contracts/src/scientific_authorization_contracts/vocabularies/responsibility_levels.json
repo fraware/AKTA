@@ -1,0 +1,14 @@
+{
+  "vocabulary_version": "scientific-authorization-vocab-v1",
+  "levels": [
+    {"id": "R0_none", "rank": 0},
+    {"id": "R1_observation", "rank": 1},
+    {"id": "R2_interpretation", "rank": 2},
+    {"id": "R3_recommendation", "rank": 3},
+    {"id": "R4_methodological_modification", "rank": 4},
+    {"id": "R5_execution_preparation", "rank": 5},
+    {"id": "R6_physical_execution", "rank": 6},
+    {"id": "R7_publication", "rank": 7},
+    {"id": "R8_memory", "rank": 8}
+  ]
+}

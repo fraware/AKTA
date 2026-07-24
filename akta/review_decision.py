@@ -239,28 +239,49 @@ def apply_scope_grant_to_context(
             classification = dict(record.get("classification") or {})
         if action_class:
             classification["action_type"] = action_class
-        requested_ctx = build_requested_authorization_context(
-            requested_tool=str(tool),
-            requested_action=str(action),
-            action_class=action_class or classification.get("action_type"),
-            classification=classification,
-            structured_action=dict(context.get("structured_action") or {}),
-            context=context,
-        )
+        from akta.errors import GrantVerificationError, InsufficientAuthorizationContext
+
+        try:
+            requested_ctx = build_requested_authorization_context(
+                requested_tool=str(tool),
+                requested_action=str(action),
+                action_class=action_class or classification.get("action_type"),
+                classification=classification,
+                structured_action=dict(context.get("structured_action") or {}),
+                context=context,
+                mode=resolved_mode,
+            )
+        except InsufficientAuthorizationContext as exc:
+            metadata["authorization_comparator"] = "insufficient_authorization_context"
+            metadata["insufficient_authorization_context"] = {
+                "missing": sorted(exc.missing),
+                "family": exc.family,
+                "operation": exc.operation,
+            }
+            if strict:
+                raise GrantVerificationError(
+                    str(exc),
+                    errors=[f"missing:{m}" for m in sorted(exc.missing)]
+                    or ["insufficient_authorization_context"],
+                ) from exc
+            metadata["envelope_covers_requested_scope"] = False
+            context["metadata"] = metadata
+            return context
         containment = evaluate_authorization_containment(
             granted_envelope=envelope,
             requested=requested_ctx,
             ledger_status=ledger_status
             or (verification.get("ledger_status") if verification else None),
+            mode=resolved_mode,
         )
         metadata["requested_authorization"] = requested_ctx.to_dict()
         metadata["requested_authorization_envelope"] = containment.requested_envelope
         metadata["envelope_covers_requested_scope"] = containment.covers
         metadata["authorization_comparator"] = containment.comparator
         metadata["authorization_containment"] = containment.to_dict()
+        if containment.reason_code:
+            metadata["authorization_reason_code"] = containment.reason_code
         if strict and not containment.covers:
-            from akta.errors import GrantVerificationError
-
             raise GrantVerificationError(
                 "; ".join(containment.errors)
                 or "requested authorization not covered by grant",

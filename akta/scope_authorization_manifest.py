@@ -1,8 +1,13 @@
-"""Authenticate SCOPE authorization manifests (AKTA 1.1 WS5).
+"""Authenticate SCOPE authorization manifests (AKTA 1.2 P0-7 / P0-8).
 
 Accepts embedded-by-reference, authenticated SCOPE fetch, or locally pinned
 signed manifests. Grant ``provenance.scope_trust_root_hash`` must equal a
 verified manifest hash. Cache is keyed by hash and refreshed on key revocation.
+
+Verification uses the exact unsigned body bytes (canonical hash) — the manifest
+is never transformed after signing. Field expectations align with the canonical
+SCOPE authorization-manifest vocabulary; nested ``schemas`` / ``vocabularies`` /
+``policies`` / ``registries`` maps are accepted when present.
 """
 
 from __future__ import annotations
@@ -10,8 +15,6 @@ from __future__ import annotations
 import json
 import os
 import threading
-import urllib.error
-import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,16 +35,51 @@ from akta.trust_store import (
 )
 
 SUPPORTED_MANIFEST_ALGORITHMS = frozenset({"Ed25519", "ed25519"})
+
+# Signature / envelope fields excluded from the signed body hash.
+_MANIFEST_UNSIGNED_FIELDS = frozenset(
+    {
+        "manifest_hash",
+        "signed_payload_hash",
+        "manifest_signature",
+        "signature",
+        "attestation_signature",
+    }
+)
+
+# Canonical required hash bindings (flat aliases + nested maps).
 REQUIRED_MANIFEST_HASH_FIELDS = (
-    "shared_contract_release_hash",
+    "shared_contract_release_hash",  # shared contract wheel / release hash
     "authorization_envelope_schema_hash",
     "grant_schema_hash",
     "vocabulary_hash",
     "scope_policy_hash",
-    "issuer_registry_hash",
     "identity_policy_hash",
     "rbac_hash",
-    "domain_overlay_hash",
+    "delegation_policy_hash",
+    "issuer_registry_hash",  # grant issuer registry
+    "status_attestor_registry_hash",
+    "manifest_signer_registry_hash",
+    "runtime_evaluator_registry_hash",
+)
+
+# Nested canonical paths: (top_level_key, nested_key, flat_alias)
+_NESTED_HASH_ALIASES: tuple[tuple[str, str, str], ...] = (
+    ("shared_contract", "wheel_hash", "shared_contract_release_hash"),
+    ("shared_contract", "release_hash", "shared_contract_release_hash"),
+    ("schemas", "authorization_envelope", "authorization_envelope_schema_hash"),
+    ("schemas", "grant", "grant_schema_hash"),
+    ("schemas", "grant_status", "grant_status_schema_hash"),
+    ("vocabularies", "capability", "vocabulary_hash"),
+    ("vocabularies", "family", "vocabulary_hash"),
+    ("policies", "scope", "scope_policy_hash"),
+    ("policies", "identity", "identity_policy_hash"),
+    ("policies", "rbac", "rbac_hash"),
+    ("policies", "delegation", "delegation_policy_hash"),
+    ("registries", "grant_issuer", "issuer_registry_hash"),
+    ("registries", "status_attestor", "status_attestor_registry_hash"),
+    ("registries", "manifest_signer", "manifest_signer_registry_hash"),
+    ("registries", "runtime_evaluator", "runtime_evaluator_registry_hash"),
 )
 
 
@@ -108,41 +146,83 @@ def invalidate_manifest_cache_for_revoked_keys(
     _CACHE.invalidate_on_revocation(frozenset(str(x) for x in revoked_key_ids))
 
 
+def unsigned_manifest_body(manifest: dict[str, Any]) -> dict[str, Any]:
+    """Exact unsigned body used for hashing — no post-sign transforms."""
+    return {k: v for k, v in manifest.items() if k not in _MANIFEST_UNSIGNED_FIELDS}
+
+
 def compute_manifest_hash(manifest: dict[str, Any]) -> str:
     """Canonical hash over unsigned manifest body (excludes signature fields)."""
-    body = {
-        k: v
-        for k, v in manifest.items()
-        if k
-        not in {
-            "manifest_hash",
-            "signed_payload_hash",
-            "manifest_signature",
-            "signature",
-            "attestation_signature",
-        }
-    }
-    return hash_object(body)
+    return hash_object(unsigned_manifest_body(manifest))
 
 
-def _fetch_manifest_by_hash(manifest_hash: str, *, endpoint: str | None = None) -> dict[str, Any] | None:
-    base = (endpoint or os.environ.get("SCOPE_AUTHORIZATION_MANIFEST_URL") or "").strip()
-    if not base:
-        return None
-    url = base.rstrip("/")
-    if "{manifest_hash}" in url:
-        url = url.format(manifest_hash=manifest_hash)
-    elif "{hash}" in url:
-        url = url.format(hash=manifest_hash)
-    else:
-        digest = manifest_hash.removeprefix("sha256:")
-        url = f"{url}/{digest}"
+def resolve_manifest_hash_field(manifest: dict[str, Any], field_name: str) -> Any:
+    """Resolve a required hash from flat alias or nested canonical maps."""
+    if manifest.get(field_name):
+        return manifest.get(field_name)
+    for top, nested, alias in _NESTED_HASH_ALIASES:
+        if alias != field_name:
+            continue
+        container = manifest.get(top)
+        if isinstance(container, dict) and container.get(nested):
+            return container.get(nested)
+    return None
+
+
+def _missing_required_hash_fields(manifest: dict[str, Any]) -> list[str]:
+    return [
+        name
+        for name in REQUIRED_MANIFEST_HASH_FIELDS
+        if not resolve_manifest_hash_field(manifest, name)
+    ]
+
+
+def _fetch_manifest_by_hash(
+    manifest_hash: str,
+    *,
+    endpoint: str | None = None,
+    scope_client: Any | None = None,
+) -> dict[str, Any] | None:
+    """Fetch via ScopeAuthorizationClient (P0-8); no bare urlopen."""
+    client = scope_client
+    if client is None:
+        from akta.scope_client import ScopeAuthorizationClient, ScopeClientConfig
+
+        cfg = ScopeClientConfig.from_env()
+        if endpoint:
+            cfg.manifest_url = endpoint
+        if not cfg.manifest_url:
+            return None
+        client = ScopeAuthorizationClient(cfg)
+    elif endpoint is not None and getattr(client, "config", None) is not None:
+        # Temporary endpoint override for this fetch only.
+        from akta.scope_client import ScopeAuthorizationClient, ScopeClientConfig
+
+        cfg = ScopeClientConfig(
+            manifest_url=endpoint,
+            status_url=getattr(client.config, "status_url", None),
+            oidc_token=getattr(client.config, "oidc_token", None),
+            oidc_token_provider=getattr(client.config, "oidc_token_provider", None),
+            mtls_cert_file=getattr(client.config, "mtls_cert_file", None),
+            mtls_key_file=getattr(client.config, "mtls_key_file", None),
+            ca_bundle=getattr(client.config, "ca_bundle", None),
+            verify_tls=getattr(client.config, "verify_tls", True),
+            audience=getattr(client.config, "audience", None),
+            tenant_id=getattr(client.config, "tenant_id", None),
+            timeout_seconds=getattr(client.config, "timeout_seconds", 5.0),
+            max_response_bytes=getattr(client.config, "max_response_bytes", 1_048_576),
+            max_retries=getattr(client.config, "max_retries", 2),
+            require_transport_auth=getattr(
+                client.config, "require_transport_auth", False
+            ),
+            extra_headers=dict(getattr(client.config, "extra_headers", {}) or {}),
+        )
+        client = ScopeAuthorizationClient(cfg)
+
     try:
-        with urllib.request.urlopen(url, timeout=5) as resp:  # noqa: S310
-            payload = json.loads(resp.read().decode("utf-8"))
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, ValueError):
+        return dict(client.get_manifest(manifest_hash))
+    except Exception:  # noqa: BLE001 — resolve path treats fetch miss as unavailable
         return None
-    return payload if isinstance(payload, dict) else None
 
 
 def _load_pinned_manifest(path: str | Path | None = None) -> dict[str, Any] | None:
@@ -162,7 +242,11 @@ def _load_pinned_manifest(path: str | Path | None = None) -> dict[str, Any] | No
 
 def _contract_hash_mismatches(manifest: dict[str, Any]) -> list[str]:
     errors: list[str] = []
-    declared_version = manifest.get("shared_contract_version")
+    declared_version = manifest.get("shared_contract_version") or (
+        (manifest.get("shared_contract") or {}).get("version")
+        if isinstance(manifest.get("shared_contract"), dict)
+        else None
+    )
     if declared_version and str(declared_version) != CONTRACTS_PACKAGE_VERSION:
         errors.append(
             f"authorization manifest shared_contract_version mismatch "
@@ -172,17 +256,21 @@ def _contract_hash_mismatches(manifest: dict[str, Any]) -> list[str]:
         expected_release = release_artifact_hash()
     except Exception:  # noqa: BLE001
         expected_release = None
-    declared_release = manifest.get("shared_contract_release_hash")
+    declared_release = resolve_manifest_hash_field(
+        manifest, "shared_contract_release_hash"
+    )
     if expected_release and declared_release and declared_release != expected_release:
         errors.append("authorization manifest shared_contract_release_hash mismatch")
 
     expected_env = authorization_envelope_schema_hash()
-    declared_env = manifest.get("authorization_envelope_schema_hash")
+    declared_env = resolve_manifest_hash_field(
+        manifest, "authorization_envelope_schema_hash"
+    )
     if declared_env and declared_env != expected_env:
         errors.append("authorization manifest authorization_envelope_schema_hash mismatch")
 
     expected_grant = grant_schema_hash()
-    declared_grant = manifest.get("grant_schema_hash")
+    declared_grant = resolve_manifest_hash_field(manifest, "grant_schema_hash")
     if declared_grant and declared_grant != expected_grant:
         errors.append("authorization manifest grant_schema_hash mismatch")
     return errors
@@ -280,13 +368,14 @@ def verify_authorization_manifest(
     require_crypto: bool = True,
     use_cache: bool = True,
 ) -> ManifestVerificationResult:
-    """Verify a signed SCOPE authorization manifest."""
+    """Verify a signed SCOPE authorization manifest over exact signed bytes."""
     errors: list[str] = []
     warnings: list[str] = []
 
     if not isinstance(manifest, dict) or not manifest:
         return ManifestVerificationResult(ok=False, errors=["authorization manifest empty"])
 
+    # Never mutate the caller's object; hash the exact unsigned body.
     computed = compute_manifest_hash(manifest)
     declared = manifest.get("manifest_hash")
     if declared and declared != computed:
@@ -314,13 +403,12 @@ def verify_authorization_manifest(
                 manifest_hash=manifest_hash,
             )
 
-    for field_name in REQUIRED_MANIFEST_HASH_FIELDS:
-        if not manifest.get(field_name):
-            msg = f"authorization manifest missing {field_name}"
-            if require_crypto:
-                errors.append(msg)
-            else:
-                warnings.append(msg)
+    for field_name in _missing_required_hash_fields(manifest):
+        msg = f"authorization manifest missing {field_name}"
+        if require_crypto:
+            errors.append(msg)
+        else:
+            warnings.append(msg)
 
     errors.extend(_contract_hash_mismatches(manifest))
 
@@ -365,6 +453,7 @@ def resolve_and_verify_authorization_manifest(
     fetch_endpoint: str | None = None,
     trust_store: dict[str, Any] | None = None,
     require_crypto: bool = True,
+    scope_client: Any | None = None,
 ) -> ManifestVerificationResult:
     """Resolve manifest via cache, embed, pin, or authenticated fetch, then verify."""
     if not expected_trust_root_hash:
@@ -391,7 +480,9 @@ def resolve_and_verify_authorization_manifest(
     if pinned is not None:
         candidates.append(pinned)
     fetched = _fetch_manifest_by_hash(
-        expected_trust_root_hash, endpoint=fetch_endpoint
+        expected_trust_root_hash,
+        endpoint=fetch_endpoint,
+        scope_client=scope_client,
     )
     if fetched is not None:
         candidates.append(fetched)
@@ -438,6 +529,7 @@ def build_test_authorization_manifest(
     except Exception:  # noqa: BLE001
         release_hash = "sha256:" + ("b" * 64)
 
+    # Build unsigned body completely, then hash once — never transform after signing.
     manifest: dict[str, Any] = {
         "manifest_version": "scope-authorization-manifest-v1",
         "created_at": "2026-01-01T00:00:00Z",
@@ -447,9 +539,13 @@ def build_test_authorization_manifest(
         "grant_schema_hash": grant_schema_hash(),
         "vocabulary_hash": vocab_hash,
         "scope_policy_hash": "sha256:" + ("c" * 64),
-        "issuer_registry_hash": "sha256:" + ("d" * 64),
         "identity_policy_hash": "sha256:" + ("e" * 64),
         "rbac_hash": "sha256:" + ("f" * 64),
+        "delegation_policy_hash": "sha256:" + ("2" * 64),
+        "issuer_registry_hash": "sha256:" + ("d" * 64),
+        "status_attestor_registry_hash": "sha256:" + ("3" * 64),
+        "manifest_signer_registry_hash": "sha256:" + ("4" * 64),
+        "runtime_evaluator_registry_hash": "sha256:" + ("5" * 64),
         "domain_overlay_hash": "sha256:" + ("1" * 64),
         "issuer": {
             "issuer_identity": "scope-manifest-signer",
@@ -458,10 +554,12 @@ def build_test_authorization_manifest(
         "signature_algorithm": "Ed25519",
     }
     if extras:
+        # Apply extras before hashing/signing only.
         manifest.update(extras)
     manifest_hash = compute_manifest_hash(manifest)
-    manifest["manifest_hash"] = manifest_hash
-    manifest["signed_payload_hash"] = manifest_hash
+    signed = dict(manifest)
+    signed["manifest_hash"] = manifest_hash
+    signed["signed_payload_hash"] = manifest_hash
     priv = Path(signer_keys["private_key_path"]).read_bytes()
-    manifest["manifest_signature"] = sign_payload_hash_ed25519(priv, manifest_hash)
-    return manifest
+    signed["manifest_signature"] = sign_payload_hash_ed25519(priv, manifest_hash)
+    return signed

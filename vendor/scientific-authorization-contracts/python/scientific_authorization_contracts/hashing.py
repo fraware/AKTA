@@ -14,6 +14,9 @@ HASH_FIELDS = frozenset(
         "event_hash",
         "previous_event_hash",
         "manifest_hash",
+        "resolution_hash",
+        "status_hash",
+        "delegation_hash",
     }
 )
 
@@ -21,6 +24,7 @@ SIGNATURE_FIELDS = frozenset(
     {
         "decision_signature",
         "grant_signature",
+        "status_signature",
         "signature_algorithm",
         "signed_payload_hash",
         "manifest_signature",
@@ -28,10 +32,19 @@ SIGNATURE_FIELDS = frozenset(
         "manifest_signature_key_id",
         "attestation_signature",
         "reviewer_public_key_path",
+        "resolver_signature",
+        "delegation_signature",
     }
 )
 
-NON_HASHED_FIELDS = HASH_FIELDS | SIGNATURE_FIELDS
+# Runtime-only markers excluded from canonical hashing (not persistence fields).
+RUNTIME_MARKER_FIELDS = frozenset(
+    {
+        "_untrusted_parse",
+    }
+)
+
+NON_HASHED_FIELDS = HASH_FIELDS | SIGNATURE_FIELDS | RUNTIME_MARKER_FIELDS
 
 
 def canonical_json(data: Any) -> str:
