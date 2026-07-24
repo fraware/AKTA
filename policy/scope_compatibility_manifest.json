@@ -1,6 +1,6 @@
 {
-  "manifest_version": "akta-scope-compatibility-v1.1",
-  "akta_package_version": "1.1.0",
+  "manifest_version": "akta-scope-compatibility-v1.2",
+  "akta_package_version": "1.2.0",
   "akta_review_contract_version": "scope-akta-review-v1.0",
   "grant_schema_version": "scope-grant-v2",
   "grant_status_schema_version": "scope-grant-status-v1",
@@ -9,14 +9,22 @@
   "summary_contract_version": "scope-akta-review-summary-v1.0",
   "fixture_contract_version": "akta-scope-contract-v2.0",
   "shared_contracts_package": "scientific-authorization-contracts",
-  "shared_contracts_package_version": "2.1.0",
+  "shared_contracts_package_version": "2.2.0",
+  "shared_contracts_wheel_sha256": "sha256:02c1b71a31bf2fe8db775d9a89558ac5cc35f8c54a0cae1c622ea504dda133e5",
+  "shared_contracts_source_archive_sha256": "sha256:612db3ef245ccb658162ea009273e7f39f901ea6d41fa56dac047751d625dd70",
   "compatible_scope_packages": {
-    "scope-protocol": ["2.1.0", "2.1.1"],
-    "scope-core": ["scope-core-v2.1", "2.1.0", "2.1.1"]
+    "scope-protocol": ["2.1.0", "2.1.1", "2.2.0"],
+    "scope-core": ["scope-core-v2.1", "2.1.0", "2.1.1", "2.2.0"]
   },
   "compatible_scope_policy_versions": [
-    "scope-policy-v2.1"
+    "scope-policy-v2.1",
+    "scope-policy-v2.2"
   ],
+  "pending_ecosystem_co_release": {
+    "scope": "2.2",
+    "contracts": "2.2.0",
+    "note": "Contracts 2.2.0 wheel SHA is pinned. release_signer and SCOPE 2.2 commit/tag pins remain pending."
+  },
   "strict_exact_versions": {
     "akta_review_contract_version": "scope-akta-review-v1.0",
     "grant_schema_version": "scope-grant-v2",
@@ -48,5 +56,5 @@
   ],
   "summary_status_values": ["completed", "session_required"],
   "sibling_integration_checklist": "docs/scope_sibling_integration_checklist.md",
-  "notes": "AKTA 1.1 lands first; peers still on legacy envelope/grant IDs fail closed under strict negotiation."
+  "notes": "AKTA 1.2.0 identity aligned; shared contracts pinned to 2.2.0 wheel sha256:02c1b71a31bf2fe8db775d9a89558ac5cc35f8c54a0cae1c622ea504dda133e5. Peers still on legacy envelope/grant IDs fail closed under strict negotiation."
 }
