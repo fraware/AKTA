@@ -1,16 +1,15 @@
-"""Authoritative SCOPE grant authentication (P0-C / P0-E).
+"""Authoritative SCOPE grant authentication (AKTA 1.2 P0-6 … P0-10).
 
 Runs BEFORE AKTA applies any grant metadata. Prefer shared hashing + schemas
 from scientific-authorization-contracts. Strict modes require issuer signature,
-grant hash, trust-root provenance, source binding, and ledger/status attestation.
+grant hash, trust-root provenance, source-chain id+hash bindings, and a verified
+signed status attestation (or authenticated ledger verifier). Replay state is
+durable and never stored on the untrusted grant dict.
 """
 
 from __future__ import annotations
 
-import json
 import os
-import urllib.error
-import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -28,6 +27,11 @@ from akta.policy_integrity import is_production_mode, require_signed_policy
 from akta.scope_authorization_manifest import (
     resolve_and_verify_authorization_manifest,
 )
+from akta.scope_client import (
+    LedgerStatusVerifier,
+    ScopeAuthorizationClient,
+    ScopeClientError,
+)
 from akta.shared_contracts import (
     ENVELOPE_VERSION,
     GRANT_STATUS_SCHEMA_NAME,
@@ -35,6 +39,10 @@ from akta.shared_contracts import (
     _contracts,
     authorization_envelope_schema_hash,
     load_contract_schema,
+)
+from akta.status_replay_store import (
+    StatusReplayStore,
+    status_hash_for_replay,
 )
 from akta.trust_store import (
     ArtifactType,
@@ -48,7 +56,9 @@ STRICT_MODES = frozenset({"pilot", "release", "cross_repo", "production"})
 UNIT_MODES = frozenset({"unit", "dev", "test"})
 SUPPORTED_SIGNATURE_ALGORITHMS = frozenset({"Ed25519", "ed25519"})
 # Strict modes accept only institutional grant v2 identifiers.
-STRICT_GRANT_VERSIONS = frozenset({"2.0.0", "2.0", "2.1.0", "scope-grant-v2"})
+STRICT_GRANT_VERSIONS = frozenset(
+    {"2.0.0", "2.0", "2.1.0", "2.2.0", "2.2", "scope-grant-v2"}
+)
 LEGACY_GRANT_VERSIONS = frozenset(
     {"0.5", "0.6", "0.7", "0.8", "0.9", "1.0", "akta-scope-grant-v1.0"}
 )
@@ -65,6 +75,37 @@ SOURCE_HASH_BINDINGS: tuple[tuple[str, str, str], ...] = (
     ("scope_decision_id", "scope_decision_hash", "scope_decision"),
     ("session_resolution_id", "session_resolution_hash", "session_resolution"),
     ("session_id", "resolution_hash", "session_resolution"),
+)
+
+# Always required in strict modes (Session Resolution is conditional).
+STRICT_REQUIRED_SOURCE_BINDINGS: tuple[tuple[str, str], ...] = (
+    ("decision_id", "decision_hash"),
+    ("akta_record_id", "akta_record_hash"),
+    ("review_trigger_id", "review_trigger_hash"),
+    ("packet_id", "packet_hash"),
+    ("scope_decision_id", "scope_decision_hash"),
+)
+
+SIGNED_ARTIFACT_REF_FIELDS: tuple[str, ...] = (
+    "artifact_id",
+    "artifact_hash",
+    "store_id",
+    "tenant_id",
+    "attestation",
+)
+
+ACTIVE_GRANT_STATUSES = frozenset({"active"})
+REJECTED_GRANT_STATUSES = frozenset(
+    {
+        "exhausted",
+        "consumed",
+        "used",
+        "revoked",
+        "expired",
+        "superseded",
+        "invalid",
+        "not_found",
+    }
 )
 
 
@@ -214,53 +255,120 @@ def _grant_schema_gate_errors(
     return errors
 
 
+def _is_signed_artifact_ref(artifact: dict[str, Any]) -> bool:
+    return all(field_name in artifact for field_name in SIGNED_ARTIFACT_REF_FIELDS)
+
+
+def _signed_artifact_ref_errors(artifact: dict[str, Any]) -> list[str]:
+    """Validate remote signed artifact reference shape (P0-6)."""
+    errors: list[str] = []
+    missing = [f for f in SIGNED_ARTIFACT_REF_FIELDS if not artifact.get(f)]
+    if missing:
+        errors.append(
+            "signed artifact reference missing fields: " + ", ".join(missing)
+        )
+        return errors
+    art_hash = artifact.get("artifact_hash")
+    if not str(art_hash).startswith("sha256:"):
+        errors.append(
+            f"signed artifact reference artifact_hash invalid: {art_hash!r}"
+        )
+    attestation = artifact.get("attestation")
+    if not isinstance(attestation, (str, dict)) or not attestation:
+        errors.append("signed artifact reference attestation missing/invalid")
+    return errors
+
+
 def _artifact_id_and_hash(
     artifact: Any,
     *,
     preferred_id_fields: tuple[str, ...] | None = None,
-) -> tuple[str | None, str | None]:
+) -> tuple[str | None, str | None, list[str]]:
+    """Extract authenticated id+hash from a local artifact or signed remote ref.
+
+    Never synthesizes a local hash when the hash is missing — missing hash is
+    insufficient authentication (P0-6).
+    """
+    errors: list[str] = []
     if artifact is None:
-        return None, None
-    if isinstance(artifact, dict):
-        id_fields = preferred_id_fields or (
-            "record_id",
-            "decision_id",
-            "review_trigger_id",
-            "trigger_id",
-            "packet_id",
-            "scope_decision_id",
-            "session_id",
-            "id",
+        return None, None, errors
+    if not isinstance(artifact, dict):
+        return None, None, ["source artifact must be an object"]
+
+    if _is_signed_artifact_ref(artifact) or (
+        artifact.get("store_id") is not None or artifact.get("attestation") is not None
+    ):
+        # Remote / store-backed refs require the full signed reference contract.
+        ref_errors = _signed_artifact_ref_errors(artifact)
+        errors.extend(ref_errors)
+        if ref_errors:
+            return None, None, errors
+        return (
+            str(artifact["artifact_id"]),
+            str(artifact["artifact_hash"]),
+            errors,
         )
-        art_id = None
-        for field_name in id_fields:
-            if artifact.get(field_name) is not None:
-                art_id = artifact.get(field_name)
-                break
-        art_hash = (
-            artifact.get("record_hash")
-            or artifact.get("decision_hash")
-            or artifact.get("packet_hash")
-            or artifact.get("review_trigger_hash")
-            or artifact.get("hash")
-            or artifact.get("artifact_hash")
-            or artifact.get("resolution_hash")
-            or artifact.get("scope_decision_hash")
-        )
-        if art_hash is None and artifact.get("_authenticated_hash"):
-            art_hash = artifact.get("_authenticated_hash")
-        # Compute hash over body when raw artifact supplied without hash.
-        if art_hash is None and art_id is not None:
-            body = {
-                k: v
-                for k, v in artifact.items()
-                if not str(k).endswith("_hash") and k != "_authenticated_hash"
+
+    id_fields = preferred_id_fields or (
+        "record_id",
+        "decision_id",
+        "review_trigger_id",
+        "trigger_id",
+        "packet_id",
+        "scope_decision_id",
+        "session_resolution_id",
+        "session_id",
+        "id",
+    )
+    art_id = None
+    for field_name in id_fields:
+        if artifact.get(field_name) is not None:
+            art_id = artifact.get(field_name)
+            break
+    art_hash = (
+        artifact.get("record_hash")
+        or artifact.get("decision_hash")
+        or artifact.get("packet_hash")
+        or artifact.get("review_trigger_hash")
+        or artifact.get("scope_decision_hash")
+        or artifact.get("session_resolution_hash")
+        or artifact.get("resolution_hash")
+        or artifact.get("hash")
+        or artifact.get("artifact_hash")
+        or artifact.get("_authenticated_hash")
+    )
+    # If a body is supplied with an explicit hash, recompute and compare when
+    # enough non-hash fields exist (local authenticated artifact).
+    if art_hash is not None and art_id is not None:
+        body = {
+            k: v
+            for k, v in artifact.items()
+            if not str(k).endswith("_hash")
+            and k
+            not in {
+                "_authenticated_hash",
+                "hash",
+                "artifact_hash",
+                "attestation",
+                "store_id",
+                "tenant_id",
             }
-            art_hash = hash_object(body)
-        return (str(art_id) if art_id is not None else None), (
-            str(art_hash) if art_hash is not None else None
+        }
+        # Only recompute when the body looks like a concrete artifact payload.
+        if len(body) > 1:
+            recomputed = hash_object(body)
+            if str(recomputed) != str(art_hash):
+                errors.append(
+                    f"source artifact hash mismatch vs recomputed body "
+                    f"({art_hash} != {recomputed})"
+                )
+    elif art_id is not None and art_hash is None:
+        errors.append(
+            "source artifact hash missing; refusing silent local hash synthesis"
         )
-    return None, None
+    return (str(art_id) if art_id is not None else None), (
+        str(art_hash) if art_hash is not None else None
+    ), errors
 
 
 def migrate_legacy_grant_to_v2(
@@ -514,22 +622,54 @@ def _fetch_grant_status_attestation(
     grant_id: str,
     *,
     endpoint: str | None = None,
+    scope_client: ScopeAuthorizationClient | LedgerStatusVerifier | None = None,
 ) -> dict[str, Any] | None:
-    """Fetch signed grant-status attestation from SCOPE /grant-status endpoint."""
-    base = (endpoint or os.environ.get("SCOPE_GRANT_STATUS_URL") or "").strip()
-    if not base:
-        return None
-    url = base.rstrip("/")
-    if "{grant_id}" in url:
-        url = url.format(grant_id=grant_id)
-    elif not url.endswith(grant_id):
-        url = f"{url}/{grant_id}"
+    """Fetch signed grant-status attestation via ScopeAuthorizationClient."""
+    client: ScopeAuthorizationClient | LedgerStatusVerifier | None = scope_client
+    if client is None:
+        from akta.scope_client import ScopeClientConfig
+
+        cfg = ScopeClientConfig.from_env()
+        if endpoint:
+            cfg.status_url = endpoint
+        if not cfg.status_url:
+            return None
+        client = ScopeAuthorizationClient(cfg)
     try:
-        with urllib.request.urlopen(url, timeout=5) as resp:  # noqa: S310
-            payload = json.loads(resp.read().decode("utf-8"))
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, ValueError):
+        if isinstance(client, ScopeAuthorizationClient) and endpoint:
+            from akta.scope_client import ScopeClientConfig
+
+            cfg = ScopeClientConfig(
+                manifest_url=client.config.manifest_url,
+                status_url=endpoint,
+                oidc_token=client.config.oidc_token,
+                oidc_token_provider=client.config.oidc_token_provider,
+                mtls_cert_file=client.config.mtls_cert_file,
+                mtls_key_file=client.config.mtls_key_file,
+                ca_bundle=client.config.ca_bundle,
+                verify_tls=client.config.verify_tls,
+                audience=client.config.audience,
+                tenant_id=client.config.tenant_id,
+                timeout_seconds=client.config.timeout_seconds,
+                max_response_bytes=client.config.max_response_bytes,
+                max_retries=client.config.max_retries,
+                require_transport_auth=client.config.require_transport_auth,
+                extra_headers=dict(client.config.extra_headers),
+            )
+            client = ScopeAuthorizationClient(cfg)
+        payload = client.get_status(str(grant_id))
+    except (ScopeClientError, OSError, ValueError, TypeError):
         return None
-    return payload if isinstance(payload, dict) else None
+    return dict(payload) if isinstance(payload, dict) else None
+
+
+def _status_attestor_key_id(ledger_status: dict[str, Any]) -> str | None:
+    return (
+        (ledger_status.get("issuer") or {}).get("issuer_key_id")
+        or ledger_status.get("attestation_key_id")
+        or ledger_status.get("issuer_key_id")
+        or ledger_status.get("status_attestor_key_id")
+    )
 
 
 def _ledger_status_errors(
@@ -540,11 +680,15 @@ def _ledger_status_errors(
     trust_store: dict[str, Any] | None = None,
     require_crypto: bool = False,
     expected_tenant_id: str | None = None,
-    seen_sequences: set[int] | None = None,
+    replay_store: StatusReplayStore | None = None,
+    status_authenticated: bool = False,
 ) -> list[str]:
-    """Validate authoritative grant lifecycle status (WS6).
+    """Validate authoritative grant lifecycle status (P0-9 / P0-10).
 
-    Strict modes require a status payload; absence → ``grant_status_unavailable``.
+    Strict modes require a signed status attestation or an authenticated ledger
+    verifier payload. Embedded unsigned ``ledger_status`` dictionaries are
+    rejected. Replay state is consulted via ``replay_store`` only — never via
+    mutating the grant dict.
     """
     errors: list[str] = []
     if ledger_status is None:
@@ -552,6 +696,21 @@ def _ledger_status_errors(
             errors.append("grant_status_unavailable")
         elif os.environ.get("SCOPE_GRANT_STATUS_URL"):
             errors.append("grant_status_unavailable")
+        return errors
+
+    has_sig = ledger_status.get("attestation_signature") is not None or (
+        ledger_status.get("signature") is not None
+        and (
+            ledger_status.get("attestation_hash") is not None
+            or ledger_status.get("status_hash") is not None
+        )
+    )
+
+    if strict and not has_sig and not status_authenticated:
+        errors.append(
+            "strict modes require a signed status attestation or authenticated "
+            "ledger verifier; unsigned embedded ledger_status rejected"
+        )
         return errors
 
     # Prefer status-authoritative lifecycle semantics.
@@ -563,13 +722,35 @@ def _ledger_status_errors(
         )
     )
 
-    status = str(ledger_status.get("status") or "")
-    remaining = ledger_status.get("single_use_remaining")
+    status = str(ledger_status.get("status") or "").strip().lower()
+    if status in REJECTED_GRANT_STATUSES:
+        errors.append(f"grant status rejected: status={status}")
+    elif strict and status not in ACTIVE_GRANT_STATUSES:
+        errors.append(
+            f"grant status must be active in strict modes (got {status!r})"
+        )
+
+    remaining = ledger_status.get("cardinality_remaining")
     if remaining is None:
-        remaining = ledger_status.get("cardinality_remaining")
+        remaining = ledger_status.get("single_use_remaining")
+    if remaining is None:
+        remaining = ledger_status.get("remaining_uses")
+    if strict and remaining is None:
+        errors.append("grant status missing remaining cardinality")
+    elif remaining is not None:
+        try:
+            if int(remaining) <= 0:
+                errors.append("no remaining uses per signed status")
+        except (TypeError, ValueError):
+            errors.append(f"grant status remaining cardinality invalid: {remaining!r}")
+
     constraints = scope_grant.get("constraints") or {}
-    if constraints.get("single_use") and remaining is not None and int(remaining) <= 0:
-        errors.append("single-use grant already consumed")
+    if constraints.get("single_use") and remaining is not None:
+        try:
+            if int(remaining) <= 0:
+                errors.append("single-use grant already consumed")
+        except (TypeError, ValueError):
+            pass
 
     # Max age / freshness
     checked_at = ledger_status.get("checked_at")
@@ -604,32 +785,44 @@ def _ledger_status_errors(
             f"grant status tenant mismatch ({status_tenant!r} != {grant_tenant!r})"
         )
 
-    # Sequence replay protection
+    # Durable replay protection (P0-9) — never write onto grant dict.
     seq = ledger_status.get("ledger_sequence")
     if seq is None:
         seq = ledger_status.get("sequence")
-    if seq is not None:
+    attestor = _status_attestor_key_id(ledger_status)
+    status_hash = status_hash_for_replay(ledger_status)
+    if replay_store is not None and seq is not None and attestor and status_hash and checked_at:
+        tenant_for_store = str(status_tenant or grant_tenant or "default")
+        grant_id = str(
+            scope_grant.get("grant_id") or scope_grant.get("scope_grant_id") or ""
+        )
         try:
             seq_i = int(seq)
         except (TypeError, ValueError):
             errors.append(f"grant status ledger_sequence invalid: {seq!r}")
         else:
-            if seen_sequences is not None and seq_i in seen_sequences:
-                errors.append(f"grant status ledger_sequence replay detected: {seq_i}")
-            prev = scope_grant.get("_last_seen_ledger_sequence")
-            if prev is not None:
-                try:
-                    if seq_i <= int(prev):
-                        errors.append(
-                            f"grant status ledger_sequence replay/out-of-order: {seq_i}"
-                        )
-                except (TypeError, ValueError):
-                    pass
+            prior = replay_store.list_attestors_for_grant(tenant_for_store, grant_id)
+            decision = replay_store.evaluate(
+                tenant_id=tenant_for_store,
+                grant_id=grant_id,
+                status_attestor_key_id=str(attestor),
+                ledger_sequence=seq_i,
+                status_hash=str(status_hash),
+                checked_at=str(checked_at),
+                previously_seen_attestors=prior,
+            )
+            if not decision.accepted:
+                errors.extend(decision.errors)
+    elif seq is not None and replay_store is None:
+        # Soft structural validation only when no durable store configured.
+        try:
+            int(seq)
+        except (TypeError, ValueError):
+            errors.append(f"grant status ledger_sequence invalid: {seq!r}")
 
     # Attestation verification for remote / provided / strict status payloads
     remote = bool(os.environ.get("SCOPE_GRANT_STATUS_URL"))
-    has_sig = ledger_status.get("attestation_signature") is not None
-    if strict or remote or has_sig:
+    if strict or remote or has_sig or status_authenticated:
         expected_hash = scope_grant.get("grant_hash")
         if expected_hash and ledger_status.get("grant_hash") not in (None, expected_hash):
             errors.append("grant status grant_hash does not match grant")
@@ -641,12 +834,7 @@ def _ledger_status_errors(
         elif strict and trust and "scope_trust_root_hash" not in ledger_status:
             errors.append("grant status missing scope_trust_root_hash binding")
 
-        signer = (
-            (ledger_status.get("issuer") or {}).get("issuer_key_id")
-            or ledger_status.get("attestation_key_id")
-            or ledger_status.get("issuer_key_id")
-        )
-        if strict and not signer:
+        if strict and not attestor:
             errors.append("grant status attestation signer missing")
 
         try:
@@ -658,15 +846,19 @@ def _ledger_status_errors(
             pass
         except Exception as exc:  # noqa: BLE001
             errors.append(f"grant status attestation schema invalid: {exc}")
-        sig_err = _attestation_signature_error(
-            ledger_status,
-            trust_store=trust_store,
-            require_crypto=require_crypto or remote or strict,
-        )
-        if sig_err:
-            errors.append(sig_err)
-            if "unknown" in sig_err.lower():
-                errors.append("grant status unknown signer")
+
+        if has_sig:
+            sig_err = _attestation_signature_error(
+                ledger_status,
+                trust_store=trust_store,
+                require_crypto=require_crypto or remote or strict,
+            )
+            if sig_err:
+                errors.append(sig_err)
+                if "unknown" in sig_err.lower():
+                    errors.append("grant status unknown signer")
+        elif strict and not status_authenticated:
+            errors.append("grant status attestation_signature missing")
     return errors
 
 
@@ -679,7 +871,7 @@ def _source_binding_errors(
     source_artifacts: dict[str, Any] | None = None,
     strict: bool = False,
 ) -> list[str]:
-    """Verify source ID bindings and (in strict) ID+hash chain (WS7)."""
+    """Verify source ID bindings and (in strict) ID+hash chain (P0-6)."""
     errors: list[str] = []
     source = scope_grant.get("source") or {}
     if not source.get("packet_id"):
@@ -713,21 +905,32 @@ def _source_binding_errors(
     if trigger is not None and "review_trigger" not in artifacts:
         artifacts["review_trigger"] = trigger
 
-    # Strict: require hash fields on grant source + verify against artifacts/refs.
-    required_hash_fields = (
-        "akta_record_hash",
-        "decision_hash",
-        "packet_hash",
-    )
     if strict:
-        missing_hashes = [f for f in required_hash_fields if not source.get(f)]
-        # Accept record_hash alias for akta_record_hash.
-        if "akta_record_hash" in missing_hashes and source.get("record_hash"):
-            missing_hashes = [f for f in missing_hashes if f != "akta_record_hash"]
-        if missing_hashes:
-            errors.append(
-                "missing source hashes: " + ", ".join(missing_hashes)
-            )
+        missing_bindings: list[str] = []
+        for id_field, hash_field in STRICT_REQUIRED_SOURCE_BINDINGS:
+            source_id = source.get(id_field)
+            source_hash = source.get(hash_field)
+            if id_field == "akta_record_id" and not source_hash:
+                source_hash = source.get("record_hash")
+            if not source_id:
+                missing_bindings.append(id_field)
+            if not source_hash:
+                missing_bindings.append(hash_field)
+        # Session Resolution required only when applicable.
+        if source.get("session_resolution_id") or source.get("session_id"):
+            if not (
+                source.get("session_resolution_hash") or source.get("resolution_hash")
+            ):
+                missing_bindings.append("session_resolution_hash")
+        if missing_bindings:
+            # Deduplicate while preserving order.
+            seen: set[str] = set()
+            ordered = []
+            for item in missing_bindings:
+                if item not in seen:
+                    seen.add(item)
+                    ordered.append(item)
+            errors.append("missing source hashes: " + ", ".join(ordered))
         if not artifacts:
             errors.append(
                 "source artifacts or authenticated refs required to verify source hashes"
@@ -740,23 +943,33 @@ def _source_binding_errors(
         if source_id is None and source_hash is None:
             continue
         if source_hash is None:
+            # Alias hash fields (e.g. record_hash) may be absent when the
+            # canonical field (akta_record_hash) is present; required hashes
+            # are enforced via STRICT_REQUIRED_SOURCE_BINDINGS.
             continue
         artifact = artifacts.get(artifact_key)
         if artifact is None:
-            if strict and hash_field in required_hash_fields + ("record_hash",):
-                # Already covered by missing artifacts / hashes messages.
-                continue
+            if strict:
+                errors.append(
+                    f"source artifact/ref missing for {artifact_key} "
+                    f"(required to verify {hash_field})"
+                )
             continue
-        art_id, art_hash = _artifact_id_and_hash(
+        art_id, art_hash, art_errors = _artifact_id_and_hash(
             artifact,
-            preferred_id_fields=(id_field, "id"),
+            preferred_id_fields=(id_field, "artifact_id", "id"),
         )
+        errors.extend(art_errors)
         if art_id is not None and source_id is not None and str(art_id) != str(source_id):
             errors.append(
                 f"source {id_field} mismatch vs artifact "
                 f"({source_id} != {art_id})"
             )
-        if art_hash is not None and str(art_hash) != str(source_hash):
+        if art_hash is None:
+            errors.append(
+                f"source {hash_field} could not be authenticated from artifact/ref"
+            )
+        elif str(art_hash) != str(source_hash):
             errors.append(
                 f"source {hash_field} mismatch vs artifact "
                 f"({source_hash} != {art_hash})"
@@ -828,9 +1041,12 @@ def verify_scope_grant(
     source_artifacts: dict[str, Any] | None = None,
     status_trust_store: dict[str, Any] | None = None,
     manifest_trust_store: dict[str, Any] | None = None,
+    scope_client: ScopeAuthorizationClient | None = None,
+    ledger_verifier: LedgerStatusVerifier | None = None,
+    replay_store: StatusReplayStore | None = None,
     raise_on_error: bool = False,
 ) -> GrantVerificationResult:
-    """Authenticate a SCOPE grant before apply (full P0-C / AKTA 1.1 WS4–7)."""
+    """Authenticate a SCOPE grant before apply (AKTA 1.2 P0-6 … P0-10)."""
     resolved_mode = resolve_grant_verification_mode(mode)
     strict = resolved_mode in STRICT_MODES
     require_crypto = (resolved_mode in STRICT_MODES) or _env_require_grant_crypto()
@@ -844,6 +1060,7 @@ def verify_scope_grant(
     warnings: list[str] = []
     checks_run: list[str] = []
     verified_manifest_hash: str | None = None
+    status_authenticated = False
 
     def _fail(msg: str, *, as_warning: bool = False) -> None:
         if as_warning:
@@ -897,6 +1114,17 @@ def verify_scope_grant(
     manifest_trust = manifest_trust_store
     if manifest_trust is None:
         manifest_trust = resolve_manifest_signer_trust_store(require_keys=False)
+
+    resolved_client = scope_client
+    if resolved_client is None:
+        resolved_client = ScopeAuthorizationClient.from_env()
+
+    resolved_replay = replay_store
+    if resolved_replay is None:
+        authorized = None
+        if status_trust and (status_trust.get("keys") or {}):
+            authorized = set((status_trust.get("keys") or {}).keys())
+        resolved_replay = StatusReplayStore.from_env(authorized_attestors=authorized)
 
     # 1. grant_id
     checks_run.append("grant_id_present")
@@ -1003,6 +1231,7 @@ def verify_scope_grant(
                 embedded_manifest=embedded if isinstance(embedded, dict) else None,
                 trust_store=manifest_trust,
                 require_crypto=require_crypto or strict,
+                scope_client=resolved_client,
             )
             if not manifest_result.ok:
                 for err in manifest_result.errors:
@@ -1025,14 +1254,24 @@ def verify_scope_grant(
         if current_manifest and grant_manifest and current_manifest != grant_manifest:
             _fail("stale policy manifest relative to grant binding")
 
-    # 15–16. ledger / single-use (WS6 mandatory in strict)
+    # 15–16. ledger / single-use (P0-9 / P0-10)
     checks_run.append("ledger_status_active")
     checks_run.append("single_use_remaining")
     status_payload = ledger_status
+    if status_payload is None and grant_id and ledger_verifier is not None:
+        try:
+            status_payload = dict(ledger_verifier.get_status(str(grant_id)))
+            status_authenticated = True
+        except Exception as exc:  # noqa: BLE001
+            _fail(f"authenticated ledger verifier failed: {exc}")
     if status_payload is None and grant_id:
-        # Authenticated SCOPE client / remote attestation.
-        status_payload = _fetch_grant_status_attestation(str(grant_id))
-    # Embedded authoritative ledger on grant (explicit institutional path).
+        status_payload = _fetch_grant_status_attestation(
+            str(grant_id),
+            scope_client=resolved_client or ledger_verifier,
+        )
+        if status_payload is not None and resolved_client is not None:
+            status_authenticated = True
+    # Embedded ledger only when independently signed (strict) or non-strict soft path.
     if status_payload is None:
         embedded_ledger = (
             scope_grant.get("ledger_status")
@@ -1052,6 +1291,8 @@ def verify_scope_grant(
             if isinstance(context, dict)
             else None
         ),
+        replay_store=resolved_replay,
+        status_authenticated=status_authenticated,
     ):
         _fail(err)
 
@@ -1136,6 +1377,9 @@ def verify_scope_grant_or_raise(
     source_artifacts: dict[str, Any] | None = None,
     status_trust_store: dict[str, Any] | None = None,
     manifest_trust_store: dict[str, Any] | None = None,
+    scope_client: ScopeAuthorizationClient | None = None,
+    ledger_verifier: LedgerStatusVerifier | None = None,
+    replay_store: StatusReplayStore | None = None,
 ) -> GrantVerificationResult:
     return verify_scope_grant(
         scope_grant,
@@ -1151,5 +1395,8 @@ def verify_scope_grant_or_raise(
         source_artifacts=source_artifacts,
         status_trust_store=status_trust_store,
         manifest_trust_store=manifest_trust_store,
+        scope_client=scope_client,
+        ledger_verifier=ledger_verifier,
+        replay_store=replay_store,
         raise_on_error=True,
     )
