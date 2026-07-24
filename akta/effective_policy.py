@@ -1,8 +1,12 @@
-"""Effective policy manifest generation and binding (directive §5 / WS11)."""
+"""Effective policy manifest generation and binding (directive §5 / WS11 / P1-15)."""
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -10,11 +14,16 @@ import yaml
 
 from akta.hash import hash_file_content, hash_object
 from akta.policy_integrity import (
+    ED25519_ALGORITHM,
+    HMAC_ALGORITHM,
     _load_manifest,
     compute_file_hash,
+    is_production_mode,
+    require_signed_policy,
 )
 
 EFFECTIVE_MANIFEST_FILENAME = "effective_policy_manifest.json"
+EFFECTIVE_MANIFEST_VERSION = "akta-effective-policy-v1.2"
 
 # Inputs required for a complete effective policy (include when present on disk).
 EFFECTIVE_POLICY_INPUTS: tuple[str, ...] = (
@@ -34,7 +43,7 @@ EFFECTIVE_POLICY_INPUTS: tuple[str, ...] = (
     "scope_compatibility_manifest.json",
     "release_keys.yaml",
     "policy_manifest.yaml",
-    # WS11 provenance expansions
+    # WS11 / P1-15 provenance expansions
     "shared_contracts_pin.json",
     "scope_grant_issuer_registry.yaml",
     "scope_status_attestation_registry.yaml",
@@ -42,6 +51,24 @@ EFFECTIVE_POLICY_INPUTS: tuple[str, ...] = (
     "release_pins.yaml",
     "runtime_capability_mapping.yaml",
 )
+
+# P1-15: mandatory in release/production — never listed as missing_optional_inputs.
+MANDATORY_RELEASE_INPUTS: frozenset[str] = frozenset({
+    "shared_contracts_pin.json",
+    "scope_grant_issuer_registry.yaml",
+    "scope_status_attestation_registry.yaml",
+    "scope_policy_manifest_signer_registry.yaml",
+    "release_pins.yaml",
+    "runtime_capability_mapping.yaml",
+    "scope_compatibility_manifest.json",
+})
+
+RELEASE_STRICT_PROFILES = frozenset({
+    "release",
+    "production",
+    "institutional",
+    "institutional_release",
+})
 
 # Schema / registry names folded into effective-policy body + policy_binding_block.
 SCHEMA_HASH_KEYS = (
@@ -61,7 +88,6 @@ OVERLAY_REGISTRY_NOTE = (
     "overlay_ids + content hashes when overlays_dir is provided."
 )
 
-
 def _file_version(path: Path, data: Any) -> str:
     if isinstance(data, dict):
         return str(
@@ -73,6 +99,20 @@ def _file_version(path: Path, data: Any) -> str:
             or "unknown"
         )
     return "unknown"
+
+
+def effective_policy_strict_mode(*, integrity_mode: str | None = None) -> bool:
+    """True when release/production provenance rules apply (P1-15)."""
+    if is_production_mode() or require_signed_policy():
+        return True
+    if os.environ.get("AKTA_VERIFY_EFFECTIVE_POLICY", "").lower() in ("1", "true", "yes"):
+        return True
+    profile = os.environ.get("AKTA_RELEASE_PROFILE", "").strip().lower()
+    if profile in RELEASE_STRICT_PROFILES:
+        return True
+    if integrity_mode == "release_ed25519_signed":
+        return True
+    return False
 
 
 def collect_overlay_registry(overlays_dir: Path | None) -> dict[str, Any]:
@@ -149,13 +189,237 @@ def _overlay_aggregate_hash(overlay_registry: dict[str, Any]) -> str | None:
     return hash_object(overlays)
 
 
+def _partition_missing(missing: list[str]) -> tuple[list[str], list[str]]:
+    """Split missing inputs into mandatory (release) vs optional."""
+    mandatory = sorted(name for name in missing if name in MANDATORY_RELEASE_INPUTS)
+    optional = sorted(name for name in missing if name not in MANDATORY_RELEASE_INPUTS)
+    return mandatory, optional
+
+
+def _resolve_hmac_key_bytes(explicit: bytes | str | None = None) -> bytes | None:
+    if explicit is not None:
+        return explicit if isinstance(explicit, bytes) else explicit.encode("utf-8")
+    key_env = os.environ.get("AKTA_POLICY_HMAC_KEY")
+    if key_env:
+        return key_env.encode("utf-8")
+    return None
+
+
+def _resolve_ed25519_private_key(explicit: bytes | None = None) -> bytes | None:
+    if explicit is not None:
+        return explicit
+    raw = os.environ.get("AKTA_POLICY_SIGNING_KEY", "").strip()
+    if not raw:
+        return None
+    if len(raw) == 64 and all(c in "0123456789abcdefABCDEF" for c in raw):
+        return bytes.fromhex(raw)
+    try:
+        decoded = base64.b64decode(raw)
+        if len(decoded) in (32, 64):
+            return decoded
+    except ValueError:
+        pass
+    return None
+
+
+def _signing_payload(manifest_hash: str) -> bytes:
+    """Canonical bytes covered by the effective-policy signature."""
+    return manifest_hash.encode("utf-8")
+
+
+def sign_effective_policy_manifest(
+    manifest: dict[str, Any],
+    *,
+    private_key: bytes | None = None,
+    hmac_key: bytes | str | None = None,
+    key_id: str | None = None,
+) -> dict[str, Any]:
+    """Attach Ed25519 or HMAC signature over ``manifest_hash`` (P1-15)."""
+    out = dict(manifest)
+    manifest_hash = str(out.get("manifest_hash") or "")
+    if not manifest_hash:
+        raise ValueError("effective policy manifest_hash required before signing")
+    payload = _signing_payload(manifest_hash)
+
+    ed_key = _resolve_ed25519_private_key(private_key)
+    if ed_key is not None:
+        try:
+            from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        except ImportError as exc:
+            from akta.errors import PolicyError
+
+            raise PolicyError(
+                "Ed25519 signing requires cryptography package; "
+                "pip install akta-protocol[security]"
+            ) from exc
+        if len(ed_key) == 32:
+            private = Ed25519PrivateKey.from_private_bytes(ed_key)
+        elif len(ed_key) == 64:
+            private = Ed25519PrivateKey.from_private_bytes(ed_key[:32])
+        else:
+            from akta.errors import PolicyError
+
+            raise PolicyError("Ed25519 private key must be 32 or 64 bytes")
+        signature = private.sign(payload)
+        public_bytes = private.public_key().public_bytes_raw()
+        out["signed_payload_hash"] = manifest_hash
+        out["signature"] = {
+            "algorithm": ED25519_ALGORITHM,
+            "value": base64.b64encode(signature).decode("ascii"),
+            "public_key": base64.b64encode(public_bytes).decode("ascii"),
+            "key_id": key_id or out.get("signing_key_id") or "effective-policy-primary",
+        }
+        return out
+
+    mac_key = _resolve_hmac_key_bytes(hmac_key)
+    if mac_key is None:
+        return out
+
+    digest = hmac.new(mac_key, payload, hashlib.sha256).hexdigest()
+    out["signed_payload_hash"] = manifest_hash
+    out["signature"] = {
+        "algorithm": HMAC_ALGORITHM,
+        "value": digest,
+        "key_id": key_id or out.get("signing_key_id"),
+    }
+    return out
+
+
+def verify_effective_policy_signature(
+    manifest: dict[str, Any],
+    *,
+    policy_dir: str | Path | None = None,
+    hmac_key: bytes | str | None = None,
+) -> None:
+    """Verify the stored effective-policy signature; raise PolicyError on failure."""
+    from akta.errors import PolicyError
+
+    sig = manifest.get("signature")
+    if not isinstance(sig, dict) or not sig.get("value"):
+        raise PolicyError(
+            "effective policy manifest missing signature; "
+            "recomputing an unsigned manifest is insufficient for production provenance"
+        )
+
+    manifest_hash = str(manifest.get("manifest_hash") or "")
+    if not manifest_hash:
+        raise PolicyError("effective policy manifest missing manifest_hash")
+
+    signed_payload = manifest.get("signed_payload_hash")
+    if signed_payload is not None and signed_payload != manifest_hash:
+        raise PolicyError(
+            "effective policy signed_payload_hash must equal manifest_hash"
+        )
+
+    algo = sig.get("algorithm")
+    payload = _signing_payload(manifest_hash)
+
+    if algo == HMAC_ALGORITHM:
+        mac_key = _resolve_hmac_key_bytes(hmac_key)
+        if mac_key is None:
+            raise PolicyError(
+                "effective policy HMAC verification requires AKTA_POLICY_HMAC_KEY"
+            )
+        expected = hmac.new(mac_key, payload, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected, str(sig.get("value") or "")):
+            raise PolicyError("effective policy HMAC signature verification failed")
+        return
+
+    if algo == ED25519_ALGORITHM:
+        try:
+            from cryptography.exceptions import InvalidSignature
+            from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+        except ImportError as exc:
+            raise PolicyError(
+                "Ed25519 verification requires cryptography package; "
+                "pip install akta-protocol[security]"
+            ) from exc
+
+        try:
+            signature = base64.b64decode(str(sig.get("value") or ""))
+        except ValueError as exc:
+            raise PolicyError(f"Invalid Ed25519 signature encoding: {exc}") from exc
+
+        keys: list[bytes] = []
+        if sig.get("public_key"):
+            raw = str(sig["public_key"]).strip()
+            try:
+                if len(raw) == 64 and all(c in "0123456789abcdefABCDEF" for c in raw):
+                    keys.append(bytes.fromhex(raw))
+                else:
+                    keys.append(base64.b64decode(raw))
+            except ValueError as exc:
+                raise PolicyError(f"Invalid Ed25519 public key encoding: {exc}") from exc
+
+        env_key = os.environ.get("AKTA_POLICY_PUBLIC_KEY")
+        if env_key:
+            cleaned = env_key.strip()
+            try:
+                if len(cleaned) == 64 and all(
+                    c in "0123456789abcdefABCDEF" for c in cleaned
+                ):
+                    keys.append(bytes.fromhex(cleaned))
+                else:
+                    keys.append(base64.b64decode(cleaned))
+            except ValueError as exc:
+                raise PolicyError(f"Invalid Ed25519 public key encoding: {exc}") from exc
+
+        if policy_dir is not None:
+            try:
+                from akta.policy_signing import load_release_key_registry
+
+                registry = load_release_key_registry(Path(policy_dir))
+                key_id = sig.get("key_id")
+                for entry in registry.get("keys") or []:
+                    if not isinstance(entry, dict):
+                        continue
+                    if entry.get("status") not in (None, "active"):
+                        continue
+                    if key_id and entry.get("key_id") != key_id:
+                        continue
+                    pk = entry.get("public_key")
+                    if pk:
+                        keys.append(base64.b64decode(str(pk)))
+            except Exception:
+                pass
+
+        if not keys:
+            raise PolicyError(
+                "effective policy Ed25519 verification requires public key "
+                "(signature.public_key, AKTA_POLICY_PUBLIC_KEY, or release_keys.yaml)"
+            )
+
+        last_error: Exception | None = None
+        for key_bytes in keys:
+            try:
+                public_key = Ed25519PublicKey.from_public_bytes(key_bytes)
+                public_key.verify(signature, payload)
+                return
+            except (InvalidSignature, ValueError) as exc:
+                last_error = exc
+                continue
+        raise PolicyError(
+            "effective policy Ed25519 signature verification failed"
+        ) from last_error
+
+    raise PolicyError(f"Unsupported effective policy signature algorithm: {algo!r}")
+
+
 def build_effective_policy_manifest(
     policy_dir: str | Path,
     *,
     overlays_dir: str | Path | None = None,
     integrity_mode: str = "dev_unsigned",
+    strict_mandatory: bool | None = None,
 ) -> dict[str, Any]:
-    """Build effective_policy_manifest covering available policy inputs."""
+    """Build effective_policy_manifest covering available policy inputs.
+
+    Mandatory release inputs (shared contract pin, three registries, release pins,
+    runtime capability mapping, compatibility manifest) are never recorded under
+    ``missing_optional_inputs``. In release/production modes they must be present.
+    """
+    from akta.errors import PolicyError
+
     policy_dir = Path(policy_dir)
     files: dict[str, str] = {}
     file_versions: dict[str, str] = {}
@@ -176,6 +440,15 @@ def build_effective_policy_manifest(
             file_versions[name] = _file_version(path, parsed)
         else:
             file_versions[name] = "unknown"
+
+    missing_mandatory, missing_optional = _partition_missing(missing)
+    if strict_mandatory is None:
+        strict_mandatory = effective_policy_strict_mode(integrity_mode=integrity_mode)
+    if strict_mandatory and missing_mandatory:
+        raise PolicyError(
+            "effective policy missing mandatory release inputs: "
+            + ", ".join(missing_mandatory)
+        )
 
     base_manifest = _load_manifest(policy_dir) or {}
     bundle_version = (
@@ -209,17 +482,18 @@ def build_effective_policy_manifest(
         "runtime_capability_mapping_hash": runtime_capability_mapping_hash,
         "compatibility_manifest_hash": compatibility_manifest_hash,
     })
-    # Canonical JSON for manifest_hash excludes the hash fields themselves.
+    # Canonical JSON for manifest_hash excludes hash + signature fields.
     # integrity_mode is recorded on the artifact but excluded from the hash so
     # HMAC vs unsigned load paths do not falsely flag provenance drift.
     body_for_hash = {
-        "manifest_version": "akta-effective-policy-v1.1",
+        "manifest_version": EFFECTIVE_MANIFEST_VERSION,
         "bundle_version": bundle_version,
         "signing_key_id": signing_key_id,
         "files": files,
         "file_versions": file_versions,
         "overlay_registry": overlay_registry,
-        "missing_optional_inputs": missing,
+        "missing_optional_inputs": missing_optional,
+        "missing_mandatory_inputs": missing_mandatory,
         "shared_contracts": shared_contracts,
         "schema_hashes": schema_hashes,
         "registry_hashes": registry_hashes,
@@ -254,14 +528,48 @@ def write_effective_policy_manifest(
     *,
     overlays_dir: str | Path | None = None,
     integrity_mode: str = "dev_unsigned",
+    sign: bool | None = None,
+    private_key: bytes | None = None,
+    hmac_key: bytes | str | None = None,
 ) -> Path:
-    """Write effective_policy_manifest.json under policy_dir."""
+    """Write effective_policy_manifest.json under policy_dir.
+
+    When ``sign`` is True, or signing material is available via args/env, the
+    stored manifest is signed. Production provenance requires a signed store.
+    """
     policy_dir = Path(policy_dir)
+    # Build without strict raise so regenerators can still write partial trees in
+    # non-production; verify/require enforce mandatory inputs in strict modes.
     manifest = build_effective_policy_manifest(
         policy_dir,
         overlays_dir=overlays_dir,
         integrity_mode=integrity_mode,
+        strict_mandatory=False,
     )
+    should_sign = sign
+    if should_sign is None:
+        should_sign = (
+            private_key is not None
+            or hmac_key is not None
+            or _resolve_ed25519_private_key() is not None
+            or _resolve_hmac_key_bytes() is not None
+            or effective_policy_strict_mode(integrity_mode=integrity_mode)
+        )
+    if should_sign:
+        if (
+            private_key is None
+            and hmac_key is None
+            and _resolve_ed25519_private_key() is None
+            and _resolve_hmac_key_bytes() is None
+        ):
+            # Strict mode without keys: leave unsigned; verify will fail closed.
+            pass
+        else:
+            manifest = sign_effective_policy_manifest(
+                manifest,
+                private_key=private_key,
+                hmac_key=hmac_key,
+            )
     out = policy_dir / EFFECTIVE_MANIFEST_FILENAME
     out.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return out
@@ -280,21 +588,51 @@ def verify_effective_policy_manifest(
     overlays_dir: str | Path | None = None,
     integrity_mode: str = "dev_unsigned",
     stored: dict[str, Any] | None = None,
+    require_signature: bool | None = None,
 ) -> dict[str, Any]:
-    """Rebuild effective policy from current files and compare to stored (P0-G).
+    """Rebuild effective policy from current files and compare to stored (P0-G / P1-15).
 
     Does NOT trust hashes copied from effective_policy_manifest.json without
-    recomputation. Rejects stale/tampered inputs.
+    recomputation. In release/production modes, a stored **signed** manifest is
+    required — recomputing an unsigned manifest is insufficient for provenance.
     """
+    from akta.errors import PolicyError
+
     policy_dir = Path(policy_dir)
-    recomputed = build_effective_policy_manifest(
-        policy_dir,
-        overlays_dir=overlays_dir,
-        integrity_mode=integrity_mode,
-    )
+    strict = effective_policy_strict_mode(integrity_mode=integrity_mode)
+    if require_signature is None:
+        require_signature = strict
+
+    try:
+        recomputed = build_effective_policy_manifest(
+            policy_dir,
+            overlays_dir=overlays_dir,
+            integrity_mode=integrity_mode,
+            strict_mandatory=strict,
+        )
+    except PolicyError as exc:
+        return {
+            "ok": False,
+            "recomputed": None,
+            "stored": stored if stored is not None else load_effective_policy_manifest(policy_dir),
+            "errors": [str(exc)],
+        }
+
     stored_manifest = stored if stored is not None else load_effective_policy_manifest(policy_dir)
     errors: list[str] = []
+
     if stored_manifest is None:
+        if require_signature or strict:
+            return {
+                "ok": False,
+                "recomputed": recomputed,
+                "stored": None,
+                "errors": [
+                    "no stored effective_policy_manifest; "
+                    "recomputing an unsigned manifest is insufficient for "
+                    "production provenance"
+                ],
+            }
         return {
             "ok": True,
             "recomputed": recomputed,
@@ -302,6 +640,35 @@ def verify_effective_policy_manifest(
             "errors": [],
             "note": "no stored effective_policy_manifest; recomputed accepted",
         }
+
+    if require_signature:
+        try:
+            verify_effective_policy_signature(stored_manifest, policy_dir=policy_dir)
+        except PolicyError as exc:
+            errors.append(str(exc))
+
+    # Mandatory inputs must never appear under missing_optional_inputs.
+    stored_optional = stored_manifest.get("missing_optional_inputs") or []
+    leaked = sorted(
+        name for name in stored_optional if name in MANDATORY_RELEASE_INPUTS
+    )
+    if leaked:
+        errors.append(
+            "mandatory release inputs incorrectly listed in missing_optional_inputs: "
+            + ", ".join(leaked)
+        )
+
+    stored_mandatory = stored_manifest.get("missing_mandatory_inputs") or []
+    if strict and stored_mandatory:
+        errors.append(
+            "stored effective policy missing mandatory release inputs: "
+            + ", ".join(str(x) for x in stored_mandatory)
+        )
+    if strict and recomputed.get("missing_mandatory_inputs"):
+        errors.append(
+            "recomputed effective policy missing mandatory release inputs: "
+            + ", ".join(str(x) for x in recomputed["missing_mandatory_inputs"])
+        )
 
     for key in ("effective_policy_hash", "manifest_hash", "bundle_version"):
         if stored_manifest.get(key) != recomputed.get(key):
@@ -331,19 +698,12 @@ def verify_effective_policy_manifest(
             errors.append(f"effective policy {key} drift")
 
     # Mutating critical inputs after manifest generation must fail.
-    critical = {
+    critical = set(MANDATORY_RELEASE_INPUTS) | {
         "default_tool_registry.yaml",
         "tool_to_requested_scope.yaml",
         "scope_grant_override_rules.yaml",
         "structured_action_schema.yaml",
-        "scope_compatibility_manifest.json",
         "release_keys.yaml",
-        "shared_contracts_pin.json",
-        "scope_grant_issuer_registry.yaml",
-        "scope_status_attestation_registry.yaml",
-        "scope_policy_manifest_signer_registry.yaml",
-        "release_pins.yaml",
-        "runtime_capability_mapping.yaml",
     }
     for name in critical:
         if name in stored_files and name in recomputed_files:
@@ -378,6 +738,10 @@ def require_effective_policy_integrity(
         raise PolicyError(
             "effective policy provenance failed: " + "; ".join(result["errors"])
         )
+    # Prefer the stored signed artifact in strict modes; recomputed alone is not
+    # production provenance.
+    if effective_policy_strict_mode(integrity_mode=integrity_mode) and result.get("stored"):
+        return result["stored"]
     return result["recomputed"]
 
 

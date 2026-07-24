@@ -124,10 +124,29 @@ def main() -> None:
             )
         except Exception:
             pass
+        # Prefer the same signing material used for policy_manifest.yaml so the
+        # stored effective-policy artifact is production-verifiable (P1-15).
+        signing_kwargs: dict = {}
+        ed_key = _load_signing_key()
+        use_ed25519 = (
+            algo == ED25519_ALGORITHM
+            or (args.algorithm == "auto" and ed_key is not None)
+            or args.algorithm == ED25519_ALGORITHM
+        )
+        if ed_key is not None and use_ed25519:
+            signing_kwargs["private_key"] = ed_key
+            signing_kwargs["sign"] = True
+        else:
+            hmac_raw = os.environ.get("AKTA_POLICY_HMAC_KEY", DEFAULT_HMAC_KEY)
+            signing_kwargs["hmac_key"] = (
+                hmac_raw.encode("utf-8") if isinstance(hmac_raw, str) else hmac_raw
+            )
+            signing_kwargs["sign"] = True
         effective_path = write_effective_policy_manifest(
             POLICY_DIR,
             overlays_dir=ROOT / "overlays",
             integrity_mode=integrity_mode,
+            **signing_kwargs,
         )
         print(f"Wrote {effective_path}")
 
