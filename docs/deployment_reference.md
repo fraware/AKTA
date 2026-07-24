@@ -9,7 +9,7 @@ Beta designation is retained; this is not a claim of production readiness for SC
 |------|------------|---------|
 | `development-local` | default / `AKTA_REST_MODE=development-local` | Loopback-friendly; in-memory artifact/audit stores; optional API key |
 | `pilot-service` | `AKTA_REST_MODE=pilot-service` (alias: `static-registry`) | Credential-digest identity registry + file (or CI sqlite) stores; non-institutional |
-| `institutional-service` | `AKTA_REST_MODE=institutional-service` | OIDC issuer+audience verification, PostgreSQL artifact/audit stores, trusted proxy, policy manifest verification |
+| `institutional-service` | `AKTA_REST_MODE=institutional-service` | OIDC issuer+audience+signature verification (JWKS or pinned key), claim-to-role policy, PostgreSQL artifact/audit stores, trusted proxy, policy manifest verification |
 
 `AKTA_REST_PRODUCTION=1` still means “require auth on loopback” inside development-local.
 It does **not** equal institutional-service identity. Static bearer-token equality alone is
@@ -24,8 +24,12 @@ rejected as institutional identity.
 
 ### Institutional-service requirements
 
-- OIDC issuer + audience (`AKTA_OIDC_ISSUER`, `AKTA_OIDC_AUDIENCE`) and JWKS URL (`AKTA_OIDC_JWKS_URL`)
-- Optional claim mapping: `AKTA_OIDC_TENANT_CLAIM`, `AKTA_OIDC_ROLE_CLAIM`, `AKTA_OIDC_SUBJECT_CLAIM`
+- OIDC issuer + audience: `AKTA_OIDC_ISSUER`, `AKTA_OIDC_AUDIENCE`
+- Signature material: `AKTA_OIDC_JWKS_URL` **or** a pinned public key (`AKTA_OIDC_PUBLIC_KEY` / `AKTA_OIDC_PUBLIC_KEY_FILE`)
+- Allowed JWT algorithms: `AKTA_OIDC_ALGORITHMS` (comma-separated; e.g. `RS256,ES256`)
+- Tenant / role claim names: `AKTA_OIDC_TENANT_CLAIM`, `AKTA_OIDC_ROLE_CLAIM` (optional subject: `AKTA_OIDC_SUBJECT_CLAIM`, default `sub`)
+- Local claim-to-role policy: `AKTA_OIDC_ROLE_MAP` (JSON object) or `AKTA_OIDC_ROLE_MAP_FILE` mapping IdP role claim values to AKTA roles (`evaluator`, `recorder`, `auditor`, `admin`). Role and permission claims are rejected without this policy; token-supplied permission lists are never trusted directly.
+- **Forbidden:** `AKTA_OIDC_ALLOW_UNVERIFIED` — if set, institutional startup fails. Signature verification cannot be disabled via environment; tests may inject an unverified decode path only through explicit dependency injection.
 - PostgreSQL DSN: `AKTA_REST_DATABASE_URL` (or `DATABASE_URL`)
 - TLS termination + `AKTA_REST_TRUSTED_PROXY=1`
 - Bounded request body (`AKTA_REST_MAX_BODY_BYTES`) and rate limiting (`AKTA_REST_RATE_LIMIT`)
