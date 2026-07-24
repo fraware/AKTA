@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://scientific-authorization.dev/schemas/scope_grant.v2.schema.json",
   "title": "SCOPE Grant v2",
-  "description": "Issuer-signed capability grant. Requires authorization_envelope. Beta/reference.",
+  "description": "Issuer-signed capability grant. Requires authorization_envelope and full source-chain hash bindings.",
   "type": "object",
   "required": [
     "grant_id",
@@ -32,21 +32,47 @@
     },
     "source": {
       "type": "object",
-      "required": ["packet_id", "decision_id", "akta_record_id"],
+      "required": [
+        "packet_id",
+        "packet_hash",
+        "decision_id",
+        "decision_hash",
+        "akta_record_id",
+        "akta_record_hash",
+        "review_trigger_id",
+        "review_trigger_hash"
+      ],
       "properties": {
-        "packet_id": { "type": "string" },
-        "decision_id": { "type": "string" },
-        "akta_record_id": { "type": "string" },
-        "session_id": { "type": "string" },
+        "packet_id": { "type": "string", "minLength": 1 },
+        "packet_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "decision_id": { "type": "string", "minLength": 1 },
+        "decision_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "akta_record_id": { "type": "string", "minLength": 1 },
+        "akta_record_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "review_trigger_id": { "type": "string", "minLength": 1 },
+        "review_trigger_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "session_id": { "type": "string", "minLength": 1 },
+        "session_resolution_id": { "type": "string", "minLength": 1 },
+        "session_resolution_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "resolution_hash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "Legacy alias for session_resolution_hash"
+        },
         "contributing_decision_ids": {
           "type": "array",
           "items": { "type": "string" },
           "minItems": 1
         },
+        "contributing_decision_hashes": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+          "minItems": 1
+        },
         "quorum_policy_hash": { "type": "string", "pattern": "^sha256:" },
-        "resolution_hash": { "type": "string", "pattern": "^sha256:" },
         "decision_signature_refs": { "type": "array" }
-      }
+      },
+      "additionalProperties": true
     },
     "authorization": {
       "type": "object",
