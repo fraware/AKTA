@@ -1,15 +1,18 @@
-"""Evidence independence invariants (AKTA 1.1 WS9).
+"""Evidence independence invariants (AKTA 1.2 P0-11).
 
 SCOPE grants may satisfy human_review / authorization requirements.
 They must never satisfy empirical evidence, convert weak evidence into strong
 evidence, erase evidence-based blocks, or override deployment-profile /
 domain-overlay / unknown-tool / unsupported-autonomous blocks.
+
+Decision-layer provenance is recorded as distinct objects. The final composed
+admissibility must never be written back into ``evidence_layer``.
 """
 
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import Any, Iterable, Mapping
 
 from akta.grant_override import (
     GRANT_SATISFIABLE_LAYERS,
@@ -17,14 +20,14 @@ from akta.grant_override import (
     grant_may_satisfy_evidence,
 )
 
-# Decision provenance layers recorded on every grant-aware decision.
+# Decision provenance layers recorded on every grant-aware decision (plan names).
 DECISION_PROVENANCE_LAYERS = (
-    "evidence",
-    "deployment_profile",
-    "domain_overlay",
-    "authorization",
-    "tool",
-    "final",
+    "evidence_layer",
+    "deployment_profile_layer",
+    "domain_overlay_layer",
+    "authorization_layer",
+    "tool_layer",
+    "final_composition",
 )
 
 # Outcomes a SCOPE grant must never upgrade away from.
@@ -52,6 +55,15 @@ PROTECTED_BLOCK_REASONS = frozenset(
     }
 )
 
+_EVIDENCE_SOURCES = frozenset({"evidence_rules", "evidence"})
+_PROFILE_SOURCES = frozenset({"deployment_profile"})
+_OVERLAY_SOURCES = frozenset(
+    {"domain_overlay", "domain_overlay_tool", "domain_overlay_hazard"}
+)
+_TOOL_SOURCES = frozenset(
+    {"tool_registry", "mandatory_tool_declaration", "unknown_consequential_tool"}
+)
+
 
 @dataclass(frozen=True)
 class LayerProvenance:
@@ -69,26 +81,56 @@ class LayerProvenance:
 
 @dataclass
 class DecisionLayerProvenance:
-    """Layered Decision provenance for evidence-independent composition."""
+    """Layered Decision provenance for evidence-independent composition.
 
-    evidence: LayerProvenance
-    deployment_profile: LayerProvenance
-    domain_overlay: LayerProvenance
-    authorization: LayerProvenance
-    tool: LayerProvenance
-    final: LayerProvenance
+    Field names match the 1.2 plan: evidence_layer through final_composition.
+    ``final_composition`` is the composed outcome and must not be copied into
+    ``evidence_layer``.
+    """
+
+    evidence_layer: LayerProvenance
+    deployment_profile_layer: LayerProvenance
+    domain_overlay_layer: LayerProvenance
+    authorization_layer: LayerProvenance
+    tool_layer: LayerProvenance
+    final_composition: LayerProvenance
     evidence_never_satisfied_by_grant: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "evidence": self.evidence.to_dict(),
-            "deployment_profile": self.deployment_profile.to_dict(),
-            "domain_overlay": self.domain_overlay.to_dict(),
-            "authorization": self.authorization.to_dict(),
-            "tool": self.tool.to_dict(),
-            "final": self.final.to_dict(),
+            "evidence_layer": self.evidence_layer.to_dict(),
+            "deployment_profile_layer": self.deployment_profile_layer.to_dict(),
+            "domain_overlay_layer": self.domain_overlay_layer.to_dict(),
+            "authorization_layer": self.authorization_layer.to_dict(),
+            "tool_layer": self.tool_layer.to_dict(),
+            "final_composition": self.final_composition.to_dict(),
             "evidence_never_satisfied_by_grant": self.evidence_never_satisfied_by_grant,
         }
+
+    # Legacy short-name accessors (pre-1.2 callers / tests).
+    @property
+    def evidence(self) -> LayerProvenance:
+        return self.evidence_layer
+
+    @property
+    def deployment_profile(self) -> LayerProvenance:
+        return self.deployment_profile_layer
+
+    @property
+    def domain_overlay(self) -> LayerProvenance:
+        return self.domain_overlay_layer
+
+    @property
+    def authorization(self) -> LayerProvenance:
+        return self.authorization_layer
+
+    @property
+    def tool(self) -> LayerProvenance:
+        return self.tool_layer
+
+    @property
+    def final(self) -> LayerProvenance:
+        return self.final_composition
 
 
 @dataclass
@@ -174,6 +216,33 @@ def grant_must_not_upgrade_block(
     return None
 
 
+def _first_layer(
+    layers: Iterable[Mapping[str, Any]],
+    sources: frozenset[str],
+) -> dict[str, Any]:
+    for layer in layers:
+        source = str(layer.get("source") or "")
+        if source in sources:
+            return dict(layer)
+    return {}
+
+
+def extract_layer_snapshots(
+    evaluation_layers: Iterable[Mapping[str, Any]] | None,
+) -> dict[str, dict[str, Any]]:
+    """Map evaluation layers into distinct provenance input snapshots.
+
+    Does not use final composed admissibility as the evidence snapshot.
+    """
+    layers = list(evaluation_layers or [])
+    return {
+        "evidence": _first_layer(layers, _EVIDENCE_SOURCES),
+        "deployment_profile": _first_layer(layers, _PROFILE_SOURCES),
+        "domain_overlay": _first_layer(layers, _OVERLAY_SOURCES),
+        "tool": _first_layer(layers, _TOOL_SOURCES),
+    }
+
+
 def build_decision_layer_provenance(
     *,
     evidence_decision: str | None = None,
@@ -190,48 +259,86 @@ def build_decision_layer_provenance(
     final_reason: str | None = None,
     scope_grant: dict[str, Any] | None = None,
     authorization_satisfied_by_grant: bool = False,
+    evaluation_layers: Iterable[Mapping[str, Any]] | None = None,
 ) -> DecisionLayerProvenance:
-    """Assemble layered Decision provenance; evidence never satisfied by grant."""
+    """Assemble layered Decision provenance; evidence never satisfied by grant.
+
+    When ``evaluation_layers`` is provided, per-layer decisions are taken from
+    those snapshots. ``final_decision`` is recorded only on ``final_composition``
+    and is never written into ``evidence_layer``.
+    """
     assert_grant_cannot_satisfy_evidence()
+    snapshots = extract_layer_snapshots(evaluation_layers)
+    ev = snapshots["evidence"]
+    prof = snapshots["deployment_profile"]
+    overlay = snapshots["domain_overlay"]
+    tool = snapshots["tool"]
+
+    # Prefer explicit args; fall back to evaluation layer snapshots — never to final.
+    evidence_decision = evidence_decision if evidence_decision is not None else ev.get("decision")
+    evidence_reason = evidence_reason if evidence_reason is not None else ev.get("reason")
+    deployment_profile_decision = (
+        deployment_profile_decision
+        if deployment_profile_decision is not None
+        else prof.get("decision")
+    )
+    deployment_profile_reason = (
+        deployment_profile_reason
+        if deployment_profile_reason is not None
+        else prof.get("reason")
+    )
+    domain_overlay_decision = (
+        domain_overlay_decision
+        if domain_overlay_decision is not None
+        else overlay.get("decision")
+    )
+    domain_overlay_reason = (
+        domain_overlay_reason
+        if domain_overlay_reason is not None
+        else overlay.get("reason")
+    )
+    tool_decision = tool_decision if tool_decision is not None else tool.get("decision")
+    tool_reason = tool_reason if tool_reason is not None else tool.get("reason")
+
     auth_by_grant = bool(authorization_satisfied_by_grant and scope_grant is not None)
     return DecisionLayerProvenance(
-        evidence=LayerProvenance(
-            layer="evidence",
+        evidence_layer=LayerProvenance(
+            layer="evidence_layer",
             decision=evidence_decision,
             reason=evidence_reason,
             satisfied_by_grant=False,
             source="evidence_rules",
         ),
-        deployment_profile=LayerProvenance(
-            layer="deployment_profile",
+        deployment_profile_layer=LayerProvenance(
+            layer="deployment_profile_layer",
             decision=deployment_profile_decision,
             reason=deployment_profile_reason,
             satisfied_by_grant=False,
             source="deployment_profiles",
         ),
-        domain_overlay=LayerProvenance(
-            layer="domain_overlay",
+        domain_overlay_layer=LayerProvenance(
+            layer="domain_overlay_layer",
             decision=domain_overlay_decision,
             reason=domain_overlay_reason,
             satisfied_by_grant=False,
             source="domain_overlay",
         ),
-        authorization=LayerProvenance(
-            layer="authorization",
+        authorization_layer=LayerProvenance(
+            layer="authorization_layer",
             decision=authorization_decision,
             reason=authorization_reason,
             satisfied_by_grant=auth_by_grant,
             source="scope_grant" if auth_by_grant else "authorization",
         ),
-        tool=LayerProvenance(
-            layer="tool",
+        tool_layer=LayerProvenance(
+            layer="tool_layer",
             decision=tool_decision,
             reason=tool_reason,
             satisfied_by_grant=False,
             source="tool_registry",
         ),
-        final=LayerProvenance(
-            layer="final",
+        final_composition=LayerProvenance(
+            layer="final_composition",
             decision=final_decision,
             reason=final_reason,
             satisfied_by_grant=False,
@@ -295,19 +402,29 @@ def check_evidence_independence(
                 "decision"
             ),
             domain_overlay_decision=(pre.get("domain_overlay") or {}).get("decision"),
-            authorization_decision="authorization_satisfied"
-            if scope_grant
-            else None,
+            authorization_decision="authorization_satisfied" if scope_grant else None,
             tool_decision=(pre.get("unknown_consequential_tool") or {}).get("decision"),
             final_decision=post_decision,
             final_reason=post_reason,
             scope_grant=scope_grant,
             authorization_satisfied_by_grant=True,
         )
-    if layers is not None and layers.evidence.satisfied_by_grant:
+    if layers is not None and layers.evidence_layer.satisfied_by_grant:
         violations.append("evidence layer marked satisfied_by_grant")
     if layers is not None and not layers.evidence_never_satisfied_by_grant:
         violations.append("layered provenance missing evidence_never_satisfied_by_grant")
+    if layers is not None:
+        # Invariant: final composition must not equal evidence_layer when only
+        # the final was supplied (detects accidental feed-back).
+        if (
+            layers.final_composition.decision is not None
+            and layers.evidence_layer.decision == layers.final_composition.decision
+            and layers.evidence_layer.reason == layers.final_composition.reason
+            and layers.evidence_layer.source == "composed"
+        ):
+            violations.append(
+                "evidence_layer must not be populated from final_composition"
+            )
 
     return EvidenceIndependenceResult(
         ok=not violations, violations=violations, layers=layers
@@ -320,20 +437,29 @@ def attach_layer_provenance_to_decision(
 ) -> dict[str, Any]:
     """Record layered provenance on a Decision dict (non-destructive copy)."""
     out = dict(decision)
-    out["decision_layer_provenance"] = provenance.to_dict()
+    prov_dict = provenance.to_dict()
+    out["decision_layer_provenance"] = prov_dict
     # Preserve legacy grant_layer_satisfaction shape when present.
     satisfaction = dict(out.get("grant_layer_satisfaction") or {})
     satisfaction["evidence_never_satisfied_by_grant"] = True
     satisfaction["decision_layers"] = {
-        name: provenance.to_dict()[name]
-        for name in (
-            "evidence",
-            "deployment_profile",
-            "domain_overlay",
-            "authorization",
-            "tool",
-            "final",
-        )
+        name: prov_dict[name] for name in DECISION_PROVENANCE_LAYERS
     }
     out["grant_layer_satisfaction"] = satisfaction
     return out
+
+
+def provenance_objects_for_authorization(
+    provenance: DecisionLayerProvenance,
+) -> dict[str, Any]:
+    """Distinct layer objects for authorization_provenance (never composed blob)."""
+    d = provenance.to_dict()
+    return {
+        "evidence_layer": d["evidence_layer"],
+        "deployment_profile_layer": d["deployment_profile_layer"],
+        "domain_overlay_layer": d["domain_overlay_layer"],
+        "authorization_layer": d["authorization_layer"],
+        "tool_layer": d["tool_layer"],
+        "final_composition": d["final_composition"],
+        "evidence_never_satisfied_by_grant": d["evidence_never_satisfied_by_grant"],
+    }
