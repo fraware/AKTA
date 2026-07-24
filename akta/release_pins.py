@@ -9,11 +9,23 @@ from typing import Any
 
 import yaml
 
-from akta.sibling_repos import checkout_matches_pin, discover_sibling, git_rev_parse_head
+from akta.sibling_repos import (
+    checkout_matches_pin,
+    discover_sibling,
+    git_rev_parse_head,
+    git_submodule_errors,
+    git_tag_resolves_to,
+    git_working_tree_clean,
+)
+from akta.shared_contracts import (
+    _is_placeholder_pin_value,
+    pin_is_complete_for_release,
+)
 
 _AKTA_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_PINS_PATH = _AKTA_ROOT / "policy" / "release_pins.yaml"
 DEFAULT_SHARED_PIN = _AKTA_ROOT / "policy" / "shared_contracts_pin.json"
+DEFAULT_COMPAT_MANIFEST = _AKTA_ROOT / "policy" / "scope_compatibility_manifest.json"
 
 INSTITUTIONAL_REJECTS = frozenset(
     {
@@ -27,8 +39,22 @@ INSTITUTIONAL_REJECTS = frozenset(
         "empty_issuer_trust_registry",
         "unpinned_or_placeholder_required_sibling",
         "sibling_checkout_sha_mismatch",
+        "sibling_working_tree_dirty",
+        "sibling_tag_mismatch",
+        "sibling_submodule_mismatch",
         "shared_contracts_release_hash_mismatch",
+        "shared_contracts_pin_incomplete",
+        "compat_manifest_pin_mismatch",
     }
+)
+
+_SHARED_PIN_COMPARE_FIELDS = (
+    "package_version",
+    "wheel_sha256",
+    "source_archive_sha256",
+    "release_manifest_sha256",
+    "release_signer",
+    "release_artifact_hash",
 )
 
 
@@ -48,12 +74,11 @@ def _is_placeholder_commit(commit: Any) -> bool:
 
 
 def _shared_contracts_pin_errors(pins: dict[str, Any]) -> list[str]:
-    """Verify release_pins shared_contracts hash matches policy pin file."""
+    """Verify release_pins shared_contracts fields match policy pin file."""
     errors: list[str] = []
     declared = pins.get("shared_contracts") or {}
     if not isinstance(declared, dict) or not declared:
         return errors
-    expected_hash = str(declared.get("release_artifact_hash") or "").strip()
     pin_file = Path(declared.get("pin_file") or DEFAULT_SHARED_PIN)
     if not pin_file.is_absolute():
         pin_file = _AKTA_ROOT / pin_file
@@ -68,18 +93,73 @@ def _shared_contracts_pin_errors(pins: dict[str, Any]) -> list[str]:
     except (OSError, json.JSONDecodeError) as exc:
         errors.append(f"shared_contracts_release_hash_mismatch: unreadable pin ({exc})")
         return errors
-    actual = str(pin_data.get("release_artifact_hash") or "").strip()
-    if expected_hash and actual and expected_hash != actual:
+
+    for field in _SHARED_PIN_COMPARE_FIELDS:
+        expected = str(declared.get(field) or "").strip()
+        actual = str(pin_data.get(field) or "").strip()
+        if expected and actual and expected != actual:
+            errors.append(
+                "shared_contracts_release_hash_mismatch: "
+                f"{field} release_pins={expected!r} shared_contracts_pin={actual!r}"
+            )
+
+    # Institutional profile fail-closes on incomplete wheel/manifest/signer pins.
+    incomplete = pin_is_complete_for_release(pin_data)
+    for item in incomplete:
+        if item not in errors:
+            errors.append(item)
+    # Also treat release_pins-declared placeholders as incomplete.
+    for field in (
+        "wheel_sha256",
+        "source_archive_sha256",
+        "release_manifest_sha256",
+        "release_signer",
+    ):
+        if _is_placeholder_pin_value(declared.get(field)):
+            marker = f"shared_contracts_pin_incomplete:{field}"
+            if marker not in errors:
+                errors.append(marker)
+    return errors
+
+
+def _compat_manifest_pin_errors(pins: dict[str, Any]) -> list[str]:
+    """Ensure scope compatibility manifest agrees with release pins."""
+    errors: list[str] = []
+    manifest_path = DEFAULT_COMPAT_MANIFEST
+    if not manifest_path.is_file():
+        errors.append("compat_manifest_pin_mismatch: missing scope_compatibility_manifest.json")
+        return errors
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        errors.append(f"compat_manifest_pin_mismatch: unreadable ({exc})")
+        return errors
+
+    shared = pins.get("shared_contracts") or {}
+    pin_ver = str(shared.get("package_version") or "").strip()
+    man_ver = str(manifest.get("shared_contracts_package_version") or "").strip()
+    if pin_ver and man_ver and pin_ver != man_ver:
         errors.append(
-            "shared_contracts_release_hash_mismatch: "
-            f"release_pins={expected_hash!r} shared_contracts_pin={actual!r}"
+            "compat_manifest_pin_mismatch: shared_contracts_package_version "
+            f"pins={pin_ver!r} manifest={man_ver!r}"
         )
-    pkg_ver = str(declared.get("package_version") or "")
-    pin_ver = str(pin_data.get("package_version") or "")
-    if pkg_ver and pin_ver and pkg_ver != pin_ver:
+
+    target = pins.get("target_ecosystem") or {}
+    akta_target = str(target.get("akta") or "").strip()
+    man_akta = str(manifest.get("akta_package_version") or "").strip()
+    if akta_target and man_akta and akta_target != man_akta:
         errors.append(
-            "shared_contracts_release_hash_mismatch: package_version "
-            f"release_pins={pkg_ver!r} pin={pin_ver!r}"
+            "compat_manifest_pin_mismatch: akta_package_version "
+            f"pins={akta_target!r} manifest={man_akta!r}"
+        )
+
+    # When pins declare a wheel hash, compat manifest must echo it when present.
+    wheel = str(shared.get("wheel_sha256") or "").strip()
+    man_wheel = str(manifest.get("shared_contracts_wheel_sha256") or "").strip()
+    if wheel and man_wheel and wheel != man_wheel:
+        errors.append(
+            "compat_manifest_pin_mismatch: shared_contracts_wheel_sha256 "
+            f"pins={wheel!r} manifest={man_wheel!r}"
         )
     return errors
 
@@ -89,18 +169,31 @@ def component_pin_errors(
     *,
     require_checkouts: bool = False,
     require_sha_match: bool | None = None,
+    require_clean_tree: bool | None = None,
+    require_tag_match: bool | None = None,
+    require_submodules: bool | None = None,
 ) -> list[str]:
     """Return fail-closed errors for institutional pin integrity.
 
     When checkouts are required (or ``require_sha_match``), compare
     ``git rev-parse HEAD`` to the pinned commit — directory existence alone
-    is insufficient (WS12).
+    is insufficient (WS12). Clean tree, tag resolution, and submodule
+    consistency are mandatory whenever checkouts are required unless
+    explicitly disabled.
     """
     data = pins or load_release_pins()
     errors: list[str] = []
     errors.extend(_shared_contracts_pin_errors(data))
+    errors.extend(_compat_manifest_pin_errors(data))
     if require_sha_match is None:
         require_sha_match = require_checkouts
+    if require_clean_tree is None:
+        require_clean_tree = require_checkouts
+    if require_tag_match is None:
+        require_tag_match = require_checkouts
+    if require_submodules is None:
+        require_submodules = require_checkouts
+
     components = data.get("components") or {}
     for name, entry in components.items():
         if not isinstance(entry, dict):
@@ -121,7 +214,9 @@ def component_pin_errors(
             if found is None and not os.environ.get(env_var, "").strip():
                 errors.append(f"missing_required_sibling_checkout:{name} ({env_var})")
                 continue
-        if require_sha_match and required and found is not None and not _is_placeholder_commit(commit):
+        if found is None or _is_placeholder_commit(commit):
+            continue
+        if require_sha_match and required:
             head = git_rev_parse_head(found)
             if head is None:
                 errors.append(
@@ -133,6 +228,17 @@ def component_pin_errors(
                     f"sibling_checkout_sha_mismatch:{name} "
                     f"pinned={commit} head={head}"
                 )
+        if require_clean_tree and required and not git_working_tree_clean(found):
+            errors.append(f"sibling_working_tree_dirty:{name}")
+        tag = entry.get("tag")
+        if require_tag_match and required and tag not in (None, "", "null"):
+            if not git_tag_resolves_to(found, str(tag), str(commit)):
+                errors.append(
+                    f"sibling_tag_mismatch:{name} tag={tag} pinned={commit}"
+                )
+        if require_submodules and required:
+            for sub_err in git_submodule_errors(found):
+                errors.append(f"sibling_submodule_mismatch:{name}:{sub_err}")
     return errors
 
 
@@ -142,6 +248,9 @@ def institutional_release_gate(
     flags: dict[str, bool] | None = None,
     require_checkouts: bool = True,
     require_sha_match: bool | None = None,
+    require_clean_tree: bool | None = None,
+    require_tag_match: bool | None = None,
+    require_submodules: bool | None = None,
 ) -> dict[str, Any]:
     """Evaluate institutional release rejects; fail closed on any violation.
 
@@ -156,6 +265,9 @@ def institutional_release_gate(
             data,
             require_checkouts=require_checkouts,
             require_sha_match=require_sha_match,
+            require_clean_tree=require_clean_tree,
+            require_tag_match=require_tag_match,
+            require_submodules=require_submodules,
         )
     )
 
@@ -203,6 +315,10 @@ def pins_for_release_report(pins: dict[str, Any] | None = None) -> dict[str, Any
     if isinstance(shared, dict):
         report["shared_contracts"] = {
             "package_version": shared.get("package_version"),
+            "wheel_sha256": shared.get("wheel_sha256"),
+            "source_archive_sha256": shared.get("source_archive_sha256"),
+            "release_manifest_sha256": shared.get("release_manifest_sha256"),
+            "release_signer": shared.get("release_signer"),
             "release_artifact_hash": shared.get("release_artifact_hash"),
         }
     return report
