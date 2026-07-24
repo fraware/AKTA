@@ -13,6 +13,22 @@ pytest tests/ -v
 
 Full local gate: `make ci`. Do not commit regenerable `dist/` outputs, `__pycache__/`, or Hypothesis caches (see `.gitignore`).
 
+## First pull request
+
+New here? Use this short checklist for a first small contribution:
+
+1. Pick a [`good first issue`](https://github.com/fraware/AKTA/labels/good%20first%20issue) / [`help wanted`](https://github.com/fraware/AKTA/labels/help%20wanted) issue, or an equivalent tiny docs/test fix.
+2. Skim [docs/adr/0001-admissibility-boundary.md](docs/adr/0001-admissibility-boundary.md) and [docs/limitations.md](docs/limitations.md). Preserve the non-claims: admissibility is not scientific truth certification, and AKTA does not replace SCOPE human review.
+3. Disambiguate `akta gate --mode` (**PilotMode**) from REST deployment `--mode` — see [docs/adr/0002-pilot-modes.md](docs/adr/0002-pilot-modes.md).
+4. Local commands from a fresh clone:
+   - `pip install -e ".[dev,security]"`
+   - `pytest tests/ -v`
+   - If you touch AS surfaces: `pytest tests/test_as*.py -v`
+5. Keep the PR focused. Do not commit regenerable `dist/` outputs or Hypothesis/cache noise.
+6. For orientation (without duplicating them here): [docs/operator_pilot_guide.md](docs/operator_pilot_guide.md) and [docs/as_baseline.md](docs/as_baseline.md).
+
+Then follow the pull-request guidelines below.
+
 ## Pull request guidelines
 
 1. Keep changes focused on scientific action admissibility — avoid scope creep into evidence retrieval, proof kernels, or release packaging.

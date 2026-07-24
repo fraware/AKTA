@@ -180,7 +180,7 @@ make ci
 | Adapters (VSA, SCOPE, PF, PCS, REST, MCP) | `adapters/` |
 | Documentation | `docs/` — especially [integration guide](docs/integration_guide.md) and [scientific action admissibility](docs/scientific_action_admissibility.md) |
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) for pull-request expectations, [GOVERNANCE.md](GOVERNANCE.md) for protocol stewardship, and [docs/RELEASE.md](docs/RELEASE.md) for release verification. Be respectful, precise, and evidence-oriented — AKTA governs claim-to-action transitions, and contributions should preserve that boundary.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) (including the First pull request checklist) for pull-request expectations, [GOVERNANCE.md](GOVERNANCE.md) for protocol stewardship, and [docs/RELEASE.md](docs/RELEASE.md) for release verification. Be respectful, precise, and evidence-oriented — AKTA governs claim-to-action transitions, and contributions should preserve that boundary.
 
 ---
 
