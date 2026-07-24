@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scientific-authorization.dev/schemas/scope_grant_status_attestation.v1.schema.json",
+  "title": "SCOPE Grant Status Attestation v1",
+  "description": "Issuer-signed grant status attestation bound to canonical grant hash.",
+  "type": "object",
+  "required": [
+    "status_version",
+    "grant_id",
+    "grant_hash",
+    "status",
+    "checked_at",
+    "use_count",
+    "status_hash",
+    "status_signature",
+    "signature_algorithm"
+  ],
+  "properties": {
+    "status_version": {
+      "type": "string",
+      "const": "scope-grant-status-v1"
+    },
+    "grant_id": { "type": "string", "minLength": 1 },
+    "grant_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "exhausted",
+        "expired",
+        "revoked",
+        "superseded",
+        "not_found",
+        "invalid"
+      ]
+    },
+    "checked_at": { "type": "string", "minLength": 1 },
+    "trust_root_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "audience": { "type": "string" },
+    "use_count": { "type": "integer", "minimum": 0 },
+    "maximum_uses": { "type": ["integer", "null"], "minimum": 0 },
+    "remaining_uses": { "type": ["integer", "null"], "minimum": 0 },
+    "cardinality_remaining": { "type": ["integer", "null"], "minimum": 0 },
+    "last_use_event_id": { "type": ["string", "null"] },
+    "last_use_sequence": { "type": ["integer", "null"], "minimum": 0 },
+    "flags": { "type": "object" },
+    "issuer": {
+      "type": "object",
+      "properties": {
+        "issuer_identity": { "type": "string" },
+        "issuer_key_id": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "status_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "signed_payload_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "status_signature": { "type": "string", "minLength": 1 },
+    "signature_algorithm": {
+      "type": "string",
+      "const": "Ed25519"
+    }
+  },
+  "additionalProperties": false
+}

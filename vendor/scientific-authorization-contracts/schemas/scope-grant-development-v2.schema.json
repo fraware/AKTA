@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scientific-authorization.dev/schemas/scope-grant-development-v2.schema.json",
+  "title": "SCOPE Grant Development Profile v2",
+  "description": "Permissive development/local grant profile. Not authoritative for institutional production. Unsigned grants are allowed when grant_hash is present.",
+  "type": "object",
+  "required": [
+    "grant_id",
+    "grant_version",
+    "created_at",
+    "source",
+    "authorization",
+    "constraints",
+    "expiration",
+    "provenance",
+    "grant_hash"
+  ],
+  "properties": {
+    "grant_id": { "type": "string" },
+    "grant_version": { "type": "string" },
+    "created_at": { "type": "string" },
+    "source": {
+      "type": "object",
+      "required": ["packet_id", "decision_id", "akta_record_id"],
+      "properties": {
+        "packet_id": { "type": "string" },
+        "decision_id": { "type": "string" },
+        "akta_record_id": { "type": "string" },
+        "session_id": { "type": "string" },
+        "contributing_decision_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "quorum_policy_hash": { "type": "string", "pattern": "^sha256:" },
+        "resolution_hash": { "type": "string", "pattern": "^sha256:" },
+        "decision_signature_refs": { "type": "array" }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "required": ["allowed_tools", "blocked_tools"],
+      "properties": {
+        "authorization_envelope": {
+          "type": "object",
+          "description": "Primary capability envelope; required for production grants"
+        },
+        "approved_scope": {
+          "type": "string",
+          "description": "Deprecated display/migration field only"
+        },
+        "approved_actions": { "type": "array", "items": { "type": "string" } },
+        "allowed_tools": { "type": "array", "items": { "type": "string" } },
+        "blocked_tools": { "type": "array", "items": { "type": "string" } },
+        "max_responsibility_level": { "type": "string" }
+      }
+    },
+    "authorization_schema_version": {
+      "type": "string",
+      "const": "scientific-authorization-envelope-v2"
+    },
+    "authorization_schema_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "issuer": {
+      "type": "object",
+      "properties": {
+        "issuer_identity": { "type": "string" },
+        "issuer_key_id": { "type": ["string", "null"] }
+      }
+    },
+    "grant_signature": { "type": "string" },
+    "signed_payload_hash": { "type": "string", "pattern": "^sha256:" },
+    "signature_algorithm": {
+      "type": "string",
+      "description": "Issuer signature algorithm; production grants use Ed25519"
+    },
+    "constraints": { "type": "object" },
+    "expiration": { "type": "object" },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "scope_policy_version",
+        "scope_policy_hash",
+        "reviewer_key_registry_version",
+        "reviewer_key_registry_hash",
+        "scope_trust_root_hash",
+        "identity_assurance_level",
+        "identity_source",
+        "role_resolution_source",
+        "signing_assurance_level",
+        "authority_checks"
+      ],
+      "properties": {
+        "scope_policy_version": { "type": "string" },
+        "scope_policy_hash": { "type": "string", "pattern": "^sha256:" },
+        "akta_policy_hash": { "type": ["string", "null"] },
+        "reviewer_role_policy_hash": { "type": "string", "pattern": "^sha256:" },
+        "reviewer_key_registry_version": { "type": "string" },
+        "reviewer_key_registry_hash": { "type": "string", "pattern": "^sha256:" },
+        "scope_trust_root_hash": { "type": "string", "pattern": "^sha256:" },
+        "authorization_manifest_hash": { "type": "string", "pattern": "^sha256:" },
+        "identity_assurance_level": {
+          "type": "string",
+          "enum": ["IAL0", "IAL1", "IAL2", "IAL3", "IAL4"]
+        },
+        "identity_source": {
+          "type": "string",
+          "enum": [
+            "caller_json",
+            "local_signed_key",
+            "oidc_jwt",
+            "saml_assertion",
+            "service_identity"
+          ]
+        },
+        "role_resolution_source": {
+          "type": "string",
+          "enum": ["caller_supplied", "local_signed_key", "oidc_verified", "org_rbac"]
+        },
+        "delegation_id": { "type": "string" },
+        "identity_claim_hash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "signing_assurance_level": {
+          "type": "string",
+          "enum": ["SAL0", "SAL1", "SAL2", "SAL3", "SAL4"]
+        },
+        "authority_checks": {
+          "type": "object",
+          "required": [
+            "rbac_enforced",
+            "rbac_role_valid",
+            "scope_role_valid",
+            "scope_approval_valid",
+            "delegation_id"
+          ],
+          "properties": {
+            "rbac_enforced": { "type": "boolean" },
+            "rbac_role_valid": { "type": "boolean" },
+            "scope_role_valid": { "type": "boolean" },
+            "scope_approval_valid": { "type": "boolean" },
+            "delegation_id": { "type": ["string", "null"] }
+          },
+          "additionalProperties": false
+        },
+        "contributing_identity_assurance_levels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["decision_id", "reviewer_id", "identity_assurance_level"],
+            "properties": {
+              "decision_id": { "type": "string" },
+              "reviewer_id": { "type": "string" },
+              "reviewer_role": { "type": "string" },
+              "identity_assurance_level": {
+                "type": "string",
+                "enum": ["IAL0", "IAL1", "IAL2", "IAL3", "IAL4"]
+              },
+              "role_resolution_source": { "type": "string" },
+              "identity_source": { "type": "string" }
+            }
+          }
+        },
+        "contributing_authority_checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["decision_id", "reviewer_id", "authority_checks"],
+            "properties": {
+              "decision_id": { "type": "string" },
+              "reviewer_id": { "type": "string" },
+              "authority_checks": { "type": "object" }
+            }
+          }
+        },
+        "minimum_identity_assurance_level": {
+          "type": "string",
+          "enum": ["IAL0", "IAL1", "IAL2", "IAL3", "IAL4"]
+        },
+        "minimum_signing_assurance_level": {
+          "type": "string",
+          "enum": ["SAL0", "SAL1", "SAL2", "SAL3", "SAL4"]
+        },
+        "veto_roles_applied": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "quorum_policy_hash": {
+          "type": "string",
+          "pattern": "^sha256:"
+        }
+      },
+      "additionalProperties": true
+    },
+    "grant_hash": { "type": "string", "pattern": "^sha256:" },
+    "session_resolution_artifact": { "type": "object" },
+    "contributing_signatures": { "type": "array" },
+    "authorization_manifest_hash": { "type": "string", "pattern": "^sha256:" },
+    "authorization_manifest_signing_key_id": { "type": "string" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "properties": {
+              "session_id": { "type": "string", "minLength": 1 }
+            },
+            "required": ["session_id"]
+          }
+        },
+        "required": ["source"]
+      },
+      "then": {
+        "properties": {
+          "source": {
+            "required": [
+              "session_id",
+              "contributing_decision_ids",
+              "quorum_policy_hash",
+              "resolution_hash"
+            ]
+          },
+          "provenance": {
+            "required": [
+              "contributing_identity_assurance_levels",
+              "contributing_authority_checks",
+              "minimum_identity_assurance_level",
+              "minimum_signing_assurance_level",
+              "veto_roles_applied",
+              "quorum_policy_hash"
+            ]
+          }
+        },
+        "required": ["provenance"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "provenance": {
+            "properties": {
+              "contributing_identity_assurance_levels": {
+                "type": "array",
+                "minItems": 1
+              }
+            },
+            "required": ["contributing_identity_assurance_levels"]
+          }
+        },
+        "required": ["provenance"]
+      },
+      "then": {
+        "properties": {
+          "provenance": {
+            "required": [
+              "contributing_identity_assurance_levels",
+              "contributing_authority_checks",
+              "minimum_identity_assurance_level",
+              "minimum_signing_assurance_level",
+              "veto_roles_applied",
+              "quorum_policy_hash"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true
+}

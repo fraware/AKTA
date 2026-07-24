@@ -1,0 +1,23 @@
+{
+  "vocabulary_version": "scientific-authorization-vocab-v1",
+  "description": "Migration table from legacy scalar approval scopes to capability envelopes. Legacy scalars are forbidden as authorization drivers in institutional/production profiles.",
+  "mappings": {
+    "no_action": {"family": "interpretation", "operation": "clarify"},
+    "clarification_only": {"family": "interpretation", "operation": "clarify"},
+    "hypothesis_discussion": {"family": "interpretation", "operation": "discuss"},
+    "evidence_interpretation_only": {"family": "interpretation", "operation": "interpret"},
+    "draft_recommendation": {"family": "recommendation", "operation": "draft"},
+    "protocol_draft": {"family": "protocol", "operation": "draft"},
+    "protocol_diff_review": {"family": "protocol", "operation": "diff_review"},
+    "single_validation_plan": {"family": "experiment_plan", "operation": "plan"},
+    "single_validation_run_draft": {"family": "experiment_plan", "operation": "run_draft"},
+    "active_protocol_update": {"family": "protocol", "operation": "update_active"},
+    "single_run_queue_priority": {"family": "queue", "operation": "single_run_priority"},
+    "bounded_batch_priority": {"family": "queue", "operation": "bounded_batch_priority"},
+    "tool_permission_escalation": {"family": "permissions", "operation": "escalate"},
+    "execution_payload_preparation": {"family": "execution", "operation": "prepare_payload"},
+    "robot_queue_submission": {"family": "queue", "operation": "robot_submit"},
+    "publication_claim": {"family": "publication", "operation": "claim"},
+    "scientific_memory_import": {"family": "memory", "operation": "import"}
+  }
+}

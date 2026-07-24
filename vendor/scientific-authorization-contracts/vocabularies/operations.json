@@ -1,21 +1,41 @@
 {
-  "vocabulary_version": "scientific-authorization-vocab-v1",
-  "description": "Explicit per-family operation partial orders. Rank increases with privilege. Cross-family operations are incomparable.",
+  "vocabulary_version": "scientific-authorization-vocab-v2",
+  "description": "Explicit per-family operation covers DAGs. Privilege is reachability in the covers graph (reflexive). Cross-family operations are incomparable. Siblings without a path are incomparable.",
   "families": {
     "interpretation": {
-      "order": ["clarify", "discuss", "interpret"]
+      "operations": ["clarify", "discuss", "interpret"],
+      "covers": {
+        "clarify": [],
+        "discuss": ["clarify"],
+        "interpret": ["discuss"]
+      }
     },
     "recommendation": {
-      "order": ["draft"]
+      "operations": ["draft"],
+      "covers": {
+        "draft": []
+      }
     },
     "protocol": {
-      "order": ["view", "annotate", "draft", "diff_review", "propose_update", "update_active"]
+      "operations": ["view", "annotate", "draft", "diff_review", "propose_update", "update_active"],
+      "covers": {
+        "view": [],
+        "annotate": ["view"],
+        "draft": ["annotate"],
+        "diff_review": ["draft"],
+        "propose_update": ["diff_review"],
+        "update_active": ["propose_update"]
+      }
     },
     "experiment_plan": {
-      "order": ["plan", "run_draft"]
+      "operations": ["plan", "run_draft"],
+      "covers": {
+        "plan": [],
+        "run_draft": ["plan"]
+      }
     },
     "queue": {
-      "order": [
+      "operations": [
         "inspect",
         "propose_priority",
         "single_run_priority",
@@ -23,24 +43,48 @@
         "set_priority",
         "submit_run",
         "robot_submit"
-      ]
+      ],
+      "covers": {
+        "inspect": [],
+        "propose_priority": ["inspect"],
+        "single_run_priority": ["propose_priority"],
+        "bounded_batch_priority": ["single_run_priority"],
+        "set_priority": ["bounded_batch_priority"],
+        "submit_run": ["inspect"],
+        "robot_submit": ["submit_run", "inspect"]
+      }
     },
     "permissions": {
-      "order": ["escalate"]
+      "operations": ["escalate"],
+      "covers": {
+        "escalate": []
+      }
     },
     "execution": {
-      "order": [
+      "operations": [
         "prepare_payload",
         "validate_payload",
         "authorize_execution",
         "execute"
-      ]
+      ],
+      "covers": {
+        "prepare_payload": [],
+        "validate_payload": ["prepare_payload"],
+        "authorize_execution": ["validate_payload"],
+        "execute": ["authorize_execution"]
+      }
     },
     "publication": {
-      "order": ["claim"]
+      "operations": ["claim"],
+      "covers": {
+        "claim": []
+      }
     },
     "memory": {
-      "order": ["import"]
+      "operations": ["import"],
+      "covers": {
+        "import": []
+      }
     }
   }
 }

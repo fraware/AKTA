@@ -1,0 +1,41 @@
+{
+  "name": "draft_narrower_than_update_active",
+  "expect": "narrower",
+  "inner": {
+    "envelope_version": "scientific-authorization-envelope-v2",
+    "capability_id": "CAP-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "family": "protocol",
+    "operation": "draft",
+    "target": { "type": "protocol", "protocol_id": "p1" },
+    "allowed_tools": ["protocol_editor.draft_change"],
+    "blocked_tools": ["robot_queue.submit", "protocol_editor.update_active_protocol"],
+    "cardinality": { "mode": "single", "maximum_uses": 1 },
+    "environment": { "tenant_id": "t1" },
+    "responsibility_ceiling": "R3_recommendation",
+    "constraints": {},
+    "expiration": {
+      "absolute_expiration": "2026-01-01T00:00:00Z",
+      "expires_after": ["protocol_version_change", "policy_version_change"]
+    }
+  },
+  "outer": {
+    "envelope_version": "scientific-authorization-envelope-v2",
+    "capability_id": "CAP-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "family": "protocol",
+    "operation": "update_active",
+    "target": { "type": "protocol", "protocol_id": "p1" },
+    "allowed_tools": [
+      "protocol_editor.draft_change",
+      "protocol_editor.update_active_protocol"
+    ],
+    "blocked_tools": ["robot_queue.submit"],
+    "cardinality": { "mode": "bounded", "maximum_uses": 5 },
+    "environment": { "tenant_id": "t1" },
+    "responsibility_ceiling": "R4_methodological_modification",
+    "constraints": {},
+    "expiration": {
+      "absolute_expiration": "2027-01-01T00:00:00Z",
+      "expires_after": ["protocol_version_change", "policy_version_change"]
+    }
+  }
+}

@@ -1,16 +1,16 @@
 [build-system]
-requires = ["hatchling>=1.25"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "scientific-authorization-contracts"
-version = "2.1.0"
-description = "Shared scientific authorization envelope, grant, and status contracts for SCOPE and AKTA"
+version = "2.2.0"
+description = "Shared scientific authorization envelope schemas, vocabularies, and algebra"
 readme = "README.md"
-requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "SCOPE/AKTA Contributors" }]
-keywords = ["authorization", "scientific-action", "capability-envelope"]
+requires-python = ">=3.10"
+authors = [{ name = "SCOPE Contributors" }]
+keywords = ["authorization", "scientific-review", "scope", "akta"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
@@ -19,28 +19,21 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
 ]
-dependencies = [
-    "jsonschema>=4.20",
-]
+dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/scientific-authorization/contracts"
+Homepage = "https://github.com/fraware/SCOPE"
+Repository = "https://github.com/fraware/SCOPE"
 
-[tool.hatch.build.targets.wheel]
-packages = ["python/scientific_authorization_contracts"]
+[tool.setuptools.packages.find]
+where = ["src"]
 
-[tool.hatch.build.targets.wheel.force-include]
-"schemas" = "scientific_authorization_contracts/schemas"
-"vocabularies" = "scientific_authorization_contracts/vocabularies"
-"conformance" = "scientific_authorization_contracts/conformance"
-
-[tool.hatch.build.targets.sdist]
-include = [
-    "python/scientific_authorization_contracts",
-    "schemas",
-    "vocabularies",
-    "conformance",
-    "README.md",
-    "pyproject.toml",
+[tool.setuptools.package-data]
+scientific_authorization_contracts = [
+    "schemas/*.json",
+    "vocabularies/*.json",
+    "conformance/**/*.json",
+    "py.typed",
 ]

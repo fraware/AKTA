@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scientific-authorization.dev/schemas/authorization_manifest.v1.schema.json",
+  "title": "Scientific Authorization Manifest v1",
+  "description": "Shared signed authorization trust manifest consumed by SCOPE and AKTA.",
+  "type": "object",
+  "required": [
+    "manifest_version",
+    "shared_contract",
+    "schemas",
+    "vocabularies",
+    "policies",
+    "registries",
+    "manifest_hash"
+  ],
+  "properties": {
+    "manifest_version": {
+      "type": "string",
+      "const": "scientific-authorization-manifest-v1"
+    },
+    "created_at": { "type": "string" },
+    "shared_contract": {
+      "type": "object",
+      "required": ["package", "version", "package_hash"],
+      "properties": {
+        "package": { "type": "string", "const": "scientific-authorization-contracts" },
+        "version": { "type": "string" },
+        "package_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "envelope_schema_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "grant_schema_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "grant_status_schema_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "operations_vocab_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "constraint_types_vocab_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "capability_families_vocab_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "target_types_vocab_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "expiration_events_vocab_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "runtime_evaluator_registry_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+      },
+      "additionalProperties": true
+    },
+    "schemas": { "type": "object" },
+    "vocabularies": { "type": "object" },
+    "policies": { "type": "object" },
+    "registries": { "type": "object" },
+    "issuer": {
+      "type": "object",
+      "properties": {
+        "issuer_identity": { "type": "string" },
+        "issuer_key_id": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "manifest_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "signed_payload_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "manifest_signature": { "type": "string", "minLength": 1 },
+    "signature_algorithm": {
+      "type": "string",
+      "const": "Ed25519"
+    }
+  },
+  "additionalProperties": true
+}

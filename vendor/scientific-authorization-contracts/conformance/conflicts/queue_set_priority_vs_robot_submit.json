@@ -1,0 +1,31 @@
+{
+  "id": "queue_set_priority_vs_robot_submit_incomparable",
+  "description": "queue set_priority and robot_submit are incomparable siblings (no covers path either way)",
+  "left": {
+    "envelope_version": "scientific-authorization-envelope-v2",
+    "family": "queue",
+    "operation": "set_priority",
+    "allowed_tools": ["queue.set_priority"],
+    "blocked_tools": [],
+    "cardinality": {"mode": "unbounded"},
+    "environment": {},
+    "responsibility_ceiling": "R3_operational_control",
+    "constraints": {},
+    "expiration": {},
+    "target": {}
+  },
+  "right": {
+    "envelope_version": "scientific-authorization-envelope-v2",
+    "family": "queue",
+    "operation": "robot_submit",
+    "allowed_tools": ["queue.robot_submit"],
+    "blocked_tools": [],
+    "cardinality": {"mode": "unbounded"},
+    "environment": {},
+    "responsibility_ceiling": "R3_operational_control",
+    "constraints": {},
+    "expiration": {},
+    "target": {}
+  },
+  "expected": "incomparable"
+}

@@ -1,0 +1,33 @@
+{
+  "name": "cross_family_incomparable",
+  "expect": "conflict",
+  "conflict_type": "family_mismatch",
+  "left": {
+    "envelope_version": "scientific-authorization-envelope-v2",
+    "capability_id": "CAP-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "family": "protocol",
+    "operation": "draft",
+    "target": { "type": "protocol", "protocol_id": "p1" },
+    "allowed_tools": ["a"],
+    "blocked_tools": [],
+    "cardinality": { "mode": "single" },
+    "environment": {},
+    "responsibility_ceiling": "R4_methodological_modification",
+    "constraints": {},
+    "expiration": {}
+  },
+  "right": {
+    "envelope_version": "scientific-authorization-envelope-v2",
+    "capability_id": "CAP-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "family": "queue",
+    "operation": "robot_submit",
+    "target": { "type": "queue_entry", "queue_entry_id": "q1" },
+    "allowed_tools": ["b"],
+    "blocked_tools": [],
+    "cardinality": { "mode": "single" },
+    "environment": {},
+    "responsibility_ceiling": "R6_physical_execution",
+    "constraints": {},
+    "expiration": {}
+  }
+}

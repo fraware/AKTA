@@ -15,7 +15,7 @@
     "constraints": {},
     "expiration": {
       "absolute_expiration": "2026-01-01T00:00:00Z",
-      "expires_after": ["protocol_version_change"]
+      "expires_after": ["protocol_version_change", "policy_version_change"]
     }
   },
   "outer": {

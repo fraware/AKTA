@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scientific-authorization.dev/schemas/scope-grant-institutional-v2.schema.json",
+  "title": "SCOPE Grant Institutional Profile v2",
+  "description": "Institutional production grant profile. Requires issuer-signed envelope grants with schema provenance, source bindings, authorization-manifest hash, IAL, and SAL.",
+  "type": "object",
+  "required": [
+    "grant_id",
+    "grant_version",
+    "created_at",
+    "source",
+    "authorization",
+    "constraints",
+    "expiration",
+    "provenance",
+    "issuer",
+    "authorization_schema_version",
+    "authorization_schema_hash",
+    "grant_hash",
+    "signed_payload_hash",
+    "grant_signature",
+    "signature_algorithm"
+  ],
+  "$defs": {
+    "authorization_envelope": {
+      "$ref": "authorization_envelope.v2.schema.json"
+    },
+    "authorization_manifest": {
+      "$ref": "authorization_manifest.v1.schema.json"
+    },
+    "grant_status": {
+      "$ref": "scope_grant_status.v1.schema.json"
+    }
+  },
+  "properties": {
+    "grant_id": { "type": "string", "minLength": 1 },
+    "grant_version": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "minLength": 1 },
+    "authorization_schema_version": {
+      "type": "string",
+      "const": "scientific-authorization-envelope-v2"
+    },
+    "authorization_schema_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "source": {
+      "type": "object",
+      "required": ["packet_id", "decision_id", "akta_record_id", "decision_signature_refs"],
+      "properties": {
+        "packet_id": { "type": "string", "minLength": 1 },
+        "decision_id": { "type": "string", "minLength": 1 },
+        "akta_record_id": { "type": "string", "minLength": 1 },
+        "session_id": { "type": "string" },
+        "contributing_decision_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "quorum_policy_hash": { "type": "string", "pattern": "^sha256:" },
+        "resolution_hash": { "type": "string", "pattern": "^sha256:" },
+        "decision_signature_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["decision_id"],
+            "properties": {
+              "decision_id": { "type": "string" },
+              "decision_signature": { "type": ["string", "null"] },
+              "reviewer_public_key_ref": { "type": ["string", "null"] },
+              "signed_payload_hash": { "type": ["string", "null"] }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "authorization": {
+      "type": "object",
+      "required": ["authorization_envelope", "allowed_tools", "blocked_tools"],
+      "properties": {
+        "authorization_envelope": {
+          "$ref": "#/$defs/authorization_envelope"
+        },
+        "approved_scope": {
+          "type": "string",
+          "description": "Deprecated display/migration field only; must not drive authorization"
+        },
+        "approved_actions": { "type": "array", "items": { "type": "string" } },
+        "allowed_tools": { "type": "array", "items": { "type": "string" } },
+        "blocked_tools": { "type": "array", "items": { "type": "string" } },
+        "max_responsibility_level": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "constraints": { "type": "object" },
+    "expiration": { "type": "object" },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "scope_policy_version",
+        "scope_policy_hash",
+        "reviewer_key_registry_version",
+        "reviewer_key_registry_hash",
+        "scope_trust_root_hash",
+        "authorization_manifest_hash",
+        "identity_assurance_level",
+        "identity_source",
+        "role_resolution_source",
+        "signing_assurance_level",
+        "authority_checks"
+      ],
+      "properties": {
+        "scope_policy_version": { "type": "string" },
+        "scope_policy_hash": { "type": "string", "pattern": "^sha256:" },
+        "authorization_manifest_hash": { "type": "string", "pattern": "^sha256:" },
+        "scope_trust_root_hash": { "type": "string", "pattern": "^sha256:" },
+        "identity_assurance_level": {
+          "type": "string",
+          "enum": ["IAL0", "IAL1", "IAL2", "IAL3", "IAL4"]
+        },
+        "signing_assurance_level": {
+          "type": "string",
+          "enum": ["SAL0", "SAL1", "SAL2", "SAL3", "SAL4"]
+        },
+        "identity_source": { "type": "string" },
+        "role_resolution_source": { "type": "string" },
+        "authority_checks": { "type": "object" },
+        "reviewer_key_registry_version": { "type": "string" },
+        "reviewer_key_registry_hash": { "type": "string", "pattern": "^sha256:" }
+      },
+      "additionalProperties": true
+    },
+    "issuer": {
+      "type": "object",
+      "required": ["issuer_identity", "issuer_key_id"],
+      "properties": {
+        "issuer_identity": { "type": "string", "minLength": 1 },
+        "issuer_key_id": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "grant_hash": { "type": "string", "pattern": "^sha256:" },
+    "signed_payload_hash": { "type": "string", "pattern": "^sha256:" },
+    "grant_signature": { "type": "string", "minLength": 1 },
+    "signature_algorithm": {
+      "type": "string",
+      "const": "Ed25519"
+    },
+    "authorization_manifest_hash": {
+      "type": "string",
+      "pattern": "^sha256:"
+    },
+    "session_resolution_artifact": { "type": "object" },
+    "contributing_signatures": { "type": "array" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "properties": {
+              "session_id": { "type": "string", "minLength": 1 }
+            },
+            "required": ["session_id"]
+          }
+        },
+        "required": ["source"]
+      },
+      "then": {
+        "properties": {
+          "source": {
+            "required": [
+              "session_id",
+              "contributing_decision_ids",
+              "quorum_policy_hash",
+              "resolution_hash"
+            ]
+          },
+          "provenance": {
+            "required": [
+              "contributing_identity_assurance_levels",
+              "contributing_authority_checks",
+              "minimum_identity_assurance_level",
+              "minimum_signing_assurance_level",
+              "veto_roles_applied",
+              "quorum_policy_hash"
+            ]
+          }
+        },
+        "required": ["provenance", "session_resolution_artifact"]
+      }
+    }
+  ],
+  "additionalProperties": true
+}

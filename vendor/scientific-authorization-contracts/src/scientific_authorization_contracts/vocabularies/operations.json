@@ -1,0 +1,90 @@
+{
+  "vocabulary_version": "scientific-authorization-vocab-v2",
+  "description": "Explicit per-family operation covers DAGs. Privilege is reachability in the covers graph (reflexive). Cross-family operations are incomparable. Siblings without a path are incomparable.",
+  "families": {
+    "interpretation": {
+      "operations": ["clarify", "discuss", "interpret"],
+      "covers": {
+        "clarify": [],
+        "discuss": ["clarify"],
+        "interpret": ["discuss"]
+      }
+    },
+    "recommendation": {
+      "operations": ["draft"],
+      "covers": {
+        "draft": []
+      }
+    },
+    "protocol": {
+      "operations": ["view", "annotate", "draft", "diff_review", "propose_update", "update_active"],
+      "covers": {
+        "view": [],
+        "annotate": ["view"],
+        "draft": ["annotate"],
+        "diff_review": ["draft"],
+        "propose_update": ["diff_review"],
+        "update_active": ["propose_update"]
+      }
+    },
+    "experiment_plan": {
+      "operations": ["plan", "run_draft"],
+      "covers": {
+        "plan": [],
+        "run_draft": ["plan"]
+      }
+    },
+    "queue": {
+      "operations": [
+        "inspect",
+        "propose_priority",
+        "single_run_priority",
+        "bounded_batch_priority",
+        "set_priority",
+        "submit_run",
+        "robot_submit"
+      ],
+      "covers": {
+        "inspect": [],
+        "propose_priority": ["inspect"],
+        "single_run_priority": ["propose_priority"],
+        "bounded_batch_priority": ["single_run_priority"],
+        "set_priority": ["bounded_batch_priority"],
+        "submit_run": ["inspect"],
+        "robot_submit": ["submit_run", "inspect"]
+      }
+    },
+    "permissions": {
+      "operations": ["escalate"],
+      "covers": {
+        "escalate": []
+      }
+    },
+    "execution": {
+      "operations": [
+        "prepare_payload",
+        "validate_payload",
+        "authorize_execution",
+        "execute"
+      ],
+      "covers": {
+        "prepare_payload": [],
+        "validate_payload": ["prepare_payload"],
+        "authorize_execution": ["validate_payload"],
+        "execute": ["authorize_execution"]
+      }
+    },
+    "publication": {
+      "operations": ["claim"],
+      "covers": {
+        "claim": []
+      }
+    },
+    "memory": {
+      "operations": ["import"],
+      "covers": {
+        "import": []
+      }
+    }
+  }
+}

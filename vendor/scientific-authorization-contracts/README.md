@@ -1,54 +1,55 @@
 # Scientific Authorization Contracts
 
-Shared, versioned authorization-envelope and grant schemas for SCOPE and AKTA.
+Shared, versioned authorization-envelope schemas, vocabularies, and algebra for
+SCOPE and AKTA.
 
-This package is the authoritative source for capability families, operations,
-responsibility levels, expiration events, and JSON Schemas. Neither SCOPE nor
-AKTA should redefine these contracts independently.
+Package: `scientific-authorization-contracts==2.1.0`
 
-**Package:** `scientific-authorization-contracts==2.1.0`  
-Status: beta / reference. Not an institutional certification package.
+This distribution is the authoritative source for capability families, operations,
+responsibility levels, expiration events, JSON Schemas, and envelope algebra.
+Neither SCOPE nor AKTA should redefine these contracts independently.
+
+## Install (local monorepo)
+
+```bash
+pip install -e ./scientific-authorization-contracts
+pip install -e ".[dev]"
+```
+
+Or build wheels and install with find-links:
+
+```bash
+python -m build scientific-authorization-contracts
+python -m build .
+pip install --find-links dist "scientific-authorization-contracts==2.1.0" "scope-protocol==2.1.0"
+```
+
+Declared SCOPE dependency pin: `scientific-authorization-contracts==2.1.0`.
+AKTA must pin the same release version and wheel hash.
 
 ## Layout
 
 ```text
-schemas/          JSON Schema artifacts (hashed for CI drift detection)
-vocabularies/     Frozen enums and operation partial orders
-conformance/      Positive, negative, narrowing, and conflict fixtures
-python/           Installable Python package (loader, hashing, envelope, grant)
-pyproject.toml    Packaging metadata for pip install from this tree
-```
-
-## Install (AKTA / CI)
-
-No public PyPI index yet. Install from the vendor tree before AKTA:
-
-```bash
-pip install ./vendor/scientific-authorization-contracts
-pip install -e ".[dev]"   # or install the AKTA wheel after contracts
-```
-
-Wheel smoke order (clean venv):
-
-```bash
-pip install ./vendor/scientific-authorization-contracts
-pip install dist/akta_protocol-*.whl
+src/scientific_authorization_contracts/
+  schemas/          JSON Schema artifacts (hashed for CI drift detection)
+  vocabularies/     Frozen enums and operation partial orders
+  conformance/      Positive, negative, narrowing, and conflict fixtures
+  envelope.py       Authorization envelope model + algebra
+  hashing.py        Canonical JSON hashing helpers
 ```
 
 ## Envelope version
 
 `scientific-authorization-envelope-v2`
 
-## Consumption
-
-Import the installed distribution only:
+## Public API
 
 ```python
-import scientific_authorization_contracts as contracts
-
-contracts.load_schema("authorization_envelope.v2.schema.json")
-contracts.validate_grant(grant)
-contracts.envelope_covers(granted, requested)
+from scientific_authorization_contracts import (
+    AuthorizationEnvelope,
+    envelope_contains,
+    envelope_intersection,
+)
 ```
 
 Schema drift between repositories must fail CI.

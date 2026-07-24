@@ -1,0 +1,33 @@
+{
+  "name": "protocol_draft_basic",
+  "expect": "valid",
+  "envelope": {
+    "envelope_version": "scientific-authorization-envelope-v2",
+    "capability_id": "CAP-0123456789ABCDEF0123456789ABCDEF",
+    "family": "protocol",
+    "operation": "draft",
+    "target": {
+      "type": "protocol",
+      "protocol_id": "protocol-v3"
+    },
+    "allowed_tools": ["protocol_editor.draft_change"],
+    "blocked_tools": ["protocol_editor.update_active_protocol"],
+    "cardinality": {
+      "mode": "single",
+      "maximum_uses": 1,
+      "maximum_items": 1
+    },
+    "environment": {
+      "tenant_id": "tenant-a",
+      "project_id": "project-123",
+      "domain_overlay": "materials-v1",
+      "deployment_id": "deployment-7"
+    },
+    "responsibility_ceiling": "R4_methodological_modification",
+    "constraints": {},
+    "expiration": {
+      "absolute_expiration": null,
+      "expires_after": ["protocol_version_change", "policy_version_change"]
+    }
+  }
+}

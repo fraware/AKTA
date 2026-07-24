@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scientific-authorization.dev/schemas/scope_grant_status.v1.schema.json",
+  "title": "SCOPE Grant Status v1",
+  "description": "Authoritative runtime status for a grant (ledger-backed). exhausted replaces consumed/used.",
+  "type": "object",
+  "required": [
+    "grant_id",
+    "status",
+    "checked_at",
+    "cardinality_remaining"
+  ],
+  "properties": {
+    "grant_id": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "exhausted",
+        "expired",
+        "revoked",
+        "superseded",
+        "not_found",
+        "invalid",
+        "consumed",
+        "used"
+      ],
+      "description": "consumed/used are legacy read aliases; writers must emit exhausted"
+    },
+    "checked_at": { "type": "string" },
+    "cardinality_remaining": {
+      "type": ["integer", "null"],
+      "minimum": 0
+    },
+    "use_count": { "type": "integer", "minimum": 0 },
+    "uses_consumed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Legacy alias for use_count"
+    },
+    "maximum_uses": { "type": ["integer", "null"], "minimum": 0 },
+    "remaining_uses": { "type": ["integer", "null"], "minimum": 0 },
+    "last_use_event_id": { "type": ["string", "null"] },
+    "last_use_sequence": { "type": ["integer", "null"], "minimum": 0 },
+    "revocation_reason": { "type": ["string", "null"] },
+    "ledger_event_id": { "type": ["string", "null"] },
+    "authorization_schema_version": { "type": "string" },
+    "authorization_schema_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    }
+  },
+  "additionalProperties": true
+}
