@@ -51,3 +51,38 @@ class GrantVerificationError(AKTAError):
     def __init__(self, message: str, *, errors: list[str] | None = None) -> None:
         self.errors = list(errors or [])
         super().__init__(message)
+
+
+class InsufficientAuthorizationContext(AKTAError):
+    """Requested action is missing fields required for authorization evaluation.
+
+    Raised in strict modes when ``required_request_fields(family, operation)``
+    is not fully supplied. Callers must not invent defaults (``unspecified``,
+    ``default``, tool-name heuristics).
+    """
+
+    def __init__(
+        self,
+        message: str = "",
+        *,
+        missing: frozenset[str] | set[str] | list[str] | None = None,
+        family: str | None = None,
+        operation: str | None = None,
+    ) -> None:
+        self.missing: frozenset[str] = frozenset(missing or ())
+        self.family = family
+        self.operation = operation
+        parts = []
+        if family or operation:
+            parts.append(f"family={family!r} operation={operation!r}")
+        if self.missing:
+            parts.append(f"missing={sorted(self.missing)}")
+        detail = "; ".join(parts)
+        super().__init__(
+            message
+            or (
+                f"InsufficientAuthorizationContext: {detail}"
+                if detail
+                else "InsufficientAuthorizationContext"
+            )
+        )
