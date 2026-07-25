@@ -344,6 +344,7 @@ def build_requested_authorization_context(
         structured_action.get("responsibility_level"),
         classification.get("responsibility_level"),
         metadata.get("responsibility_level"),
+        ctx.get("responsibility_level"),
     )
     if level is None and allow:
         level = "R4_methodological_modification"

@@ -79,7 +79,11 @@ def test_synthetic_without_provenance_never_claims_institutional_assurance() -> 
     assert origin == SUMMARY_ORIGIN_SYNTHESIZED
 
 
-def test_submit_review_trigger_simulated_summary_is_lowest_tier() -> None:
+def test_submit_review_trigger_simulated_summary_is_lowest_tier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("SCOPE_REPO_PATH", raising=False)
+    monkeypatch.delenv("SCOPE_CLI", raising=False)
     trigger = {
         "review_trigger_id": "AKTA-REVTRIG-SYNTH",
         "requested_scope": "single_run_queue_priority",

@@ -5,12 +5,16 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from evals.transition_runner import run_transition
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def test_transition_protocol_drift_grant() -> None:
+def test_transition_protocol_drift_grant(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("SCOPE_REPO_PATH", raising=False)
+    monkeypatch.delenv("SCOPE_CLI", raising=False)
     scenario = {
         "scenario_id": "transition_protocol_drift",
         "ai_output": {"summary": "Update active protocol threshold."},

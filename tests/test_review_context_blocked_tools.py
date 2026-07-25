@@ -156,8 +156,15 @@ def test_pcs_bundle_contains_grant_and_regate_decision(
         trigger=trigger,
     )
     regate_dict = regate.to_dict()
+    regate_record = regate.to_record(
+        ai_output={"summary": "Prioritize after grant with blocked tool list."},
+        context={
+            "evidence_state": "E5_internally_replicated_evidence",
+            "validation_status": "V5_independently_replicated",
+        },
+    ).to_dict()
     out = export_pcs_bundle(
-        AKTARecord(record),
+        AKTARecord(regate_record),
         tmp_path / "pcs_blocked_grant",
         decision=regate_dict,
         scope_grant=grant,

@@ -71,6 +71,8 @@ def test_akta_review_cli_with_record_succeeds(monkeypatch: pytest.MonkeyPatch) -
                 "packet_path": str(packet_path),
                 "decision_path": str(decision_path),
                 "grant_path": str(grant_path),
+                "decision_id": "SCOPE-DEC-REC",
+                "grant_id": "SCOPE-GRANT-REC",
                 "approved_scope": "single_run_queue_priority",
                 "requested_scope": "single_run_queue_priority",
                 "adapter_contract_version": "scope-akta-review-v0.8",
