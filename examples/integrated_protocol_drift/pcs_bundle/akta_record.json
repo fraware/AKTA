@@ -62,8 +62,8 @@
     "integrity_mode": "deployment_hmac_attested",
     "policy": {
       "bundle_version": "akta-core-v0.5",
-      "effective_policy_hash": "sha256:2faafa13b8a318a8d4f3f7b13c2a68733e85a20cb41dba8a54131159c2beea0d",
-      "manifest_hash": "sha256:53cba68cdbb02d1d76d3c5414d4440f360c5e5be332043f16ee83225b3a03674",
+      "effective_policy_hash": "sha256:e5c81e25ca625932b41586140dd86f4ab741f65a43696ef603df5e3c187bd000",
+      "manifest_hash": "sha256:94f98b68757ab95dd41a27638cfa19716b10792d3835754f62ce5d60c09f710b",
       "integrity_mode": "deployment_hmac_attested",
       "signing_key_id": null,
       "release_key_id": null,
@@ -79,13 +79,31 @@
         "evidence_to_action_rules.yaml": "evidence_to_action_rules-v0.5",
         "default_tool_registry.yaml": "default_tool_registry-v1.0",
         "tool_to_requested_scope.yaml": "tool_to_requested_scope-v0.5"
-      }
+      },
+      "schema_hashes": {
+        "envelope_schema_hash": "sha256:9881294eed119374c328f1d48bd7edb39d32b15450734716959c2a953b1ea918",
+        "grant_schema_hash": "sha256:d8552b598672a97eb6929f64b9a27b64cded0304a542d39a8ad4e42a877dd55b",
+        "grant_status_schema_hash": "sha256:30530607e71b9e3e3317786dd148d98769c8e95829be4aa45aac448d6c4f04ed"
+      },
+      "overlay_hash": "sha256:473d097b6e317ad9de948e03883db75bca7488018e6fd7e5017707b91eb34dec",
+      "shared_contract_release_hash": "sha256:95b7082ad3bf36892424208504c985ebeaf89ac4deb61a518e3a4388d4523925",
+      "issuer_registry_hash": "sha256:fb67555ba6e88a4edd019e9ab4b3568cc2ca25f76a1d4dd5f3b2deab600006eb",
+      "status_attestation_registry_hash": "sha256:7d187af9b0eeb990b6408c1dce2b05ac3edebeec059cd4b234c0ba7536b2f3d5",
+      "policy_manifest_signer_registry_hash": "sha256:a83423fb53e3fac4c56f74b6b2e1d0cead283e5c2814919e2abc0e54c94fcb86",
+      "release_pins_hash": "sha256:554ac46cd38f31bcbec97b753e829ce9241c0fe2d66917fa8499e79590b23510",
+      "runtime_capability_mapping_hash": "sha256:bda801bcb5447a8841b7e6ecddac60a4543233e5c38d03a3d8b93da097011af2",
+      "compatibility_manifest_hash": "sha256:befd4d917bef81fc087b8eee0f9b58d489a4ab8c7753b4c5c9b5c8cac07bfe57"
+    },
+    "schema_hashes": {
+      "envelope_schema_hash": "sha256:9881294eed119374c328f1d48bd7edb39d32b15450734716959c2a953b1ea918",
+      "grant_schema_hash": "sha256:d8552b598672a97eb6929f64b9a27b64cded0304a542d39a8ad4e42a877dd55b",
+      "grant_status_schema_hash": "sha256:30530607e71b9e3e3317786dd148d98769c8e95829be4aa45aac448d6c4f04ed"
     }
   },
   "policy": {
     "bundle_version": "akta-core-v0.5",
-    "effective_policy_hash": "sha256:2faafa13b8a318a8d4f3f7b13c2a68733e85a20cb41dba8a54131159c2beea0d",
-    "manifest_hash": "sha256:53cba68cdbb02d1d76d3c5414d4440f360c5e5be332043f16ee83225b3a03674",
+    "effective_policy_hash": "sha256:e5c81e25ca625932b41586140dd86f4ab741f65a43696ef603df5e3c187bd000",
+    "manifest_hash": "sha256:94f98b68757ab95dd41a27638cfa19716b10792d3835754f62ce5d60c09f710b",
     "integrity_mode": "deployment_hmac_attested",
     "signing_key_id": null,
     "release_key_id": null,
@@ -101,14 +119,130 @@
       "evidence_to_action_rules.yaml": "evidence_to_action_rules-v0.5",
       "default_tool_registry.yaml": "default_tool_registry-v1.0",
       "tool_to_requested_scope.yaml": "tool_to_requested_scope-v0.5"
-    }
+    },
+    "schema_hashes": {
+      "envelope_schema_hash": "sha256:9881294eed119374c328f1d48bd7edb39d32b15450734716959c2a953b1ea918",
+      "grant_schema_hash": "sha256:d8552b598672a97eb6929f64b9a27b64cded0304a542d39a8ad4e42a877dd55b",
+      "grant_status_schema_hash": "sha256:30530607e71b9e3e3317786dd148d98769c8e95829be4aa45aac448d6c4f04ed"
+    },
+    "overlay_hash": "sha256:473d097b6e317ad9de948e03883db75bca7488018e6fd7e5017707b91eb34dec",
+    "shared_contract_release_hash": "sha256:95b7082ad3bf36892424208504c985ebeaf89ac4deb61a518e3a4388d4523925",
+    "issuer_registry_hash": "sha256:fb67555ba6e88a4edd019e9ab4b3568cc2ca25f76a1d4dd5f3b2deab600006eb",
+    "status_attestation_registry_hash": "sha256:7d187af9b0eeb990b6408c1dce2b05ac3edebeec059cd4b234c0ba7536b2f3d5",
+    "policy_manifest_signer_registry_hash": "sha256:a83423fb53e3fac4c56f74b6b2e1d0cead283e5c2814919e2abc0e54c94fcb86",
+    "release_pins_hash": "sha256:554ac46cd38f31bcbec97b753e829ce9241c0fe2d66917fa8499e79590b23510",
+    "runtime_capability_mapping_hash": "sha256:bda801bcb5447a8841b7e6ecddac60a4543233e5c38d03a3d8b93da097011af2",
+    "compatibility_manifest_hash": "sha256:befd4d917bef81fc087b8eee0f9b58d489a4ab8c7753b4c5c9b5c8cac07bfe57"
   },
   "integrations": {
     "vsa_report_ref": null,
     "pf_core_obligation_ref": null,
     "pcs_artifact_ref": null,
-    "prior_akta_records": []
+    "prior_akta_records": [],
+    "outcome_refs": []
   },
+  "bindings": {
+    "binding_set_version": "akta-binding-set-v1",
+    "decision_id": "AKTA-DEC-DRIFT0001",
+    "record_id": "AKTA-SAR-DRIFT0001",
+    "scientific_question_digest": null,
+    "evidence_report_digest": null,
+    "claim_set_digest": null,
+    "proposed_action_digest": "sha256:75f284f73f8dd66ce9dc69ba4ac23a114dc105774d57250adfb5b27a08d09ef0",
+    "vsa_decision_time_bundle_digest": null,
+    "vsa_bundle_schema": null,
+    "vsa_bundle_version": null,
+    "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
+    "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
+    "tool_registry_hash": "sha256:cba4cdc66bd1574063c1915be40e9d4ec89e075f72d045d2ea44a5478bf8f5be",
+    "requested_tool": "protocol_editor.update_active_protocol",
+    "action_class": "A5_protocol_modification",
+    "decision_basis_digest": "sha256:071286c5206ab7a190c694cc69467134e3a9a147e7fbb8fbeb5061d1032fedc2",
+    "scope_review_ref": "AKTA-REVTRIG-23380455",
+    "pf_obligation_ref": null,
+    "pcs_manifest_ref": null,
+    "execution_ref": null,
+    "outcome_ref": null
+  },
+  "decision_basis": {
+    "decision_basis_version": "akta-decision-basis-v1",
+    "applicable_policy_clauses": [
+      {
+        "clause_id": "deployment_profile:draft_only",
+        "source": "deployment_profile",
+        "summary": "Profile P4_protocol_drafting_assistant matrix decision for A5_protocol_modification is draft_only."
+      },
+      {
+        "clause_id": "evidence_rules:review_required",
+        "source": "evidence_rules",
+        "summary": "Evidence rule E4_internally_consistent_evidence+A5_protocol_modification constrains to review_required (resolved from draft_only_or_review_required)."
+      },
+      {
+        "clause_id": "tool_registry:review_required",
+        "source": "tool_registry",
+        "summary": "Tool registry default permission for protocol_editor.update_active_protocol is review_required."
+      },
+      {
+        "clause_id": "policy_bundle:akta-core-v0.5",
+        "source": "policy_bundle",
+        "summary": "Loaded policy bundle version akta-core-v0.5"
+      },
+      {
+        "clause_id": "deployment_profiles",
+        "source": "policy_bundle",
+        "summary": "Profiles loaded: policy_file_version, profiles, version"
+      },
+      {
+        "clause_id": "domain_overlay:generic_lab_v0",
+        "source": "domain_overlay",
+        "summary": "Overlay hash sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117"
+      }
+    ],
+    "evidence_requirements": [
+      "evidence_state",
+      "validation_status",
+      "verification_status"
+    ],
+    "evidence_present": [
+      "evidence_state:E4_internally_consistent_evidence",
+      "validation_status:V3_preliminary_experimental_support"
+    ],
+    "missing_evidence": [
+      "vsa_decision_time_bundle"
+    ],
+    "contradictions": [],
+    "action_risk_class": "elevated_review",
+    "tool_effect_class": "mutating_external",
+    "required_reviewer_roles": [
+      "protocol_owner"
+    ],
+    "generated_pf_obligations": [
+      "tool_review"
+    ],
+    "next_admissible_steps": [
+      "strengthen_evidence_or_validation",
+      "request_human_review_if_policy_allows",
+      "narrow_requested_tool_to_analysis_query"
+    ]
+  },
+  "failure": {
+    "uniform_class": "review_required",
+    "local_reason_code": "review_required",
+    "detail": "Evidence rule E4_internally_consistent_evidence+A5_protocol_modification constrains to review_required (resolved from draft_only_or_review_required). Tool registry default permission for protocol_editor.update_active_protocol is review_required.",
+    "layer": "evaluate",
+    "recoverable": true,
+    "next_admissible_steps": []
+  },
+  "failures": [
+    {
+      "uniform_class": "review_required",
+      "local_reason_code": "review_required",
+      "detail": "Evidence rule E4_internally_consistent_evidence+A5_protocol_modification constrains to review_required (resolved from draft_only_or_review_required). Tool registry default permission for protocol_editor.update_active_protocol is review_required.",
+      "layer": "evaluate",
+      "recoverable": true,
+      "next_admissible_steps": []
+    }
+  ],
   "review_trigger": {
     "review_trigger_id": "AKTA-REVTRIG-DRIFT0001",
     "review_trigger_version": "0.3",
@@ -145,7 +279,7 @@
     "allowed_next_steps": [],
     "approval_effect": "Allows scoped next step only; not global permission.",
     "default_expiration": "single_run",
-    "expires_at": "2026-07-23T09:06:36Z",
+    "expires_at": "2026-07-25T06:51:54Z",
     "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
     "tool_registry_hash": "sha256:cba4cdc66bd1574063c1915be40e9d4ec89e075f72d045d2ea44a5478bf8f5be",
     "classifier_confidence": 0.98,
@@ -159,7 +293,13 @@
     },
     "review_route": "active_protocol_review",
     "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
-    "review_trigger_hash": "sha256:c713688343c18ff44cc72815f3874b9cf57df0618e47dca0066ddc7df2b3371a"
+    "review_trigger_hash": "sha256:f549c26d992cb357987107d0642c3173bec38fd13d483a3afacb4104707d0117",
+    "bindings": {
+      "decision_id": "AKTA-DEC-DRIFT0001",
+      "record_id": "AKTA-SAR-DRIFT0001",
+      "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
+      "tool_registry_hash": "sha256:cba4cdc66bd1574063c1915be40e9d4ec89e075f72d045d2ea44a5478bf8f5be"
+    }
   },
-  "record_hash": "sha256:c5cfef22fad9dce2ede9540c1dca57195af40c7781fdb8c5b6254c4471d31fe5"
+  "record_hash": "sha256:409d7b4958b2a4fcd4de8f4ba4968ba3a2ec437a048b83fa2bcccddc8dd3cfbc"
 }

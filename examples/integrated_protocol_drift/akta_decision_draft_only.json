@@ -31,6 +31,23 @@
   "authorization_required": false,
   "consequentiality": true,
   "consequentiality_reason": "action type A5_protocol_modification",
+  "evaluation_layers": [
+    {
+      "source": "deployment_profile",
+      "decision": "draft_only",
+      "reason": "Profile P4_protocol_drafting_assistant matrix decision for A5_protocol_modification is draft_only."
+    },
+    {
+      "source": "evidence_rules",
+      "decision": "draft_only",
+      "reason": "Evidence rule E4_internally_consistent_evidence+A5_protocol_modification constrains to draft_only (resolved from draft_only_or_review_required)."
+    },
+    {
+      "source": "tool_registry",
+      "decision": "draft_only",
+      "reason": "Tool registry default permission for protocol_editor.draft_change is draft_only."
+    }
+  ],
   "policy_version": "akta-core-v0.5",
   "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
   "policy_file_versions": {
@@ -49,8 +66,8 @@
   "policy_integrity_mode": "deployment_hmac_attested",
   "policy": {
     "bundle_version": "akta-core-v0.5",
-    "effective_policy_hash": "sha256:2faafa13b8a318a8d4f3f7b13c2a68733e85a20cb41dba8a54131159c2beea0d",
-    "manifest_hash": "sha256:53cba68cdbb02d1d76d3c5414d4440f360c5e5be332043f16ee83225b3a03674",
+    "effective_policy_hash": "sha256:e5c81e25ca625932b41586140dd86f4ab741f65a43696ef603df5e3c187bd000",
+    "manifest_hash": "sha256:94f98b68757ab95dd41a27638cfa19716b10792d3835754f62ce5d60c09f710b",
     "integrity_mode": "deployment_hmac_attested",
     "signing_key_id": null,
     "release_key_id": null,
@@ -66,7 +83,20 @@
       "evidence_to_action_rules.yaml": "evidence_to_action_rules-v0.5",
       "default_tool_registry.yaml": "default_tool_registry-v1.0",
       "tool_to_requested_scope.yaml": "tool_to_requested_scope-v0.5"
-    }
+    },
+    "schema_hashes": {
+      "envelope_schema_hash": "sha256:9881294eed119374c328f1d48bd7edb39d32b15450734716959c2a953b1ea918",
+      "grant_schema_hash": "sha256:d8552b598672a97eb6929f64b9a27b64cded0304a542d39a8ad4e42a877dd55b",
+      "grant_status_schema_hash": "sha256:30530607e71b9e3e3317786dd148d98769c8e95829be4aa45aac448d6c4f04ed"
+    },
+    "overlay_hash": "sha256:473d097b6e317ad9de948e03883db75bca7488018e6fd7e5017707b91eb34dec",
+    "shared_contract_release_hash": "sha256:95b7082ad3bf36892424208504c985ebeaf89ac4deb61a518e3a4388d4523925",
+    "issuer_registry_hash": "sha256:fb67555ba6e88a4edd019e9ab4b3568cc2ca25f76a1d4dd5f3b2deab600006eb",
+    "status_attestation_registry_hash": "sha256:7d187af9b0eeb990b6408c1dce2b05ac3edebeec059cd4b234c0ba7536b2f3d5",
+    "policy_manifest_signer_registry_hash": "sha256:a83423fb53e3fac4c56f74b6b2e1d0cead283e5c2814919e2abc0e54c94fcb86",
+    "release_pins_hash": "sha256:554ac46cd38f31bcbec97b753e829ce9241c0fe2d66917fa8499e79590b23510",
+    "runtime_capability_mapping_hash": "sha256:bda801bcb5447a8841b7e6ecddac60a4543233e5c38d03a3d8b93da097011af2",
+    "compatibility_manifest_hash": "sha256:befd4d917bef81fc087b8eee0f9b58d489a4ab8c7753b4c5c9b5c8cac07bfe57"
   },
   "domain_overlay_version": "generic_lab_v0.2",
   "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
@@ -82,5 +112,85 @@
     "classifier_mode": "deterministic"
   },
   "llm_advisory": null,
-  "ai_output_summary": "Draft protocol threshold change for owner review."
+  "ai_output_summary": "Draft protocol threshold change for owner review.",
+  "bindings": {
+    "binding_set_version": "akta-binding-set-v1",
+    "decision_id": "AKTA-DEC-DRIFT0002",
+    "record_id": "AKTA-SAR-DRIFT0002",
+    "scientific_question_digest": null,
+    "evidence_report_digest": null,
+    "claim_set_digest": null,
+    "proposed_action_digest": "sha256:801f8e5b057a81356359c6f008aaebd67bcfaa70839608c4258a2841d2d77c8e",
+    "vsa_decision_time_bundle_digest": null,
+    "vsa_bundle_schema": null,
+    "vsa_bundle_version": null,
+    "policy_hash": "sha256:b2878971b3236b33c5011d6e12ed37ed85582f16996b9d538b584733d9f65464",
+    "domain_overlay_hash": "sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117",
+    "tool_registry_hash": "sha256:cba4cdc66bd1574063c1915be40e9d4ec89e075f72d045d2ea44a5478bf8f5be",
+    "requested_tool": "protocol_editor.draft_change",
+    "action_class": "A5_protocol_modification",
+    "decision_basis_digest": "sha256:b82cbc0ea37ef38ee9a5826c87be12d3322b072deb3c6c18229f2ece1763001d",
+    "scope_review_ref": null,
+    "pf_obligation_ref": null,
+    "pcs_manifest_ref": null,
+    "execution_ref": null,
+    "outcome_ref": null
+  },
+  "decision_basis": {
+    "decision_basis_version": "akta-decision-basis-v1",
+    "applicable_policy_clauses": [
+      {
+        "clause_id": "deployment_profile:draft_only",
+        "source": "deployment_profile",
+        "summary": "Profile P4_protocol_drafting_assistant matrix decision for A5_protocol_modification is draft_only."
+      },
+      {
+        "clause_id": "evidence_rules:draft_only",
+        "source": "evidence_rules",
+        "summary": "Evidence rule E4_internally_consistent_evidence+A5_protocol_modification constrains to draft_only (resolved from draft_only_or_review_required)."
+      },
+      {
+        "clause_id": "tool_registry:draft_only",
+        "source": "tool_registry",
+        "summary": "Tool registry default permission for protocol_editor.draft_change is draft_only."
+      },
+      {
+        "clause_id": "policy_bundle:akta-core-v0.5",
+        "source": "policy_bundle",
+        "summary": "Loaded policy bundle version akta-core-v0.5"
+      },
+      {
+        "clause_id": "deployment_profiles",
+        "source": "policy_bundle",
+        "summary": "Profiles loaded: policy_file_version, profiles, version"
+      },
+      {
+        "clause_id": "domain_overlay:generic_lab_v0",
+        "source": "domain_overlay",
+        "summary": "Overlay hash sha256:9043be6ab410404da7d6b98e28db21395884745b29372310d24310714f8fe117"
+      }
+    ],
+    "evidence_requirements": [
+      "evidence_state",
+      "validation_status",
+      "verification_status"
+    ],
+    "evidence_present": [
+      "evidence_state:E4_internally_consistent_evidence",
+      "validation_status:V3_preliminary_experimental_support"
+    ],
+    "missing_evidence": [
+      "vsa_decision_time_bundle"
+    ],
+    "contradictions": [],
+    "action_risk_class": "standard",
+    "tool_effect_class": "analysis_query",
+    "required_reviewer_roles": [],
+    "generated_pf_obligations": [
+      "tool_review"
+    ],
+    "next_admissible_steps": [
+      "proceed_within_allowed_tools"
+    ]
+  }
 }

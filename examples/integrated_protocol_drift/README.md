@@ -1,4 +1,4 @@
-# Integrated Protocol Drift Demo (AKTA v0.7.1 x SCOPE)
+# Integrated Protocol Drift Demo (AKTA 1.2 x SCOPE)
 
 This example demonstrates the authority-transfer boundary between AKTA pre-action admissibility and SCOPE scoped human approval.
 

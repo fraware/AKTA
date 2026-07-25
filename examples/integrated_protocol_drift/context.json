@@ -3,5 +3,9 @@
   "evidence_state": "E4_internally_consistent_evidence",
   "validation_status": "V3_preliminary_experimental_support",
   "system_id": "protocol_drift_demo",
-  "project_id": "demo_protocol_drift"
+  "project_id": "demo_protocol_drift",
+  "tenant_id": "tenant-a",
+  "protocol_version": "protocol-v3",
+  "responsibility_level": "R4_methodological_modification",
+  "item_count": 1
 }
