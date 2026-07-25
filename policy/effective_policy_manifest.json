@@ -1,7 +1,7 @@
 {
   "bundle_version": "akta-core-v1.0",
   "compatibility_manifest_hash": "sha256:befd4d917bef81fc087b8eee0f9b58d489a4ab8c7753b4c5c9b5c8cac07bfe57",
-  "effective_policy_hash": "sha256:bb91f90e219756b93dd3f5f160b31090d8f338f8fb8ed45d3538d44b32478f4c",
+  "effective_policy_hash": "sha256:e5c81e25ca625932b41586140dd86f4ab741f65a43696ef603df5e3c187bd000",
   "file_versions": {
     "action_ontology.yaml": "action_ontology-v0.5",
     "admissibility_matrix.yaml": "admissibility_matrix-v0.5",
@@ -44,14 +44,14 @@
     "scope_grant_override_rules.yaml": "sha256:6cb9701d36c9a05f343830b8b5f356d8bd2b4479c01d99f775ee8400fac12863",
     "scope_policy_manifest_signer_registry.yaml": "sha256:a83423fb53e3fac4c56f74b6b2e1d0cead283e5c2814919e2abc0e54c94fcb86",
     "scope_status_attestation_registry.yaml": "sha256:7d187af9b0eeb990b6408c1dce2b05ac3edebeec059cd4b234c0ba7536b2f3d5",
-    "shared_contracts_pin.json": "sha256:e33eebe94109ca623e709225eeb59a2e0449d5075fe1d061467c3ee15a52c502",
+    "shared_contracts_pin.json": "sha256:9df7d1888b91823864839cd698615d68699cb18c05230a84f935cb00d910c98e",
     "structured_action_schema.yaml": "sha256:89a0a0255e64ac9fc414350708fd14096d255bff1b25b1749e8203fecdd7ba3f",
     "tool_to_requested_scope.yaml": "sha256:c85beea0595b98fc913b8e5b90d22155bf74afb08937edf8147472c6749873cc",
     "validation_statuses.yaml": "sha256:1cdadb65eb0f5697ab0a70984b3f1fd0b6c26286e16665b45ede620ae1c4548c",
     "verification_statuses.yaml": "sha256:3b09dcc6c66a52a756c3dd054bc7f7e073bd78187606ed2c8855e1348d6a2128"
   },
   "integrity_mode": "deployment_hmac_attested",
-  "manifest_hash": "sha256:2fd947389a206a0347005f4bfbdc9239912630e0c304b1245edf2abd9f1bb194",
+  "manifest_hash": "sha256:94f98b68757ab95dd41a27638cfa19716b10792d3835754f62ce5d60c09f710b",
   "manifest_version": "akta-effective-policy-v1.2",
   "missing_mandatory_inputs": [],
   "missing_optional_inputs": [],
@@ -100,8 +100,8 @@
   "signature": {
     "algorithm": "HMAC-SHA256",
     "key_id": null,
-    "value": "f8a014dd8af8137dbae64de34554663836ac461af685175fed220328c597dfad"
+    "value": "1ad2eb1e577ba03d1415556ad7acdd532054f23e5c3ab20acd38a06bb5cc6e1e"
   },
-  "signed_payload_hash": "sha256:2fd947389a206a0347005f4bfbdc9239912630e0c304b1245edf2abd9f1bb194",
+  "signed_payload_hash": "sha256:94f98b68757ab95dd41a27638cfa19716b10792d3835754f62ce5d60c09f710b",
   "signing_key_id": null
 }

@@ -3,7 +3,7 @@
   "package": "scientific-authorization-contracts",
   "package_version": "2.2.0",
   "wheel_sha256": "sha256:02c1b71a31bf2fe8db775d9a89558ac5cc35f8c54a0cae1c622ea504dda133e5",
-  "source_archive_sha256": "sha256:612db3ef245ccb658162ea009273e7f39f901ea6d41fa56dac047751d625dd70",
+  "source_archive_sha256": "sha256:8b7f157a55f7bb8817c59b06329328de32cb962836dc41e1ab4fd737eeea374d",
   "release_manifest_sha256": "sha256:95b7082ad3bf36892424208504c985ebeaf89ac4deb61a518e3a4388d4523925",
   "release_signer": "PLACEHOLDER-CONTRACTS-2.2-RELEASE-SIGNER-FAIL-CLOSED",
   "status": "beta",
