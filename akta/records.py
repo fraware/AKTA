@@ -290,10 +290,44 @@ class AKTADecision:
                 "pf_core_obligation_ref": ctx.get("pf_core_obligation_ref"),
                 "pcs_artifact_ref": ctx.get("pcs_artifact_ref"),
                 "prior_akta_records": ctx.get("prior_akta_records", []),
+                "outcome_refs": list(
+                    (self._data.get("integrations") or {}).get("outcome_refs")
+                    or ctx.get("outcome_refs")
+                    or []
+                ),
             },
         }
+        if self._data.get("bindings"):
+            record_body["bindings"] = dict(self._data["bindings"])
+            # Align pending record_id in bindings once assigned.
+            record_body["bindings"]["record_id"] = record_body["record_id"]
+            if record_body.get("review_trigger"):
+                record_body["review_trigger"] = dict(record_body["review_trigger"])
+                record_body["review_trigger"]["source_record_id"] = record_body["record_id"]
+                record_body["review_trigger"]["akta_record_id"] = record_body["record_id"]
+        if self._data.get("decision_basis"):
+            record_body["decision_basis"] = self._data["decision_basis"]
+        if self._data.get("failure"):
+            record_body["failure"] = self._data["failure"]
+        if self._data.get("failures"):
+            record_body["failures"] = self._data["failures"]
+        if self._data.get("pilot_mode"):
+            record_body["pilot_mode"] = self._data["pilot_mode"]
+            record_body["shadow"] = self._data.get("shadow", False)
+            record_body["operational_influence"] = self._data.get(
+                "operational_influence", False
+            )
         if self._data.get("review_trigger"):
             record_body["review_trigger"] = self._data["review_trigger"]
+            if record_body.get("bindings"):
+                rt = dict(record_body["review_trigger"])
+                rt["source_record_id"] = record_body["record_id"]
+                rt["akta_record_id"] = record_body["record_id"]
+                bind = dict(rt.get("bindings") or {})
+                bind["record_id"] = record_body["record_id"]
+                bind["decision_id"] = self._data.get("decision_id")
+                rt["bindings"] = bind
+                record_body["review_trigger"] = rt
         # WS14 / integrated acceptance: preserve full authorization provenance.
         auth_prov = self._data.get("authorization_provenance")
         if auth_prov:

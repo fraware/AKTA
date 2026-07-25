@@ -1,6 +1,8 @@
 # VSA Import
 
-Verified Science Agent (VSA) reports provide evidence context for AKTA admissibility decisions. AKTA imports VSA output but does not blindly trust it.
+> **Current status:** Package **1.2.0**. Prefer [integration_guide.md](integration_guide.md) and [RELEASE.md](RELEASE.md). Import binds evidence context only — it does not certify claim truth or authorize action.
+
+Verified Science Agent (VSA) reports provide evidence context for AKTA admissibility decisions. AKTA imports VSA output but does not blindly trust it. A successful import binds evidence context; it does not certify claim truth or authorize action by itself.
 
 ## Division of responsibility
 
@@ -58,6 +60,29 @@ decision = gate.evaluate(
 
 Scenario evaluation supports inline `vsa_report` fields in JSONL scenarios.
 
+## AS-01: decision-time VSA bundle binding
+
+Prefer a normalized `vsa_bundle` over a loose `vsa_report` when both are present:
+
+```python
+from adapters.vsa.import_report import import_vsa_report, normalize_vsa_bundle, resolve_vsa_source
+
+ctx = import_vsa_report(report)  # attaches vsa_bundle + bundle_digest
+# or
+bundle = normalize_vsa_bundle(report, declared_digest="sha256:...")
+```
+
+Fail-closed rules:
+
+| Condition | Behavior |
+|-----------|----------|
+| Declared digest ≠ recomputed digest | `VSAImportError` (`vsa_bundle_digest_mismatch`) |
+| Empty / non-object report | `missing_digest` |
+| Multiple `evidence_refs` / reports without `selected_vsa_digest` | `ambiguous_evidence_refs` |
+| Both `vsa_bundle` and `vsa_report` | Prefer `vsa_bundle` |
+
+Migration: callers may keep supplying `vsa_report`; the import adapter and gate resolve to `vsa_bundle` and bind `vsa_decision_time_bundle_digest` on the decision `bindings` object.
+
 ## Warnings and human review
 
 VSA warnings are preserved in `context.metadata.vsa_warnings`. VSA human review flags are stored but do not automatically override AKTA policy — AKTA applies its own admissibility matrix.
@@ -65,3 +90,4 @@ VSA warnings are preserved in `context.metadata.vsa_warnings`. VSA human review 
 ## Example fixtures
 
 See `examples/weak_evidence/vsa_report.json`, `vsa_input.json`, and `vsa_imported_context.json`.
+AS-01 fixtures: `tests/fixtures/as01/`.

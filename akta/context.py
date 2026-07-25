@@ -26,6 +26,7 @@ class AKTAContext:
     tool_payload: dict[str, Any] | None = None
     structured_action: dict[str, Any] | None = None
     vsa_report: dict[str, Any] | None = None
+    vsa_bundle: dict[str, Any] | None = None
     prior_akta_records: list[dict[str, Any]] = field(default_factory=list)
     handoff_chain: list[dict[str, Any]] = field(default_factory=list)
     extra: dict[str, Any] = field(default_factory=dict)
@@ -47,6 +48,7 @@ class AKTAContext:
             "tool_payload",
             "structured_action",
             "vsa_report",
+            "vsa_bundle",
             "prior_akta_records",
             "handoff_chain",
         }
@@ -78,6 +80,7 @@ class AKTAContext:
             "tool_payload",
             "structured_action",
             "vsa_report",
+            "vsa_bundle",
             "prior_akta_records",
             "handoff_chain",
         ):
