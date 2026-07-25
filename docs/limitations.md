@@ -1,5 +1,26 @@
 # AKTA Limitations
 
+Package baseline: **1.2.0**. Historical sections below retain release-era limits for integrators on older docs paths.
+
+## Admissibility-Stack hardening (AS-00–08 / 1.2.x)
+The AS workstream hardens reconstructable admissibility, pilot modes, and outcome linkage. It explicitly does **not**:
+
+- Certify scientific truth, correctness, or institution-wide scientific efficacy
+- Replace SCOPE reviewer identity, grant lifecycle, or cryptographic signing
+- Learn or update policy from pilot outcome metrics (no RL / policy-learning loop)
+- Authorize P7 fully autonomous scientific operators
+- Claim that shadow-mode outputs may drive operational allow/execute side effects
+- Treat placeholder release signers or incomplete stack pins as institutional pass
+
+### AS non-claims (operator-facing)
+
+- **Admissibility ≠ truth**: gate decisions admit/refuse proposed action under policy; they do not validate scientific claims
+- **Reconstruction ≠ reproducibility of nature**: reconstruction verifies artifact/policy binding integrity, not experimental replication
+- **Pilot metrics ≠ efficacy**: aggregates cover sufficiency rates, block/allow/review rates, disagreement, and reconstruction completeness only
+- **Known debt**: bench F-class naming drift (`F1_` vs `F01_`) is normalized in the uniform-failure mapper only; historical eval reports are not rewritten (AS-04)
+
+See [`as_baseline.md`](as_baseline.md) and [`adr/`](adr/).
+
 ## v0.8
 
 AKTA v0.8 adds fixture-driven SCOPE narrowing validation, first-class `summary.json` integration contract, and cross-repo reconstructable release gates. It explicitly does not:
