@@ -46,21 +46,51 @@ def _runtime_behavior(admissibility: str, blocked_tools: list[str], allowed_tool
     }
 
 
-def build_pf_obligation(record: dict[str, Any], decision_id: str | None = None) -> dict[str, Any]:
+def build_pf_obligation(
+    record: dict[str, Any],
+    decision_id: str | None = None,
+    *,
+    require_decision_basis: bool = False,
+) -> dict[str, Any]:
     """Build PF-Core obligation JSON from an AKTA Record."""
     decision = record.get("decision", {})
     classification = record.get("classification", {})
     provenance = record.get("provenance", {})
+    bindings = record.get("bindings") or {}
     admissibility = decision.get("admissibility", "blocked")
     blocked = decision.get("blocked_tools", [])
     allowed = decision.get("allowed_tools", [])
+
+    resolved_decision_id = (
+        decision_id
+        or bindings.get("decision_id")
+        or record.get("record_id", "").replace("SAR", "DEC")
+    )
+
+    if require_decision_basis and not record.get("decision_basis") and not bindings.get(
+        "decision_basis_digest"
+    ):
+        raise ValueError("PF export require_decision_basis: missing decision_basis")
+
+    # Fail closed on digest mismatch when bindings declare policy hashes.
+    if bindings.get("policy_hash") and provenance.get("policy_hash"):
+        if bindings["policy_hash"] != provenance["policy_hash"]:
+            raise ValueError(
+                "PF export digest mismatch: bindings.policy_hash != provenance.policy_hash"
+            )
+    if bindings.get("tool_registry_hash") and provenance.get("tool_registry_hash"):
+        if bindings["tool_registry_hash"] != provenance["tool_registry_hash"]:
+            raise ValueError(
+                "PF export digest mismatch: bindings.tool_registry_hash != "
+                "provenance.tool_registry_hash"
+            )
 
     obligation = {
         "obligation_id": f"PF-OBL-{record.get('record_id', 'UNKNOWN')}",
         "obligation_type": _obligation_type(admissibility),
         "source": "AKTA",
         "source_record_id": record.get("record_id"),
-        "decision_id": decision_id or record.get("record_id", "").replace("SAR", "DEC"),
+        "decision_id": resolved_decision_id,
         "decision": admissibility,
         "decision_reason_hash": _hash_field(decision.get("decision_reason", "")),
         "blocked_tools": blocked,
@@ -77,6 +107,15 @@ def build_pf_obligation(record: dict[str, Any], decision_id: str | None = None) 
         "next_admissible_steps": decision.get("next_admissible_steps", []),
         "required_review_role": decision.get("required_review_role"),
         "consequentiality": decision.get("consequentiality", False),
+        "bindings": {
+            "decision_id": resolved_decision_id,
+            "record_id": record.get("record_id"),
+            "policy_hash": provenance.get("policy_hash") or bindings.get("policy_hash"),
+            "tool_registry_hash": provenance.get("tool_registry_hash")
+            or bindings.get("tool_registry_hash"),
+            "decision_basis_digest": bindings.get("decision_basis_digest"),
+            "vsa_decision_time_bundle_digest": bindings.get("vsa_decision_time_bundle_digest"),
+        },
     }
     obligation["obligation_hash"] = hash_object(
         {k: v for k, v in obligation.items() if k != "obligation_hash"}
@@ -90,12 +129,17 @@ def export_pf_obligation(
     *,
     validate: bool = True,
     decision_id: str | None = None,
+    require_decision_basis: bool = False,
 ) -> Path:
     """Write PF-Core obligation to output directory."""
     from akta.records import AKTARecord
 
     data = record.data if isinstance(record, AKTARecord) else record
-    obligation = build_pf_obligation(data, decision_id=decision_id)
+    obligation = build_pf_obligation(
+        data,
+        decision_id=decision_id,
+        require_decision_basis=require_decision_basis,
+    )
     if validate:
         validate_against_schema(obligation, "pf_core_obligation.schema.json")
     out_dir = Path(out_dir)

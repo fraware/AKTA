@@ -1,4 +1,6 @@
-# PCS Export (v0.5)
+# PCS Export
+
+> **Current status:** Package **1.2.0** + AS hardening. Prefer [integration_guide.md](integration_guide.md), [RELEASE.md](RELEASE.md), and [adr/0003-artifact-immutability-and-reconstruction.md](adr/0003-artifact-immutability-and-reconstruction.md) for reconstructable release bundles (`akta reconstruct`). Bundle layout and `akta-record-v0.5` schema version below remain the export contract.
 
 AKTA Records export as PCS-compatible artifact bundles for packaging, benchmarking, and scientific memory import. PCS export records provenance; it is not a safety certification.
 
