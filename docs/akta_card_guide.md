@@ -1,5 +1,7 @@
 # AKTA Card Guide
 
+> **Current status:** Package **1.2.0**. The card is an institutional disclosure artifact — not a safety certification. See [adr/0001-admissibility-boundary.md](adr/0001-admissibility-boundary.md) and [limitations.md](limitations.md).
+
 The AKTA Card is an institutional disclosure artifact summarizing how an AI-for-science system is deployed with respect to scientific action admissibility.
 
 ## Required fields

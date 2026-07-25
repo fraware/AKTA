@@ -1,5 +1,7 @@
 # Domain Overlay Guide
 
+> **Current status:** Package **1.2.0**. Overlay governance and experimental-tier refusal still apply under production/pilot modes; see [limitations.md](limitations.md) and [operator_pilot_guide.md](operator_pilot_guide.md).
+
 Domain overlays extend AKTA core policy with field-specific constraints without modifying the core policy bundle.
 
 ## Purpose

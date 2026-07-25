@@ -1,4 +1,6 @@
-# Institutional trust store (AKTA 1.1 trust domains)
+# Institutional trust store
+
+> **Current status:** Package **1.2.0**. Prefer [deployment_reference.md](deployment_reference.md), [policy_integrity.md](policy_integrity.md), and [RELEASE.md](RELEASE.md). Registries below remain the grant/status/manifest trust domains.
 
 AKTA authenticates SCOPE artifacts against **separate** public-key registries:
 

@@ -10,6 +10,8 @@ Protocol freeze declaration for the Open Scientific Action Protocol reference im
 - PCS manifest contract (via PCS-Core integration)
 - SCOPE review summary contract (`scope-akta-review-v0.9+`)
 
+Decision/record schemas allow `additionalProperties: true`. The Admissibility-Stack hardening (AS-00–08 on package **1.2.0**) adds **optional** fields and **new** schema files (`bindings`, `decision_basis`, `stack_profile`, `uniform_failure`, `outcome_ref`, pilot-mode profiles). It does not rewrite frozen required fields.
+
 ## Policy bundle
 
 - Manifest: `akta-policy-manifest-v1.0`
@@ -18,7 +20,7 @@ Protocol freeze declaration for the Open Scientific Action Protocol reference im
 
 ## Non-certification
 
-AKTA v1.0 is a reference kernel and field benchmark — not safety certification, not institutional IRB approval, and not a guarantee of scientific correctness.
+AKTA v1.0 is a reference kernel and field benchmark — not safety certification, not institutional IRB approval, and not a guarantee of scientific correctness. See also [adr/0001-admissibility-boundary.md](adr/0001-admissibility-boundary.md) and [limitations.md](limitations.md).
 
 ## External review checklist (non-blocking)
 

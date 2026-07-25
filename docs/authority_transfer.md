@@ -1,5 +1,7 @@
 # Scientific Authority Transfer
 
+> **Current status:** Package **1.2.0**. See [adr/0001-admissibility-boundary.md](adr/0001-admissibility-boundary.md) and [review_integration.md](review_integration.md) for grant vs evidence boundaries. Admissibility visibility is not scientific truth certification.
+
 Scientific authority transfer occurs when an AI output changes what a scientific system is more likely to believe, test, modify, prioritize, execute, or publish.
 
 ## Examples

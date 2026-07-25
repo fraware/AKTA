@@ -1,5 +1,7 @@
 # Trusted Boundary
 
+> **Current status:** Package **1.2.0**. Formal non-claims: [adr/0001-admissibility-boundary.md](adr/0001-admissibility-boundary.md), [threat_model.md](threat_model.md), [limitations.md](limitations.md).
+
 AKTA defines the trusted boundary between AI-generated scientific reasoning and AI-shaped scientific action.
 
 ## Boundary definition
