@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/stack_profile.schema.json",
+  "title": "AKTA Stack Profile",
+  "description": "Portable declaration of compatible VSA/AKTA/SCOPE/PF/PCS/Scientific-Memory versions (AS-02).",
+  "type": "object",
+  "required": [
+    "stack_profile_version",
+    "profile_id",
+    "akta_version",
+    "components"
+  ],
+  "properties": {
+    "stack_profile_version": {
+      "type": "string",
+      "const": "akta-stack-profile-v1"
+    },
+    "profile_id": { "type": "string", "minLength": 1 },
+    "profile_kind": {
+      "type": "string",
+      "enum": ["institutional", "development", "custom"]
+    },
+    "akta_version": { "type": "string", "minLength": 1 },
+    "shared_contracts_version": { "type": "string" },
+    "components": {
+      "type": "object",
+      "required": ["AKTA"],
+      "properties": {
+        "AKTA": { "$ref": "#/$defs/component_pin" },
+        "VSA": { "$ref": "#/$defs/component_pin" },
+        "SCOPE": { "$ref": "#/$defs/component_pin" },
+        "PF-Core": { "$ref": "#/$defs/component_pin" },
+        "PCS-Core": { "$ref": "#/$defs/component_pin" },
+        "Scientific-Memory": { "$ref": "#/$defs/component_pin" },
+        "PCS-Bench": { "$ref": "#/$defs/component_pin" }
+      },
+      "additionalProperties": { "$ref": "#/$defs/component_pin" }
+    },
+    "require_institutional_pins": { "type": "boolean", "default": false },
+    "notes": { "type": "string" }
+  },
+  "$defs": {
+    "component_pin": {
+      "type": "object",
+      "required": ["version"],
+      "properties": {
+        "version": { "type": "string", "minLength": 1 },
+        "commit": { "type": ["string", "null"] },
+        "tag": { "type": ["string", "null"] },
+        "required": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

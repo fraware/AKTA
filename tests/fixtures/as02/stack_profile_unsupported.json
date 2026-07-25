@@ -1,0 +1,16 @@
+{
+  "stack_profile_version": "akta-stack-profile-v1",
+  "profile_id": "unsupported-combo",
+  "profile_kind": "institutional",
+  "akta_version": "9.9.9",
+  "shared_contracts_version": "0.0.1",
+  "require_institutional_pins": true,
+  "components": {
+    "AKTA": { "version": "9.9.9" },
+    "VSA": { "version": "0.0.1", "commit": "0000000000000000000000000000000000000001" },
+    "SCOPE": { "version": "0.0.1" },
+    "PF-Core": { "version": "0.0.1" },
+    "PCS-Core": { "version": "0.0.1" },
+    "Scientific-Memory": { "version": "0.0.1" }
+  }
+}

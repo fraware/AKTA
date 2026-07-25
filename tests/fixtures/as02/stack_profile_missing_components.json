@@ -1,0 +1,10 @@
+{
+  "stack_profile_version": "akta-stack-profile-v1",
+  "profile_id": "missing-components",
+  "profile_kind": "institutional",
+  "akta_version": "1.2.0",
+  "require_institutional_pins": true,
+  "components": {
+    "AKTA": { "version": "1.2.0" }
+  }
+}

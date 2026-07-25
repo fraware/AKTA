@@ -1,0 +1,18 @@
+{
+  "stack_profile_version": "akta-stack-profile-v1",
+  "profile_id": "institutional-1.2.0",
+  "profile_kind": "institutional",
+  "akta_version": "1.2.0",
+  "shared_contracts_version": "2.2.0",
+  "require_institutional_pins": true,
+  "components": {
+    "AKTA": { "version": "1.2.0" },
+    "VSA": { "version": "0.7.2", "tag": "v0.7.2", "commit": "903d834f201535ac1525e3e8907254363209904f" },
+    "SCOPE": { "version": "2.2", "tag": "v1.0.0", "commit": "41b0faf2094179d154996fcf78d77ce0c1347dcd" },
+    "PF-Core": { "version": "0.6.0", "tag": "pf-core-v0.6.0", "commit": "629984cb62b9d4b2281d36062a2979198ba61c82" },
+    "PCS-Core": { "version": "0.1.0", "tag": "v0.1.0-pf-core", "commit": "b4ae0c7a8beba8ec356bd6873a8272f537d9a397" },
+    "Scientific-Memory": { "version": "1.0.3", "tag": "v1.0.3", "commit": "784140baee2589c89453243bee37ea074d0a4a2d" },
+    "PCS-Bench": { "version": "0.1.0", "commit": "a3a080e5cb4c24db49f3704c6a582903eed9bbb5" }
+  },
+  "notes": "Valid institutional declaration; placeholder release_signer still fail-closed under institutional verification."
+}

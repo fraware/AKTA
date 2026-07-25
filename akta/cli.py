@@ -22,7 +22,7 @@ def _load_json(path: str) -> dict | list | str:
 def cmd_gate(args: argparse.Namespace) -> int:
     ai_output = _load_json(args.output) if args.output else args.ai_text or ""
     context_data = _load_json(args.context) if args.context else {}
-    context = AKTAContext.from_dict(context_data)
+    context = AKTAContext.from_dict(context_data if isinstance(context_data, dict) else {})
 
     gate = AKTAGate.from_policy_dir(
         args.policy_dir,
@@ -36,11 +36,13 @@ def cmd_gate(args: argparse.Namespace) -> int:
         context=context,
         deployment_profile=args.profile,
         domain_overlay=args.domain_overlay,
+        pilot_mode=getattr(args, "mode", None),
     )
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     decision.save(out_path)
-    print(json.dumps(decision.to_dict(), indent=2))
+    payload = decision.to_dict()
+    print(json.dumps(payload, indent=2))
     return 0
 
 
@@ -131,6 +133,62 @@ def cmd_migrate_legacy_grant(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_validate_stack_profile(args: argparse.Namespace) -> int:
+    from akta.stack_profile import validate_stack_profile
+
+    result = validate_stack_profile(args.profile)
+    print(json.dumps(result, indent=2))
+    return 0 if result.get("ok") else 1
+
+
+def cmd_reconstruct(args: argparse.Namespace) -> int:
+    from akta.reconstruct import write_reconstruction_report
+
+    report = write_reconstruction_report(
+        args.release,
+        args.out,
+        require_bindings=not args.allow_missing_bindings,
+    )
+    print(json.dumps(report, indent=2))
+    return 0 if report.get("ok") else 1
+
+
+def cmd_link_outcome(args: argparse.Namespace) -> int:
+    from akta.pilot_metrics import OutcomeMutationError, link_outcome_to_record
+
+    record = _load_json(args.record)
+    outcome_ref = _load_json(args.outcome_ref)
+    if not isinstance(record, dict) or not isinstance(outcome_ref, dict):
+        print("record and outcome-ref must be JSON objects", file=sys.stderr)
+        return 1
+    try:
+        updated = link_outcome_to_record(record, outcome_ref)
+    except OutcomeMutationError as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}), file=sys.stderr)
+        return 1
+    out_path = Path(args.out) if args.out else Path(args.record)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(updated, indent=2), encoding="utf-8")
+    print(json.dumps({"ok": True, "out": str(out_path), "outcome_refs": len((updated.get("integrations") or {}).get("outcome_refs") or [])}))
+    return 0
+
+
+def cmd_export_pilot_metrics(args: argparse.Namespace) -> int:
+    from akta.pilot_metrics import export_pilot_metrics, load_records_dir
+
+    records = load_records_dir(args.records)
+    comparisons = None
+    if args.comparisons:
+        raw = _load_json(args.comparisons)
+        comparisons = raw if isinstance(raw, list) else [raw]
+    metrics = export_pilot_metrics(records, shadow_comparisons=comparisons)
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    print(json.dumps(metrics, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="akta",
@@ -154,6 +212,14 @@ def build_parser() -> argparse.ArgumentParser:
     gate.add_argument("--policy-dir", default="policy", help="Policy directory")
     gate.add_argument("--overlays-dir", default="overlays", help="Overlays directory")
     gate.add_argument("--tool-registry", help="Tool registry YAML path")
+    gate.add_argument(
+        "--mode",
+        help=(
+            "Pilot mode (AS-05): retrospective_reconstruction | prospective_shadow | "
+            "read_only_support | execution_adjacent | bounded_execution. "
+            "Distinct from REST service deployment --mode. Default: omit for pre-AS-05 behavior."
+        ),
+    )
     gate.add_argument("--out", required=True, help="Output decision JSON path")
     gate.set_defaults(func=cmd_gate)
 
@@ -210,6 +276,54 @@ def build_parser() -> argparse.ArgumentParser:
     migrate.add_argument("--out", required=True, help="Migrated grant JSON path")
     migrate.add_argument("--grant-version", default="2.0.0")
     migrate.set_defaults(func=cmd_migrate_legacy_grant)
+
+    vsp = sub.add_parser(
+        "validate-stack-profile",
+        help="Validate a stack_profile.json against release pins (AS-02)",
+    )
+    vsp.add_argument("profile", help="Path to stack_profile.json")
+    vsp.set_defaults(func=cmd_validate_stack_profile)
+
+    recon = sub.add_parser(
+        "reconstruct",
+        help="Reconstruct/verify an action release bundle (AS-08)",
+    )
+    recon.add_argument(
+        "--release",
+        required=True,
+        help="Path to action_release/ or pcs_bundle directory",
+    )
+    recon.add_argument("--out", required=True, help="Output reconstruction.json path")
+    recon.add_argument(
+        "--allow-missing-bindings",
+        action="store_true",
+        help="Do not fail when historical bundles omit bindings",
+    )
+    recon.set_defaults(func=cmd_reconstruct)
+
+    link = sub.add_parser(
+        "link-outcome",
+        help="Append an outcome_ref to a record without mutating admissibility (AS-07)",
+    )
+    link.add_argument("--record", required=True, help="AKTA record JSON path")
+    link.add_argument("--outcome-ref", required=True, help="outcome_ref JSON path")
+    link.add_argument(
+        "--out",
+        help="Output path (default: overwrite --record)",
+    )
+    link.set_defaults(func=cmd_link_outcome)
+
+    metrics = sub.add_parser(
+        "export-pilot-metrics",
+        help="Export privacy-preserving pilot metrics aggregates (AS-07)",
+    )
+    metrics.add_argument("--records", required=True, help="Directory or file of AKTA records")
+    metrics.add_argument("--out", required=True, help="Output metrics.json path")
+    metrics.add_argument(
+        "--comparisons",
+        help="Optional shadow comparison JSON (list or object)",
+    )
+    metrics.set_defaults(func=cmd_export_pilot_metrics)
 
     return parser
 
