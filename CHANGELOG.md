@@ -4,6 +4,34 @@ All notable changes to AKTA are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] — Admissibility-Stack hardening (AS-00–08) on 1.2.0
+
+Additive hardening atop package **1.2.0**. Does not rewrite frozen PROTOCOL v1.0 required fields.
+
+### Added
+
+- Baseline freeze + ADRs (`docs/as_baseline.md`, `docs/adr/0001`–`0003`)
+- Binding set schema and decision/record `bindings` digests (AS-01)
+- `stack_profile` schema/validator and `akta validate-stack-profile` (AS-02)
+- `decision_basis` structured artifact (AS-03)
+- Uniform failure mapping + `failure` / `failures[]` surfaces (AS-04)
+- Five `PilotMode` values, `policy/pilot_modes/`, `akta gate --mode` (AS-05; distinct from REST deployment `--mode`)
+- SCOPE/PF/PCS binding hardening and AS-06 fixtures (AS-06)
+- Append-only `outcome_ref`, `akta link-outcome`, `akta export-pilot-metrics` (AS-07)
+- `akta reconstruct`, operator/reviewer pilot guides (AS-08)
+
+### Changed
+
+- VSA import prefers `vsa_bundle` and fail-closes on digest mismatch / ambiguous refs
+- Legacy `PilotStage` / `AKTA_PILOT_STAGE` map into PilotMode (unknown values fail closed)
+
+### Notes
+
+- Additive CLI/API only; default `gate`/`record`/`export`/`eval` remain compatible when new flags are omitted
+- Placeholder release signers remain fail-closed under institutional stack profiles
+- Pilot metrics are operational aggregates only — not institution-wide scientific efficacy scores
+- Admissibility decisions are not scientific truth certification (ADR 0001)
+
 ## [1.2.0] - 2026-07-23
 
 ### Added
