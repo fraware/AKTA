@@ -1,0 +1,7 @@
+{
+  "uniform_class": "review_required",
+  "local_reason_code": "review_required",
+  "detail": "needs review",
+  "layer": "review",
+  "recoverable": true
+}

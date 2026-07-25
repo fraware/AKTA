@@ -1,0 +1,7 @@
+{
+  "uniform_class": "authorization_denied",
+  "local_reason_code": "authorization_denied",
+  "detail": "no grant",
+  "layer": "authorization",
+  "recoverable": false
+}

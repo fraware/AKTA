@@ -1,0 +1,7 @@
+{
+  "uniform_class": "verification_indeterminate",
+  "local_reason_code": "verification_indeterminate",
+  "detail": "unclear",
+  "layer": "verification",
+  "recoverable": true
+}

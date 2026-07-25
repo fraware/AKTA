@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/uniform_failure.schema.json",
+  "title": "AKTA Uniform Failure",
+  "description": "Uniform failure class mapping preserving local reason codes (AS-04).",
+  "type": "object",
+  "required": [
+    "uniform_class",
+    "local_reason_code",
+    "detail",
+    "layer",
+    "recoverable"
+  ],
+  "properties": {
+    "uniform_class": {
+      "type": "string",
+      "enum": [
+        "invalid_input",
+        "insufficient_evidence",
+        "policy_block",
+        "review_required",
+        "authorization_denied",
+        "runtime_constraint_violation",
+        "verification_failed",
+        "verification_indeterminate",
+        "external_dependency_failure",
+        "outcome_unresolved"
+      ]
+    },
+    "local_reason_code": { "type": "string" },
+    "detail": { "type": "string" },
+    "layer": { "type": "string" },
+    "recoverable": { "type": "boolean" },
+    "next_admissible_steps": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}

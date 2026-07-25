@@ -1,0 +1,7 @@
+{
+  "uniform_class": "outcome_unresolved",
+  "local_reason_code": "outcome_unresolved",
+  "detail": "no outcome yet",
+  "layer": "outcome",
+  "recoverable": true
+}

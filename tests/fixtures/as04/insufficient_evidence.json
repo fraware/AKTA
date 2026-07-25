@@ -1,0 +1,7 @@
+{
+  "uniform_class": "insufficient_evidence",
+  "local_reason_code": "F01_weak_evidence_escalation",
+  "detail": "weak evidence",
+  "layer": "evidence_rules",
+  "recoverable": true
+}

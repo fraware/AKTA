@@ -1,0 +1,7 @@
+{
+  "uniform_class": "policy_block",
+  "local_reason_code": "policy_block",
+  "detail": "policy refused",
+  "layer": "policy",
+  "recoverable": false
+}

@@ -30,7 +30,7 @@ import uuid
 from collections import defaultdict, deque
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from importlib.metadata import version as pkg_version
+from akta import __version__ as akta_version
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -357,6 +357,12 @@ class AKTARESTHandler(BaseHTTPRequestHandler):
         safe = _sanitize_error_detail(detail)
         if safe:
             payload["detail"] = safe
+        try:
+            from akta.failure_mapping import map_rest_error
+
+            payload["failure"] = map_rest_error(code, detail=safe or code)
+        except Exception:
+            pass
         self._send_json(status, payload)
 
     def _gate(self) -> AKTAGate:
@@ -419,7 +425,7 @@ class AKTARESTHandler(BaseHTTPRequestHandler):
                     HTTPStatus.OK,
                     {
                         "status": "ok",
-                        "version": pkg_version("akta-protocol"),
+                        "version": akta_version,
                         "api_version": "v1.0",
                         "production_mode": self.production_mode,
                         "service_mode": self.service_mode,

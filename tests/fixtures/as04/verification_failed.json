@@ -1,0 +1,7 @@
+{
+  "uniform_class": "verification_failed",
+  "local_reason_code": "verification_failed",
+  "detail": "digest mismatch",
+  "layer": "verification",
+  "recoverable": false
+}
