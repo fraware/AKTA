@@ -1,5 +1,7 @@
 # AKTA Field Thesis
 
+> **Current status:** Package **1.2.0**. Conceptual framing only — operational docs: [scientific_action_admissibility.md](scientific_action_admissibility.md), [adr/0001-admissibility-boundary.md](adr/0001-admissibility-boundary.md), [integration_guide.md](integration_guide.md).
+
 ## The problem
 
 AI-for-science systems are crossing from reasoning to action. Models summarize literature, interpret evidence, draft protocols, recommend experiments, call tools, and prepare execution-adjacent workflows. Each of these outputs can change what science does next — even when the model frames the output as informal, preliminary, or "just a suggestion."

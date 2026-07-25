@@ -18,7 +18,9 @@ from adapters.scope.client import submit_review_trigger
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def test_scope_adapter_simulated_mode() -> None:
+def test_scope_adapter_simulated_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("SCOPE_REPO_PATH", raising=False)
+    monkeypatch.delenv("SCOPE_CLI", raising=False)
     trigger = {
         "review_trigger_id": "AKTA-REVTRIG-TEST0001",
         "requested_scope": "active_protocol_update",
@@ -182,6 +184,7 @@ def test_scope_adapter_cli_missing(monkeypatch: pytest.MonkeyPatch) -> None:
         "review_trigger_id": "AKTA-REVTRIG-MISSING01",
         "requested_scope": "protocol_draft",
     }
+    monkeypatch.delenv("SCOPE_REPO_PATH", raising=False)
     monkeypatch.setenv("SCOPE_CLI", "nonexistent-scope-cli-xyz")
 
     with patch(

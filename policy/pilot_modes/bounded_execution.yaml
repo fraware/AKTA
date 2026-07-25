@@ -1,0 +1,14 @@
+mode: bounded_execution
+profile_version: akta-pilot-mode-profile-v1
+restrictions:
+  allow_live_tool_execution: true
+  allow_mutating_tools: true
+  allow_execution_tools: true
+  allow_draft_tools: true
+  shadow: false
+  operational_influence: true
+  require_stack_profile: true
+  require_trust_pins: true
+  tool_allowlist: []
+  denied_effect_classes: []
+notes: Full stack profile + trust pins required; tool allowlist from policy; fail closed on missing trust.

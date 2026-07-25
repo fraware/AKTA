@@ -1,6 +1,28 @@
-# AKTA Threat Model (v0.7.1)
+# AKTA Threat Model (v1.2 + AS hardening)
 
-AKTA sits in the agent supply chain between model output and scientific action. This document describes threats, controls by release, residual risk, and out-of-scope items. AKTA is not a safety certification.
+AKTA sits in the agent supply chain between model output and scientific action. This document describes threats, controls by release, residual risk, and out-of-scope items. Package version: **1.2.0**. AKTA is not a safety certification.
+
+## AS workstream non-claims (threat posture)
+
+The Admissibility-Stack hardening (AS-00–08) adds digest bindings, stack profiles, decision basis, uniform failures, pilot modes, outcome refs, and reconstruction CLI. It does **not** claim:
+
+- Defense against model prompt injection or model truthfulness
+- That pilot outcome linkage improves scientific quality or efficacy
+- That shadow evaluations may authorize execution
+- That incomplete institutional pins (placeholder signers, missing siblings) are acceptable under `bounded_execution` / institutional release
+- Replacement of SCOPE/PF/PCS as systems of record for identity, runtime proof, or release packaging
+
+Residual risk for forged records outside the AKTA export path, misconfigured production env, and incomplete sibling checkouts remains as below.
+
+## AS controls (1.2.x)
+
+- Binding digests on decisions/records; reconstruction CLI verifies release bundles
+- Stack profile validation against institutional pins (fail closed on placeholder signers / missing siblings when required)
+- Pilot-mode allowlists and shadow isolation (`operational_influence: false`)
+- Uniform failure surfaces additive to local reason codes
+- Append-only outcome refs; metrics exclude raw evidence text
+
+These controls harden reconstructability and pilot boundaries. They do not upgrade `runtime_observed` adapter results into cryptographic or institutional guarantees.
 
 ## Trust boundaries
 
@@ -66,13 +88,16 @@ AKTA sits in the agent supply chain between model output and scientific action. 
 - Log integrity and audit trail storage
 - Physical lab safety certification or regulatory approval
 - P7 fully autonomous scientific operator runtime (permanently unsupported)
+- Learning policy from pilot outcome metrics / RL loops (AS non-claim)
+- Institution-wide scientific efficacy scoring from pilot metrics (AS non-claim)
 
 ## Verification
 
 - `make ci` — full regression including scenario eval, adversarial transitions, and integration demos
+- `pytest tests/test_as01_bindings.py tests/test_as02_stack_profile.py tests/test_as03_decision_basis.py tests/test_as04_uniform_failures.py tests/test_as05_pilot_modes.py tests/test_as06_bindings_chain.py tests/test_as07_outcome_metrics.py tests/test_as08_reconstruct.py` — AS suite
 - `python scripts/verify_scope_live_chain.py` — live SCOPE conformance (optional sibling repo)
 - `pytest tests/test_policy_signing_modes.py` — integrity mode enforcement
 - `pytest tests/test_invalid_cases.py` — F8 policy tampering fixtures
 - `pytest tests/test_evaluate_with_grant.py` — grant re-gate semantics
 
-See [SECURITY.md](../SECURITY.md), [policy_integrity.md](policy_integrity.md), and [RELEASE.md](RELEASE.md).
+See [SECURITY.md](../SECURITY.md), [policy_integrity.md](policy_integrity.md), [RELEASE.md](RELEASE.md), and [adr/0001-admissibility-boundary.md](adr/0001-admissibility-boundary.md).

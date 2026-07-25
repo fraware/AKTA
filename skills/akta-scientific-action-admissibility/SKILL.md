@@ -1,7 +1,7 @@
 ---
 name: akta-scientific-action-admissibility
 description: >-
-  Evaluates scientific action admissibility using the AKTA protocol (v0.7.1).
+  Evaluates scientific action admissibility using the AKTA protocol (v1.2.0).
   Classifies AI outputs (A0-A10), assigns responsibility levels, applies evidence
   and deployment profile policy, gates tool calls, emits AKTA Records, and produces
   SCOPE-compatible review triggers with requested_scope. Use when integrating
@@ -11,7 +11,7 @@ description: >-
   or authority transfer.
 ---
 
-# AKTA Scientific Action Admissibility (v0.7.1)
+# AKTA Scientific Action Admissibility (v1.2.0)
 
 ## Quick start
 
@@ -54,7 +54,7 @@ Do **not** use AKTA to decide scientific truth — use VSA for evidence groundin
 5. **Export integrations** — PF-Core obligation (`akta export pf`), PCS bundle (`akta export pcs`)
 6. **SCOPE handoff** — when review is required, export `review_trigger` with `requested_scope`; after grant, call `evaluate_with_grant()`
 
-## Grant re-gate (v0.7.1)
+## Grant re-gate
 
 After SCOPE authorization:
 
@@ -76,7 +76,7 @@ Prior review metadata in `context.metadata` is enforced:
 
 - `prior_review_expired` — expired grants require new review (F14)
 - `prior_review_scope` — narrow grants block out-of-scope tools
-- `prior_review_allowed_tools` / `prior_review_blocked_tools` — grant-exact tool lists (v0.7.1)
+- `prior_review_allowed_tools` / `prior_review_blocked_tools` — grant-exact tool lists
 - `prior_akta_records` — blocked prior records prevent escalation
 
 Structured classification via `context.structured_action` takes priority over NL regex. Optional LLM classifier requires `AKTA_LLM_CLASSIFIER=1` and `OPENAI_API_KEY`.
@@ -155,7 +155,10 @@ See [examples/weak_evidence_gate.md](examples/weak_evidence_gate.md) and [exampl
 
 - Protocol overview: [docs/scientific_action_admissibility.md](../../docs/scientific_action_admissibility.md)
 - Integration guide: [docs/integration_guide.md](../../docs/integration_guide.md)
+- Operator / reviewer pilots: [docs/operator_pilot_guide.md](../../docs/operator_pilot_guide.md), [docs/reviewer_pilot_guide.md](../../docs/reviewer_pilot_guide.md)
+- ADR boundary: [docs/adr/0001-admissibility-boundary.md](../../docs/adr/0001-admissibility-boundary.md)
 - SCOPE bridge: [docs/scope_bridge.md](../../docs/scope_bridge.md)
 - Live SCOPE conformance: [docs/scope_live_conformance.md](../../docs/scope_live_conformance.md)
 - Threat model: [docs/threat_model.md](../../docs/threat_model.md)
 - Failure taxonomy F01–F15: [docs/failure_class_taxonomy.md](../../docs/failure_class_taxonomy.md)
+- Release checklist: [docs/RELEASE.md](../../docs/RELEASE.md)

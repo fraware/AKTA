@@ -1,4 +1,6 @@
-# Live SCOPE conformance (v0.8.1)
+# Live SCOPE conformance
+
+> **Current status:** Package **1.2.0** + AS hardening. Release checks: [RELEASE.md](RELEASE.md). Pilot operators: [operator_pilot_guide.md](operator_pilot_guide.md). Fixture pin `akta-scope-contract-v0.8.1` below is intentional historical contract versioning, not the package version.
 
 AKTA verifies live SCOPE integration through `scripts/verify_scope_live_chain.py`, contract tests under `tests/contracts/`, and pilot-mode bundle verification.
 
@@ -19,7 +21,7 @@ export SCOPE_CLI_MODE=akta-review               # akta-review-cli only
 export AKTA_STRICT_SCOPE_CONTRACT=1             # hard-fail fixture/runtime version mismatch
 ```
 
-## Assurance truthfulness (v0.8.1)
+## Assurance truthfulness
 
 | Adapter mode | Summary IAL/SAL source | Notes |
 |--------------|------------------------|-------|

@@ -12,7 +12,7 @@ AKTA is an open protocol with a reference implementation under the MIT license. 
 
 ## Versioning
 
-AKTA follows semantic versioning for the reference implementation package (`akta-protocol`, currently v1.0.0). Schema versions are embedded in artifact metadata (e.g., `akta-core-v1.0`, `akta-record-v0.5`).
+AKTA follows semantic versioning for the reference implementation package (`akta-protocol`, currently **1.2.0**). Schema versions are embedded in artifact metadata (e.g., `akta-core-v1.0`, `akta-record-v0.5`).
 
 See also `policy/scope_compatibility_manifest.json` for SCOPE contract pins and [docs/policy_integrity.md](docs/policy_integrity.md) for effective policy provenance.
 

@@ -1,8 +1,8 @@
 # AKTA v0.3 Integration Summary
 
-> **Current release:** v0.7.1 adds grant-exact re-gating (`prior_review_allowed_tools`), SCOPE `akta-review-cli` mode, live SCOPE verification, and reconstructable experiment Cases A/B/C. This document retains the v0.3 contract summary; see [integration_guide.md](integration_guide.md) and [scope_bridge.md](scope_bridge.md) for current adapter modes.
+> **Current status (historical doc):** Package **1.2.0** plus Admissibility-Stack hardening (AS-00–08). Prefer [README.md](../README.md), [RELEASE.md](RELEASE.md), [integration_guide.md](integration_guide.md), [operator_pilot_guide.md](operator_pilot_guide.md), [reviewer_pilot_guide.md](reviewer_pilot_guide.md), and ADRs under [adr/](adr/). This page retains the v0.3 review-trigger / authority-boundary contract summary only.
 
-AKTA v0.3 hardens the bridge to SCOPE, PF-Core, and PCS-Core. This document summarizes how the reference kernel connects to downstream systems and where authority boundaries sit.
+AKTA v0.3 hardened the bridge to SCOPE, PF-Core, and PCS-Core. This document summarizes how the reference kernel connects to downstream systems and where authority boundaries sit.
 
 ## System roles
 
@@ -66,8 +66,10 @@ Neither AKTA nor SCOPE alone authorizes global permission.
 
 ## Related documentation
 
+- [integration_guide.md](integration_guide.md) — current integration surface (1.2 + AS)
 - [scope_bridge.md](scope_bridge.md) — SCOPE field consumption and anti-patterns
 - [review_integration.md](review_integration.md) — Review trigger semantics
-- [limitations.md](limitations.md) — v0.3 integration limits
+- [limitations.md](limitations.md) — current and historical limits
 - [pf_core_bridge.md](pf_core_bridge.md) — Runtime enforcement
 - [pcs_export.md](pcs_export.md) — PCS bundle layout
+- [adr/0001-admissibility-boundary.md](adr/0001-admissibility-boundary.md) — admissibility non-claims

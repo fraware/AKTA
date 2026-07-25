@@ -1,5 +1,7 @@
 # SCOPE Bridge — AKTA Review Trigger Consumption
 
+> **Current status:** Package **1.2.0** + AS hardening. For pilot operation see [operator_pilot_guide.md](operator_pilot_guide.md) / [reviewer_pilot_guide.md](reviewer_pilot_guide.md); for release checks see [RELEASE.md](RELEASE.md) and [scope_live_conformance.md](scope_live_conformance.md). Sections below retain the review-trigger contract and SCOPE adapter modes (including historical v0.7.1 headings).
+
 AKTA emits SCOPE-compatible review triggers when admissibility is `review_required` or `authorization_required`. SCOPE (Scientific Control and Oversight Protocol) orchestrates human review workflows; AKTA supplies the typed trigger artifact that binds a specific scientific action transition to a scoped review obligation.
 
 ## Division of responsibility
@@ -147,8 +149,10 @@ When a record includes `review_trigger`, PCS export adds `review_trigger.json` t
 
 ## Related documentation
 
-- [akta_v03_integration.md](akta_v03_integration.md) — v0.3 integration summary
+- [integration_guide.md](integration_guide.md) — current integration surface
+- [akta_v03_integration.md](akta_v03_integration.md) — historical v0.3 contract summary
 - [review_integration.md](review_integration.md) — AKTA review trigger semantics
 - [scope_live_conformance.md](scope_live_conformance.md) — Live SCOPE verification
 - [pcs_export.md](pcs_export.md) — PCS bundle layout including review triggers
 - [pf_core_bridge.md](pf_core_bridge.md) — Runtime enforcement after review
+- [adr/0001-admissibility-boundary.md](adr/0001-admissibility-boundary.md) — authority / non-claims

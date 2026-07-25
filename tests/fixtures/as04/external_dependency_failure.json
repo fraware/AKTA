@@ -1,0 +1,7 @@
+{
+  "uniform_class": "external_dependency_failure",
+  "local_reason_code": "external_dependency",
+  "detail": "sibling missing",
+  "layer": "external",
+  "recoverable": true
+}

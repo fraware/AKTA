@@ -1,4 +1,4 @@
-# Integrated Weak-Evidence Demo (AKTA v0.7.1)
+# Integrated Weak-Evidence Demo (AKTA 1.2)
 
 AKTA gate → record → PF-Core → PCS pipeline for weak-evidence blocking.
 

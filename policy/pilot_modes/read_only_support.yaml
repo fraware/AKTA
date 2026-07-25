@@ -1,0 +1,13 @@
+mode: read_only_support
+profile_version: akta-pilot-mode-profile-v1
+restrictions:
+  allow_live_tool_execution: false
+  allow_mutating_tools: false
+  allow_execution_tools: false
+  allow_draft_tools: false
+  shadow: false
+  operational_influence: false
+  require_stack_profile: false
+  require_trust_pins: false
+  denied_effect_classes: [mutating_internal, mutating_external, unknown_tool]
+notes: Analysis/query only; mutating and execution tools blocked.

@@ -1,4 +1,6 @@
-# Classifier Trust Boundary (v0.5)
+# Classifier Trust Boundary
+
+> **Current status:** Package **1.2.0**. Advisory LLM classifiers remain non-authoritative; see [threat_model.md](threat_model.md) and [adr/0001-admissibility-boundary.md](adr/0001-admissibility-boundary.md).
 
 AKTA treats deterministic classification as authoritative. Optional LLM classifiers operate in an **advisory-only** trust zone and never override known tool-registry mappings.
 

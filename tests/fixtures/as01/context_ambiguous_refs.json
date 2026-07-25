@@ -1,0 +1,8 @@
+{
+  "evidence_refs": ["VSA-A", "VSA-B"],
+  "vsa_report": {
+    "report_id": "VSA-A",
+    "overall_evidence_strength": "preliminary",
+    "claims": [{"claim_id": "C1", "evidence_level": "preliminary"}]
+  }
+}

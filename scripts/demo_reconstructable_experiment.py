@@ -59,9 +59,12 @@ def stabilize_decision(
     record_id: str,
     review_trigger_id: str | None = None,
 ) -> dict[str, Any]:
+    from akta.bindings import sync_binding_ids
+
     d = dict(decision)
     d["decision_id"] = decision_id
     d["timestamp"] = DEMO_TIMESTAMP
+    d = sync_binding_ids(d, decision_id=decision_id, record_id=record_id)
     if d.get("review_trigger"):
         rt = dict(d["review_trigger"])
         rt["decision_id"] = decision_id
@@ -70,6 +73,8 @@ def stabilize_decision(
         rt["akta_record_id"] = record_id
         if review_trigger_id:
             rt["review_trigger_id"] = review_trigger_id
+        if isinstance(rt.get("bindings"), dict):
+            rt = sync_binding_ids(rt, decision_id=decision_id, record_id=record_id)
         d["review_trigger"] = _rehash_trigger(rt)
     return d
 
@@ -166,6 +171,8 @@ def _linkage_report(artifacts: dict[str, Path]) -> dict[str, Any]:
 
 
 def run_demo(*, cross_repo: bool | None = None, pilot: bool = False) -> int:
+    import os
+
     from akta import AKTAGate, AKTAContext
     from akta.records import AKTARecord
     from adapters.labtrust_gym.import_scenario import convert_labtrust_scenario
@@ -176,6 +183,8 @@ def run_demo(*, cross_repo: bool | None = None, pilot: bool = False) -> int:
     from adapters.scope.client import ADAPTER_MODE_SIMULATED, detect_adapter_mode, submit_review_trigger
     from adapters.scientific_memory.import_memory import export_memory_entry, import_from_pcs_bundle
     from adapters.vsa.import_report import import_vsa_report, validate_vsa_report
+
+    os.environ.setdefault("AKTA_REQUIRE_STRUCTURED_ACTIONS", "0")
 
     out_dir = resolve_out_dir(cross_repo=cross_repo if cross_repo is not None else pilot, pilot=pilot)
     if out_dir.exists():
@@ -303,6 +312,11 @@ def run_demo(*, cross_repo: bool | None = None, pilot: bool = False) -> int:
     record_data["record_id"] = DEMO_RECORD_ID
     record_data["timestamp"] = DEMO_TIMESTAMP
     record_data["review_trigger"] = trigger
+    if isinstance(record_data.get("bindings"), dict):
+        record_data["bindings"] = dict(record_data["bindings"])
+        record_data["bindings"]["record_id"] = DEMO_RECORD_ID
+        record_data["bindings"]["decision_id"] = DEMO_DECISION_ID
+    record_data = _rehash_record(record_data)
     _write_json(out_dir / "02_akta_record.json", record_data)
 
     _write_json(out_dir / "03_review_trigger.json", trigger)

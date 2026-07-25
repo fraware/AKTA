@@ -1,6 +1,26 @@
-# Public release verification (v1.0)
+# Public release verification (v1.2 + AS hardening)
 
-Use this checklist before tagging a public release of the AKTA reference implementation. AKTA is an open protocol with a reference kernel — not a safety certification.
+Use this checklist before tagging a public release of the AKTA reference implementation (`akta-protocol` **1.2.0** plus Admissibility-Stack hardening). AKTA is an open protocol with a reference kernel — not a safety certification.
+
+## Admissibility-Stack acceptance matrix (AS-00–08)
+
+| Criterion | Command / evidence |
+|-----------|-------------------|
+| Reconstructable decisions | `akta reconstruct --release action_release/ --out reconstruction.json`; AS-01/03/08 tests |
+| Pilot mode restrictions | `pytest tests/test_as05_pilot_modes.py`; shadow `operational_influence=false` |
+| SCOPE/PF/PCS bindings | `pytest tests/test_as06_bindings_chain.py` |
+| Append-only outcomes | `pytest tests/test_as07_outcome_metrics.py`; `akta link-outcome` |
+| Privacy-preserving metrics | `akta export-pilot-metrics`; schema forbids raw evidence/PII fields |
+| Refuse unsupported autonomous ops | ADR 0001 non-claims + mode allowlists + existing abstain/block |
+| Benchmark backward compatibility | `make eval-bench-v1` / public_100 expectations unchanged |
+
+### Reconstruction release checklist
+
+1. Clean checkout at declared base commit (`docs/as_baseline.md`)
+2. `make install` && `make ci`
+3. Build action release / PCS bundle
+4. `akta reconstruct --release … --out reconstruction.json` → `ok=true`
+5. Record bundle checksums from reconstruction report
 
 ## Prerequisites
 
@@ -98,23 +118,26 @@ Pilot and reconstructable demos should emit a hash-linked chain. Components that
 | Pilot bundle `00`–`14` | `scripts/generate_pilot_bundle.py` |
 | Chain verify | `scripts/verify_reconstructable_cross_repo.py` |
 
-### TODO (blocked on external siblings when unavailable)
+### Sibling-dependent checks (optional until env configured)
 
-- Live SCOPE grant signatures and non-simulated summaries (requires `SCOPE_REPO_PATH`)
-- PF-Core obligation export live proof (requires `PF_CORE_REPO_PATH`)
-- PCS-Core ingest attestation (requires `PCS_CORE_REPO_PATH`)
+These do not block in-repo `make ci`. They require sibling checkouts:
 
-In-repo demos still write local hash linkages under `dist/`; release gate fails closed when SCOPE CLI is mandatory and missing.
+- Live SCOPE grant signatures and non-simulated summaries (`SCOPE_REPO_PATH` or `SCOPE_CLI`)
+- PF-Core obligation export live proof (`PF_CORE_REPO_PATH`)
+- PCS-Core ingest attestation (`PCS_CORE_REPO_PATH`)
+
+In-repo demos still write local hash linkages under `dist/` (gitignored; regenerate with Makefile targets). Release gate fails closed when SCOPE CLI is mandatory and missing.
 
 Ed25519 release ceremony: see [policy_integrity.md](policy_integrity.md).
 
 ## Documentation sanity
 
-- README distinguishes reference kernel, field benchmark v1, live trust stack, protocol v1.0
-- [PROTOCOL_v1.0.md](PROTOCOL_v1.0.md) schema freeze declaration
-- [limitations.md](limitations.md) states non-certification and authority boundary
-- CHANGELOG includes the release version and date
-- `pyproject.toml` version matches the tag
+- README distinguishes reference kernel, field benchmark v1, live trust stack, protocol v1.0, and AS hardening docs
+- [PROTOCOL_v1.0.md](PROTOCOL_v1.0.md) schema freeze declaration (AS fields are additive/optional)
+- [limitations.md](limitations.md) and ADRs (`adr/0001`–`0003`) state non-claims and authority boundary
+- [operator_pilot_guide.md](operator_pilot_guide.md) / [reviewer_pilot_guide.md](reviewer_pilot_guide.md) match CLI (`gate --mode`, `reconstruct`, `link-outcome`, `export-pilot-metrics`, `validate-stack-profile`)
+- CHANGELOG includes the release version and AS hardening notes
+- `pyproject.toml` version matches the tag (`1.2.0` at baseline)
 
 ## Non-goals (do not block release on these)
 

@@ -90,13 +90,22 @@ def vendor_source_archive_sha256(vendor_root: str | Path | None = None) -> str:
     if not root.is_dir():
         raise FileNotFoundError(f"vendor contracts archive missing: {root}")
     digest = hashlib.sha256()
-    for path in sorted(p for p in root.rglob("*") if p.is_file()):
+    files: list[tuple[str, Path]] = []
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
         if "__pycache__" in path.parts or path.suffix == ".pyc":
             continue
-        rel = path.relative_to(root).as_posix()
+        # Exclude local build/editable install residue (pip install ./vendor/...).
+        if "build" in path.parts or any(part.endswith(".egg-info") for part in path.parts):
+            continue
+        files.append((path.relative_to(root).as_posix(), path))
+    for rel, path in sorted(files, key=lambda item: item[0]):
+        # Normalize CRLF→LF so Windows checkouts match the pinned LF archive digest.
+        data = path.read_bytes().replace(b"\r\n", b"\n")
         digest.update(rel.encode("utf-8"))
         digest.update(b"\0")
-        digest.update(path.read_bytes())
+        digest.update(data)
         digest.update(b"\0")
     return "sha256:" + digest.hexdigest()
 

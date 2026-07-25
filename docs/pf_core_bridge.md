@@ -1,4 +1,6 @@
-# PF-Core Bridge (v0.7.1)
+# PF-Core Bridge
+
+> **Current status:** Package **1.2.0** + AS hardening. Prefer [integration_guide.md](integration_guide.md), [RELEASE.md](RELEASE.md), and [operator_pilot_guide.md](operator_pilot_guide.md). This page documents PF obligation export and runtime enforcement patterns (obligation schema remains v0.2).
 
 PF-Core proves that runtime execution respected AKTA admissibility decisions. AKTA exports machine-readable obligations for PF-Core consumption.
 
@@ -90,4 +92,4 @@ When admissibility is `review_required`, PF-Core should gate tool calls until SC
 
 The integrated weak-evidence demo exports a PF obligation blocking `lab_scheduler.prioritize` with v0.2 consequentiality fields.
 
-See [integration_guide.md](integration_guide.md) for the full trust stack.
+See [integration_guide.md](integration_guide.md) for the full trust stack, [limitations.md](limitations.md) for non-claims, and [adr/0001-admissibility-boundary.md](adr/0001-admissibility-boundary.md) for the admissibility boundary.

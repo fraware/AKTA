@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from akta import AKTAGate, AKTAContext
+from akta.structured_action_policy import default_structured_action_for_tool
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 ROOT = SKILL_DIR.parents[1]
@@ -42,7 +43,15 @@ def test_weak_evidence_example_matches_gate() -> None:
         ai_output={"summary": "Prioritize condition B based on preliminary signal."},
         requested_tool="lab_scheduler.prioritize",
         requested_action="prioritize_next_run",
-        context=AKTAContext.from_dict({"evidence_state": "E2_preliminary_signal", "validation_status": "V0_unvalidated"}),
+        context=AKTAContext.from_dict({
+            "evidence_state": "E2_preliminary_signal",
+            "validation_status": "V0_unvalidated",
+            "structured_action": default_structured_action_for_tool(
+                "lab_scheduler.prioritize",
+                "prioritize_next_run",
+                external_effect=True,
+            ),
+        }),
         deployment_profile="P2_analysis_assistant",
         domain_overlay="generic_lab_v0",
     )
@@ -60,6 +69,11 @@ def test_protocol_drift_review_trigger_has_requested_scope() -> None:
         context=AKTAContext.from_dict({
             "evidence_state": "E4_internally_consistent_evidence",
             "validation_status": "V3_preliminary_experimental_support",
+            "structured_action": default_structured_action_for_tool(
+                "protocol_editor.update_active_protocol",
+                "update_threshold",
+                external_effect=True,
+            ),
         }),
         deployment_profile="P4_protocol_drafting_assistant",
         domain_overlay="generic_lab_v0",
@@ -75,6 +89,11 @@ def test_multi_agent_handoff_example_blocked() -> None:
     ctx = {
         "evidence_state": "E3_noisy_or_conflicting_evidence",
         "validation_status": "V2_simulation_supported",
+        "structured_action": default_structured_action_for_tool(
+            "lab_scheduler.prioritize",
+            "prioritize_condition_d",
+            external_effect=True,
+        ),
         "handoff_chain": [
             {"agent_id": "a", "action_type": "A2_hypothesis_generation", "responsibility_level": "R1_epistemic_assistance"},
             {"agent_id": "b", "action_type": "A6_experimental_planning", "responsibility_level": "R5_experimental_planning"},

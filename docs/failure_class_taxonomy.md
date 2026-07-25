@@ -30,4 +30,25 @@ F01, F05, F06, F08, and F14 require at least one positive-control scenario in `s
 - Adversarial transitions: `by_failure_class` and `failure_class_coverage` (F01–F15) in `evals/reports/adversarial_transitions.json`
 - High-risk positive controls: `high_risk_positive_controls` (F01, F05, F06, F08, F14 must each have at least one passing scenario)
 
-Definitions are canonical in `evals/graders.py` (`FAILURE_TAXONOMY`).
+## Uniform mapping (AS-04)
+
+Bench F-classes (F01–F15) remain the regression taxonomy for AKTA-Bench and adversarial transitions. Runtime / API failures additionally map into ten **uniform classes** while preserving the local reason code:
+
+| Uniform class | Typical local sources |
+|---------------|----------------------|
+| `invalid_input` | schema validation, malformed requests |
+| `insufficient_evidence` | evidence rules, `F01_*` / legacy `F1_*` |
+| `policy_block` | profile refuse, pilot mode, policy integrity |
+| `review_required` | review gate |
+| `authorization_denied` | grant / authorization failures |
+| `runtime_constraint_violation` | tool registry / runtime limits |
+| `verification_failed` | digest / grant verification failures |
+| `verification_indeterminate` | inconclusive verification |
+| `external_dependency_failure` | sibling / external adapter failures |
+| `outcome_unresolved` | missing or pending outcome linkage |
+
+Mapping lives in `akta/failure_mapping.py`. Historical eval reports are **not** rewritten; `F1_` → `F01_` normalization happens in the mapper only. REST responses keep prior `error_code` and may add additive `failure` / `failures[]` fields.
+
+Uniform classes explain refusal/routing under policy. They do **not** certify scientific truth, replace local reason codes, or upgrade adapter `runtime_observed` results into institutional guarantees.
+
+Schema: [`schemas/uniform_failure.schema.json`](../schemas/uniform_failure.schema.json). Fixtures: `tests/fixtures/as04/`.

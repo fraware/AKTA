@@ -1,6 +1,32 @@
-# AKTA Integration Guide (v0.7.1)
+# AKTA Integration Guide (v1.2 + AS hardening)
 
-AKTA integrates with adjacent systems in the AI-for-science trust stack. This guide summarizes reference-implementation integration points by release. AKTA is not a safety certification.
+AKTA integrates with adjacent systems in the AI-for-science trust stack. This guide summarizes reference-implementation integration points by release. Package version: **1.2.0**. AKTA is not a safety certification.
+
+### Naming: three different “modes”
+
+| Surface | Flag / field | Values / meaning |
+|---------|--------------|------------------|
+| Pilot mode (AS-05) | `akta gate --mode` | `retrospective_reconstruction`, `prospective_shadow`, `read_only_support`, `execution_adjacent`, `bounded_execution` |
+| REST deployment mode | REST server `--mode` / `AKTA_REST_MODE` | `development-local`, `pilot-service`, `institutional-service` |
+| Legacy pilot stage | `AKTA_PILOT_STAGE` / `PilotStage` | Maps into PilotMode; unknown values fail closed |
+
+Do not pass REST deployment mode strings to `akta gate --mode`.
+
+## Admissibility-Stack (AS-00–08) additions
+
+| Component | Path / command | Purpose |
+|-----------|----------------|---------|
+| Baseline / ADRs | `docs/as_baseline.md`, `docs/adr/` | Boundary, pilot modes, immutability |
+| Binding set | `schemas/akta_binding_set.schema.json`, decision `bindings` | Reconstructable digests |
+| Stack profile | `akta validate-stack-profile` | Portable version pins vs release pins |
+| Decision basis | `decision_basis` on decisions | Policy/evidence traceability |
+| Uniform failures | `failure` / `failures[]` | Ten-class mapping + local codes |
+| Pilot modes | `akta gate ... --mode prospective_shadow` | Five modes; shadow isolation |
+| Outcome link | `akta link-outcome` | Append-only Scientific Memory refs |
+| Pilot metrics | `akta export-pilot-metrics` | Privacy-preserving aggregates |
+| Reconstruct | `akta reconstruct --release …` | Release bundle reconstruction |
+
+See [stack_profile.md](stack_profile.md), [operator_pilot_guide.md](operator_pilot_guide.md), [reviewer_pilot_guide.md](reviewer_pilot_guide.md).
 
 ## v0.7.1 integration additions
 
@@ -148,8 +174,18 @@ record = decision.to_record()
 ## CLI
 
 ```bash
+# Core (omit --mode for pre-AS-05 default behavior)
 akta gate --output ai_output.json --tool lab_scheduler.prioritize --profile P2_analysis_assistant --context context.json --out decision.json
+akta gate --output ai_output.json --tool analysis.literature_summary --mode prospective_shadow --out decision.json
 akta record --decision decision.json --out record.json
+
+# Admissibility-Stack (AS-02 / AS-07 / AS-08)
+akta validate-stack-profile stack_profile.json
+akta link-outcome --record record.json --outcome-ref outcome_ref.json --out record_linked.json
+akta export-pilot-metrics --records records/ --out metrics.json
+akta reconstruct --release action_release/ --out reconstruction.json
+
+# Eval / export / review
 akta eval --scenarios scenarios/canonical_5.jsonl --expected scenarios/expected_decisions.jsonl
 akta eval --scenarios scenarios/public_100.jsonl --expected scenarios/expected_decisions.jsonl
 akta export pcs --record record.json --decision decision.json --out pcs_bundle/ --validate

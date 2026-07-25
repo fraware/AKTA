@@ -1,0 +1,17 @@
+{
+  "stack_profile_version": "akta-stack-profile-v1",
+  "profile_id": "dev-aligned-1.2.0",
+  "profile_kind": "development",
+  "akta_version": "1.2.0",
+  "shared_contracts_version": "2.2.0",
+  "require_institutional_pins": false,
+  "components": {
+    "AKTA": { "version": "1.2.0" },
+    "VSA": { "version": "0.7.2", "tag": "v0.7.2" },
+    "SCOPE": { "version": "2.2" },
+    "PF-Core": { "version": "0.6.0" },
+    "PCS-Core": { "version": "0.1.0" },
+    "Scientific-Memory": { "version": "1.0.3" }
+  },
+  "notes": "Version-aligned development profile; institutional pins not required."
+}

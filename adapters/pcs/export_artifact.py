@@ -65,6 +65,8 @@ def build_pcs_manifest(
         "domain_overlay_hash": provenance.get("domain_overlay_hash"),
         "tool_registry_hash": provenance.get("tool_registry_hash"),
         "decision_id": (decision or {}).get("decision_id") or record.get("record_id", "").replace("SAR", "DEC"),
+        "record_id": record.get("record_id"),
+        "bindings": record.get("bindings") or (decision or {}).get("bindings"),
         "files": sorted(files + ["manifest.json"]),
     }
     if file_hashes:
@@ -142,8 +144,10 @@ def export_pcs_bundle(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     provenance = data.get("provenance", {})
+    bindings = data.get("bindings") or {}
     decision_payload = decision or {
-        "decision_id": data.get("record_id", "").replace("SAR", "DEC"),
+        "decision_id": bindings.get("decision_id")
+        or data.get("record_id", "").replace("SAR", "DEC"),
         "admissibility": data["decision"]["admissibility"],
         "scientific_action_type": data["classification"]["scientific_action_type"],
         "responsibility_level": data["classification"]["responsibility_level"],
@@ -151,10 +155,28 @@ def export_pcs_bundle(
         "decision_reason": data["decision"]["decision_reason"],
         "policy_hash": provenance.get("policy_hash"),
         "consequentiality": data["decision"].get("consequentiality", False),
+        "bindings": bindings or None,
     }
 
     if validate and not provenance.get("policy_hash", "").startswith("sha256:"):
         raise ValueError("PCS export requires valid policy_hash on record provenance")
+
+    # AS-06: fail closed on binding digest mismatch.
+    if bindings.get("policy_hash") and provenance.get("policy_hash"):
+        if bindings["policy_hash"] != provenance["policy_hash"]:
+            raise ValueError(
+                "PCS export digest mismatch: bindings.policy_hash != provenance.policy_hash"
+            )
+    if bindings.get("decision_id") and decision_payload.get("decision_id"):
+        if bindings["decision_id"] != decision_payload["decision_id"]:
+            raise ValueError(
+                "PCS export digest mismatch: bindings.decision_id != decision.decision_id"
+            )
+    mode = (data.get("pilot_mode") or (decision or {}).get("pilot_mode") or "")
+    if mode == "bounded_execution" and not data.get("decision_basis") and not bindings.get(
+        "decision_basis_digest"
+    ):
+        raise ValueError("PCS export require decision_basis under bounded_execution")
 
     if validate and scope_grant is not None:
         from akta.scope_contract import (

@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from akta.bindings import build_binding_set, verify_policy_hashes
 from akta.classify import (
     classify,
     resolve_evidence_state,
@@ -13,6 +14,7 @@ from akta.classify import (
 )
 from akta.consequentiality import classify_consequentiality
 from akta.context import AKTAContext
+from akta.errors import AKTAError
 from akta.evaluate import evaluate_admissibility
 from akta.overlays import DomainOverlay
 from akta.policy import PolicyBundle
@@ -82,15 +84,62 @@ class AKTAGate:
         deployment_profile: str = "P2_analysis_assistant",
         domain_overlay: str | None = None,
         validate_output: bool = True,
+        pilot_mode: str | None = None,
     ) -> AKTADecision:
-        ctx = context if isinstance(context, AKTAContext) else AKTAContext.from_dict(context or {})
+        raw_ctx = context.to_dict() if isinstance(context, AKTAContext) else dict(context or {})
+        # Prefer normalized vsa_bundle; fail closed on digest/ambiguity when VSA present.
+        if raw_ctx.get("vsa_bundle") or raw_ctx.get("vsa_report") or raw_ctx.get("evidence_refs"):
+            from adapters.vsa.import_report import VSAImportError, resolve_vsa_source
+
+            try:
+                resolved = resolve_vsa_source(raw_ctx)
+                if raw_ctx.get("vsa_bundle") is None:
+                    raw_ctx["vsa_bundle"] = resolved
+            except VSAImportError:
+                # Ambiguous/multi-ref or missing digestable source — fail closed.
+                raise
+        ctx = AKTAContext.from_dict(raw_ctx)
         self.policy.get_profile(deployment_profile)
+
+        # AS-05: pilot mode enforcement before tool-resolution side effects.
+        mode_meta: dict[str, Any] = {}
+        if pilot_mode is not None or raw_ctx.get("pilot_mode") or raw_ctx.get("metadata", {}).get("pilot_mode"):
+            from akta.pilot_workflow import apply_pilot_mode_to_evaluation, resolve_pilot_mode
+
+            explicit = pilot_mode or raw_ctx.get("pilot_mode") or (raw_ctx.get("metadata") or {}).get(
+                "pilot_mode"
+            )
+            mode = resolve_pilot_mode(explicit if isinstance(explicit, str) else None)
+            mode_meta = apply_pilot_mode_to_evaluation(
+                mode=mode,
+                requested_tool=requested_tool,
+                tool_spec=None,
+                context=raw_ctx,
+            )
+            # Hard blocks force blocked decisions below; do not abort before evaluate
+            # (shadow/retrospective still produce reconstructable decision artifacts).
 
         overlay_obj: DomainOverlay | None = None
         if domain_overlay:
             overlay_obj = DomainOverlay.load(domain_overlay, self.overlays_dir)
 
         tool_spec = self.tool_registry.resolve(requested_tool)
+        if mode_meta:
+            from akta.pilot_workflow import enforce_tool_for_mode, resolve_pilot_mode
+
+            explicit = pilot_mode or raw_ctx.get("pilot_mode") or (raw_ctx.get("metadata") or {}).get(
+                "pilot_mode"
+            )
+            mode = resolve_pilot_mode(explicit if isinstance(explicit, str) else None)
+            tool_block = enforce_tool_for_mode(mode, requested_tool=requested_tool, tool_spec=tool_spec)
+            if tool_block:
+                mode_meta = {**mode_meta, **tool_block}
+            if mode_meta.get("hard_block"):
+                meta = dict(ctx.metadata or {})
+                meta["pilot_mode_block"] = mode_meta.get("block_reason")
+                meta["pilot_mode"] = mode.value
+                ctx.metadata = meta
+
         classification = classify(
             self.policy,
             requested_tool,
@@ -165,6 +214,18 @@ class AKTAGate:
                 scope_config=self.policy.tool_to_requested_scope,
                 overlay=overlay_obj,
             )
+            review_trigger["bindings"] = {
+                "decision_id": decision_id,
+                "record_id": record_id,
+                "policy_hash": self.policy.policy_hash,
+                "tool_registry_hash": self.policy.tool_registry_hash,
+            }
+            # Recompute hash after binding attachment (AS-06).
+            from akta.hash import hash_object
+
+            review_trigger["review_trigger_hash"] = hash_object(
+                {k: v for k, v in review_trigger.items() if k != "review_trigger_hash"}
+            )
             if validate_output:
                 validate_against_schema(review_trigger, "review_trigger.schema.json")
 
@@ -228,6 +289,117 @@ class AKTAGate:
 
         if review_trigger:
             decision_data["review_trigger"] = review_trigger
+
+        # AS-01 bindings
+        vsa_bundle = ctx.vsa_bundle or (
+            {"schema": "legacy-vsa-report", **ctx.vsa_report} if ctx.vsa_report else None
+        )
+        scientific_question = raw_ctx.get("scientific_question") or (
+            (ctx.vsa_report or {}).get("scientific_question") if ctx.vsa_report else None
+        )
+        proposed_action = {
+            "requested_tool": requested_tool,
+            "requested_action": requested_action,
+            "scientific_action_type": classification.action_type,
+        }
+        bindings = build_binding_set(
+            decision_id=decision_id,
+            record_id=record_id,
+            policy_hash=self.policy.policy_hash,
+            tool_registry_hash=self.policy.tool_registry_hash,
+            requested_tool=requested_tool,
+            action_class=classification.action_type,
+            domain_overlay_hash=overlay_obj.overlay_hash if overlay_obj else None,
+            scientific_question=scientific_question,
+            proposed_action=proposed_action,
+            vsa_bundle=vsa_bundle,
+            scope_review_ref=(review_trigger or {}).get("review_trigger_id"),
+            validate=validate_output,
+        )
+        decision_data["bindings"] = bindings
+
+        # Stale hash check when caller declares expected hashes in context.
+        declared = raw_ctx.get("declared_policy_hashes") or (raw_ctx.get("metadata") or {}).get(
+            "declared_policy_hashes"
+        )
+        if isinstance(declared, dict):
+            stale = verify_policy_hashes(
+                bindings={
+                    "policy_hash": declared.get("policy_hash", bindings["policy_hash"]),
+                    "tool_registry_hash": declared.get(
+                        "tool_registry_hash", bindings["tool_registry_hash"]
+                    ),
+                    "domain_overlay_hash": declared.get("domain_overlay_hash"),
+                },
+                loaded_policy_hash=self.policy.policy_hash,
+                loaded_overlay_hash=overlay_obj.overlay_hash if overlay_obj else None,
+                loaded_tool_registry_hash=self.policy.tool_registry_hash,
+            )
+            if stale:
+                raise AKTAError("; ".join(stale))
+
+        # AS-03 decision basis (attached when builder available)
+        try:
+            from akta.decision_basis import build_decision_basis
+            from akta.hash import hash_object
+
+            basis = build_decision_basis(
+                evaluation_layers=evaluation_layers,
+                evidence_state=evidence_state,
+                admissibility=evaluation.admissibility,
+                decision_reason=evaluation.decision_reason,
+                next_admissible_steps=evaluation.next_admissible_steps,
+                required_review_role=evaluation.required_review_role,
+                action_class=classification.action_type,
+                tool_spec=tool_spec,
+                policy=self.policy,
+                overlay=overlay_obj,
+                context=raw_ctx,
+            )
+            decision_data["decision_basis"] = basis
+            decision_data["bindings"]["decision_basis_digest"] = hash_object(basis)
+        except ImportError:
+            pass
+
+        # AS-04 uniform failures
+        try:
+            from akta.failure_mapping import failures_for_decision
+
+            fails = failures_for_decision(decision_data)
+            if fails:
+                decision_data["failure"] = fails[0]
+                decision_data["failures"] = fails
+        except ImportError:
+            pass
+
+        # AS-05 pilot mode fields
+        if mode_meta:
+            decision_data["pilot_mode"] = mode_meta.get("pilot_mode")
+            decision_data["shadow"] = bool(mode_meta.get("shadow"))
+            decision_data["operational_influence"] = bool(
+                mode_meta.get("operational_influence", False)
+            )
+            if mode_meta.get("hard_block") or (ctx.metadata or {}).get("pilot_mode_block"):
+                decision_data["admissibility"] = "blocked"
+                decision_data["decision_reason"] = (
+                    mode_meta.get("block_reason")
+                    or (ctx.metadata or {}).get("pilot_mode_block")
+                    or decision_data["decision_reason"]
+                )
+                decision_data["blocked_tools"] = sorted(
+                    set(decision_data.get("blocked_tools") or []) | {requested_tool}
+                )
+                try:
+                    from akta.failure_mapping import map_local_reason
+
+                    decision_data["failure"] = map_local_reason(
+                        "pilot_mode_restriction",
+                        detail=decision_data["decision_reason"],
+                        layer="pilot_mode",
+                    )
+                    decision_data["failures"] = [decision_data["failure"]]
+                except ImportError:
+                    pass
 
         decision = AKTADecision(decision_data)
         if validate_output:

@@ -1,5 +1,7 @@
 # Policy Integrity
 
+> **Current status:** Package **1.2.0**. Release ceremony and verification checklist: [RELEASE.md](RELEASE.md). Ed25519 / HMAC modes below remain authoritative; `akta-core-v1.0` is the policy bundle version string, distinct from the PyPI package version.
+
 AKTA policy integrity ensures admissibility decisions are tied to a verifiable, tamper-evident policy bundle.
 
 ## Policy bundle
@@ -115,7 +117,7 @@ Reference releases (`akta-core-v1.0`) use `release_ed25519_signed` integrity mod
    export AKTA_POLICY_PUBLIC_KEY=<base64-public-key>
    python -m pytest tests/test_policy_signing_modes.py -v
    ```
-5. Tag `v1.0.0` only after `make verify-v1-release` passes on `main` with signed policy enabled.
+5. Tag a package release only after [RELEASE.md](RELEASE.md) checks pass on `main` with signed policy enabled (historical first public tag ceremony used `v1.0.0`; current package line is **1.2.x**).
 6. Publish the public key alongside the GitHub Release; retain the private key for the next policy bump only.
 
 This ceremony is **reference governance** — not regulatory certification.

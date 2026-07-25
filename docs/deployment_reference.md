@@ -1,9 +1,11 @@
-# Deployment reference (v1.1 / WS13)
+# Deployment reference
+
+> **Current status:** Package **1.2.0** + AS hardening. This page covers **REST / MCP deployment** modes only. Gate **PilotMode** values (`akta gate --mode`) are documented in [operator_pilot_guide.md](operator_pilot_guide.md) and [adr/0002-pilot-modes.md](adr/0002-pilot-modes.md) — do not pass REST mode strings to the gate CLI.
 
 AKTA ships a **reference** REST and MCP adapter baseline — not a production HA service.
 Beta designation is retained; this is not a claim of production readiness for SCOPE-authorized action.
 
-## REST modes (P1-C / WS13)
+## REST modes
 
 | Mode | Env / flag | Posture |
 |------|------------|---------|
@@ -82,13 +84,23 @@ Set `AKTA_OTEL_ENABLED=1` to emit OpenTelemetry spans when `opentelemetry-api` i
 
 Use `AKTALangGraphMiddleware` with `SessionGrantStore` for multi-turn grant persistence. Grants auto-invalidate on expiry and evidence downgrade.
 
-## Institutional pilot stages (P1-E)
+## Institutional pilot modes
 
-`AKTA_PILOT_STAGE=stage1_shadow|stage2_draft_only|stage3_validation` (see `akta/pilot_workflow.py`).
-Stage 3 requires real SCOPE identity, signed grant, full verification, PF proof, PCS package, and transactional ledger — fail closed if any missing. Hard exclusions: physical robot, clinical intervention, high-risk bio, hazardous chemical, unreviewed publication claims.
+Prefer **PilotMode** on the gate:
 
-## Non-goals for v1.0
+```bash
+akta gate ... --mode prospective_shadow   # or retrospective_reconstruction, read_only_support, execution_adjacent, bounded_execution
+```
+
+Legacy env `AKTA_PILOT_STAGE=stage1_shadow|stage2_draft_only|stage3_validation` maps into PilotMode (see `akta/pilot_workflow.py`); unknown values fail closed. REST `--mode` / `AKTA_REST_MODE` is a separate namespace (table above).
+
+Stage-3 / `bounded_execution`-class institutional runs still require real SCOPE identity, signed grant, full verification, PF proof, PCS package, and transactional ledger — fail closed if any missing. Hard exclusions: physical robot, clinical intervention, high-risk bio, hazardous chemical, unreviewed publication claims.
+
+See [operator_pilot_guide.md](operator_pilot_guide.md) and [adr/0002-pilot-modes.md](adr/0002-pilot-modes.md).
+
+## Non-goals
 
 - High availability or horizontal scaling
 - Auth federation / SSO as a product beyond OIDC token verification
 - Operational P7 autonomous operator support
+- Treating REST deployment mode as a substitute for PilotMode tool-effect restrictions

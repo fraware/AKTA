@@ -41,7 +41,7 @@ export SCOPE_CLI=scope
 pytest tests/contracts/ tests/integration/ -v -m integration
 ```
 
-### GitHub Actions (v0.7.1)
+### GitHub Actions (optional cross-repo)
 
 Optional CI jobs activate when repository variables are set:
 
@@ -56,7 +56,7 @@ Full variable and secret documentation: [.github/CROSS_REPO_CI.md](../../.github
 
 Default CI does not require sibling repos.
 
-### SCOPE adapter modes (v0.7.1)
+### SCOPE adapter modes
 
 | Mode | Env | CLI shape |
 |------|-----|-----------|

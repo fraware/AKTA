@@ -52,9 +52,12 @@ def stabilize_decision(
     review_trigger_id: str | None = None,
 ) -> dict[str, Any]:
     """Apply fixed demo identifiers and recompute content hashes."""
+    from akta.bindings import sync_binding_ids
+
     d = dict(decision)
     d["decision_id"] = decision_id
     d["timestamp"] = timestamp
+    d = sync_binding_ids(d, decision_id=decision_id, record_id=record_id)
     if d.get("review_trigger"):
         rt = dict(d["review_trigger"])
         rt["decision_id"] = decision_id
@@ -63,6 +66,8 @@ def stabilize_decision(
         rt["akta_record_id"] = record_id
         if review_trigger_id:
             rt["review_trigger_id"] = review_trigger_id
+        if isinstance(rt.get("bindings"), dict):
+            rt = sync_binding_ids(rt, decision_id=decision_id, record_id=record_id)
         d["review_trigger"] = _rehash_review_trigger(rt)
     return d
 
@@ -71,21 +76,31 @@ def stabilize_record(
     record: dict[str, Any],
     *,
     record_id: str,
+    decision_id: str | None = None,
     timestamp: str = DEMO_TIMESTAMP,
 ) -> dict[str, Any]:
+    from akta.bindings import sync_binding_ids
+
     record = dict(record)
     record["record_id"] = record_id
     record["timestamp"] = timestamp
+    if decision_id is None and isinstance(record.get("bindings"), dict):
+        decision_id = record["bindings"].get("decision_id")
+    record = sync_binding_ids(record, decision_id=decision_id, record_id=record_id)
     return _rehash_record(record)
 
 
 def run_demo() -> int:
+    import os
+
     from akta import AKTAGate, AKTAContext
     from akta.records import AKTARecord, AKTADecision
     from adapters.pcs.export_artifact import export_pcs_bundle
     from adapters.pf_core.export_obligation import export_pf_obligation
     from adapters.vsa.import_report import import_vsa_report
     from evals.run_scenarios import run_scenario_eval
+
+    os.environ.setdefault("AKTA_REQUIRE_STRUCTURED_ACTIONS", "0")
 
     demo_dir = ROOT / "examples" / "integrated_weak_evidence"
     demo_dir.mkdir(parents=True, exist_ok=True)
@@ -122,7 +137,11 @@ def run_demo() -> int:
     AKTADecision(d).save(decision_path)
 
     record = decision.to_record(ai_output=ai_output, context=context_data)
-    record_data = stabilize_record(record.to_dict(), record_id=DEMO_RECORD_ID)
+    record_data = stabilize_record(
+        record.to_dict(),
+        record_id=DEMO_RECORD_ID,
+        decision_id=DEMO_DECISION_ID,
+    )
     record_path = demo_dir / "akta_record.json"
     AKTARecord(record_data).save(record_path)
 

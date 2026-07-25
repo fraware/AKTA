@@ -1,0 +1,7 @@
+{
+  "uniform_class": "runtime_constraint_violation",
+  "local_reason_code": "runtime_constraint",
+  "detail": "runtime limit",
+  "layer": "runtime",
+  "recoverable": false
+}

@@ -51,9 +51,12 @@ def stabilize_decision(
     timestamp: str = DEMO_TIMESTAMP,
     review_trigger_id: str | None = None,
 ) -> dict[str, Any]:
+    from akta.bindings import sync_binding_ids
+
     d = dict(decision)
     d["decision_id"] = decision_id
     d["timestamp"] = timestamp
+    d = sync_binding_ids(d, decision_id=decision_id, record_id=record_id)
     if d.get("review_trigger"):
         rt = dict(d["review_trigger"])
         rt["decision_id"] = decision_id
@@ -62,14 +65,27 @@ def stabilize_decision(
         rt["akta_record_id"] = record_id
         if review_trigger_id:
             rt["review_trigger_id"] = review_trigger_id
+        if isinstance(rt.get("bindings"), dict):
+            rt = sync_binding_ids(rt, decision_id=decision_id, record_id=record_id)
         d["review_trigger"] = _rehash_review_trigger(rt)
     return d
 
 
-def stabilize_record(record: dict[str, Any], *, record_id: str, timestamp: str = DEMO_TIMESTAMP) -> dict[str, Any]:
+def stabilize_record(
+    record: dict[str, Any],
+    *,
+    record_id: str,
+    decision_id: str | None = None,
+    timestamp: str = DEMO_TIMESTAMP,
+) -> dict[str, Any]:
+    from akta.bindings import sync_binding_ids
+
     record = dict(record)
     record["record_id"] = record_id
     record["timestamp"] = timestamp
+    if decision_id is None and isinstance(record.get("bindings"), dict):
+        decision_id = record["bindings"].get("decision_id")
+    record = sync_binding_ids(record, decision_id=decision_id, record_id=record_id)
     return _rehash_record(record)
 
 
@@ -83,11 +99,16 @@ def _format_scope_grant(scope_grant: dict[str, Any]) -> str:
 
 
 def run_demo() -> int:
+    import os
+
     from akta import AKTAGate, AKTAContext
     from akta.records import AKTARecord, AKTADecision
     from adapters.pcs.export_artifact import export_pcs_bundle
     from adapters.pf_core.export_obligation import export_pf_obligation
     from adapters.scope.client import detect_adapter_mode, submit_review_trigger
+
+    # Simulated demo remains offline-deterministic unless a caller forces declarations.
+    os.environ.setdefault("AKTA_REQUIRE_STRUCTURED_ACTIONS", "0")
 
     demo_dir = ROOT / "examples" / "integrated_protocol_drift"
     demo_dir.mkdir(parents=True, exist_ok=True)
@@ -129,6 +150,7 @@ def run_demo() -> int:
     active_record = stabilize_record(
         active_decision.to_record(ai_output=ai_output, context=context_data).to_dict(),
         record_id=DEMO_RECORD_ID,
+        decision_id=DEMO_DECISION_ID,
     )
     active_record["review_trigger"] = active_d["review_trigger"]
     AKTARecord(active_record).save(demo_dir / "akta_record_active_update.json")

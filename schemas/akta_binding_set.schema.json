@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/akta_binding_set.schema.json",
+  "title": "AKTA Binding Set",
+  "description": "Digest and ID bindings for reconstructable admissibility decisions (AS-01).",
+  "type": "object",
+  "required": [
+    "binding_set_version",
+    "decision_id",
+    "record_id",
+    "policy_hash",
+    "tool_registry_hash",
+    "requested_tool",
+    "action_class"
+  ],
+  "properties": {
+    "binding_set_version": {
+      "type": "string",
+      "const": "akta-binding-set-v1"
+    },
+    "decision_id": { "type": "string" },
+    "record_id": { "type": "string" },
+    "scientific_question_digest": { "type": ["string", "null"], "pattern": "^sha256:" },
+    "evidence_report_digest": { "type": ["string", "null"], "pattern": "^sha256:" },
+    "claim_set_digest": { "type": ["string", "null"], "pattern": "^sha256:" },
+    "proposed_action_digest": { "type": ["string", "null"], "pattern": "^sha256:" },
+    "vsa_decision_time_bundle_digest": { "type": ["string", "null"], "pattern": "^sha256:" },
+    "vsa_bundle_schema": { "type": ["string", "null"] },
+    "vsa_bundle_version": { "type": ["string", "null"] },
+    "policy_hash": { "type": "string", "pattern": "^sha256:" },
+    "domain_overlay_hash": { "type": ["string", "null"], "pattern": "^sha256:" },
+    "tool_registry_hash": { "type": "string", "pattern": "^sha256:" },
+    "requested_tool": { "type": "string" },
+    "action_class": { "type": "string" },
+    "decision_basis_digest": { "type": ["string", "null"], "pattern": "^sha256:" },
+    "scope_review_ref": { "type": ["string", "null"] },
+    "pf_obligation_ref": { "type": ["string", "null"] },
+    "pcs_manifest_ref": { "type": ["string", "null"] },
+    "execution_ref": { "type": ["string", "null"] },
+    "outcome_ref": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

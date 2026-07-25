@@ -1,5 +1,7 @@
 # Review Integration
 
+> **Current status:** Package **1.2.0** + AS hardening. Prefer [operator_pilot_guide.md](operator_pilot_guide.md), [reviewer_pilot_guide.md](reviewer_pilot_guide.md), [scope_bridge.md](scope_bridge.md), and [adr/0001-admissibility-boundary.md](adr/0001-admissibility-boundary.md). Trigger schema version `0.3` and grant re-gate semantics below remain authoritative; the “Landing zones” table is intentional unfinished work, not a completeness claim.
+
 AKTA emits typed review triggers when admissibility is `review_required` or `authorization_required`. After SCOPE authorization, closed-loop re-gating applies grant constraints without overriding evidence or deployment-profile policy.
 
 ## Review trigger schema (v0.3)

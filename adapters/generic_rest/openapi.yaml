@@ -41,6 +41,35 @@ paths:
       responses:
         "200":
           description: AKTA decision
+        "400":
+          description: Client error (includes additive failure mapping)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error_code:
+                    type: string
+                  error:
+                    type: string
+                  detail:
+                    type: string
+                  failure:
+                    type: object
+                    description: Uniform failure object (AS-04); clients may ignore
+                    properties:
+                      uniform_class:
+                        type: string
+                      local_reason_code:
+                        type: string
+                      detail:
+                        type: string
+                      layer:
+                        type: string
+                      recoverable:
+                        type: boolean
+                      error_code:
+                        type: string
   /v0/records:
     post:
       summary: Build AKTA record from decision

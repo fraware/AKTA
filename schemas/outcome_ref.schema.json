@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/outcome_ref.schema.json",
+  "title": "AKTA Outcome Reference",
+  "description": "Append-only outcome link to Scientific Memory; never mutates admissibility (AS-07).",
+  "type": "object",
+  "required": [
+    "outcome_ref_version",
+    "decision_digest",
+    "record_digest",
+    "memory_entry_digest",
+    "timestamp",
+    "linker_identity",
+    "verdict_mutation"
+  ],
+  "properties": {
+    "outcome_ref_version": {
+      "type": "string",
+      "const": "akta-outcome-ref-v1"
+    },
+    "outcome_ref_id": { "type": "string" },
+    "decision_id": { "type": "string" },
+    "record_id": { "type": "string" },
+    "decision_digest": { "type": "string", "pattern": "^sha256:" },
+    "record_digest": { "type": "string", "pattern": "^sha256:" },
+    "memory_entry_digest": { "type": "string", "pattern": "^sha256:" },
+    "timestamp": { "type": "string" },
+    "linker_identity": { "type": "string", "minLength": 1 },
+    "verdict_mutation": { "type": "boolean", "const": false },
+    "prev_outcome_ref_digest": { "type": ["string", "null"], "pattern": "^sha256:" },
+    "outcome_ref_digest": { "type": "string", "pattern": "^sha256:" },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": false
+}

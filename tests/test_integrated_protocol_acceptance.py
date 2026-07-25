@@ -85,6 +85,8 @@ def _base_context(**overrides: Any) -> dict[str, Any]:
         "domain": "materials",
         "system_id": "protocol_drift_acceptance",
         "project_id": "demo_protocol_drift",
+        "responsibility_level": "R4_methodological_modification",
+        "item_count": 1,
     }
     ctx.update(overrides)
     return ctx

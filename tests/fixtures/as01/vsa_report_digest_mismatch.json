@@ -1,0 +1,13 @@
+{
+  "report_id": "VSA-AS01-TAMPER-001",
+  "domain": "biology",
+  "overall_evidence_strength": "validated",
+  "declared_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "claims": [
+    {
+      "claim_id": "C1",
+      "text": "Tampered claim",
+      "evidence_level": "validated"
+    }
+  ]
+}

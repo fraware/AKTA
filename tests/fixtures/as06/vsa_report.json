@@ -1,0 +1,15 @@
+{
+  "report_id": "VSA-AS06-001",
+  "domain": "biology",
+  "overall_evidence_strength": "preliminary",
+  "claims": [
+    {
+      "claim_id": "C1",
+      "text": "Preliminary AS-06 claim",
+      "evidence_level": "preliminary"
+    }
+  ],
+  "evidence_links": [
+    { "link_id": "L1", "claim_id": "C1", "source": "notebook" }
+  ]
+}

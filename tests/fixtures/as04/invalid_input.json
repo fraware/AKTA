@@ -1,0 +1,7 @@
+{
+  "uniform_class": "invalid_input",
+  "local_reason_code": "schema_validation",
+  "detail": "schema failed",
+  "layer": "schema",
+  "recoverable": true
+}

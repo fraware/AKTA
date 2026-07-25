@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/pilot_mode_profile.schema.json",
+  "title": "AKTA Pilot Mode Profile",
+  "type": "object",
+  "required": ["mode", "profile_version", "restrictions"],
+  "properties": {
+    "mode": {
+      "type": "string",
+      "enum": [
+        "retrospective_reconstruction",
+        "prospective_shadow",
+        "read_only_support",
+        "execution_adjacent",
+        "bounded_execution"
+      ]
+    },
+    "profile_version": { "type": "string", "const": "akta-pilot-mode-profile-v1" },
+    "restrictions": {
+      "type": "object",
+      "required": [
+        "allow_live_tool_execution",
+        "allow_mutating_tools",
+        "allow_execution_tools",
+        "allow_draft_tools",
+        "shadow",
+        "operational_influence",
+        "require_stack_profile",
+        "require_trust_pins"
+      ],
+      "properties": {
+        "allow_live_tool_execution": { "type": "boolean" },
+        "allow_mutating_tools": { "type": "boolean" },
+        "allow_execution_tools": { "type": "boolean" },
+        "allow_draft_tools": { "type": "boolean" },
+        "shadow": { "type": "boolean" },
+        "operational_influence": { "type": "boolean" },
+        "require_stack_profile": { "type": "boolean" },
+        "require_trust_pins": { "type": "boolean" },
+        "tool_allowlist": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "tool_denylist": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "denied_effect_classes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": true
+}

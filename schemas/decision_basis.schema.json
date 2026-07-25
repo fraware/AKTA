@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/decision_basis.schema.json",
+  "title": "AKTA Decision Basis",
+  "description": "Structured policy/evidence traceability for an admissibility decision (AS-03).",
+  "type": "object",
+  "required": [
+    "decision_basis_version",
+    "applicable_policy_clauses",
+    "evidence_requirements",
+    "evidence_present",
+    "missing_evidence",
+    "contradictions",
+    "action_risk_class",
+    "tool_effect_class",
+    "required_reviewer_roles",
+    "generated_pf_obligations",
+    "next_admissible_steps"
+  ],
+  "properties": {
+    "decision_basis_version": {
+      "type": "string",
+      "const": "akta-decision-basis-v1"
+    },
+    "applicable_policy_clauses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["clause_id", "source"],
+        "properties": {
+          "clause_id": { "type": "string" },
+          "source": { "type": "string" },
+          "summary": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "evidence_requirements": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "evidence_present": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "missing_evidence": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "contradictions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "action_risk_class": { "type": "string" },
+    "tool_effect_class": { "type": "string" },
+    "required_reviewer_roles": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "generated_pf_obligations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "next_admissible_steps": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}

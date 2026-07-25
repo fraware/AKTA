@@ -1,6 +1,8 @@
-# SCOPE sibling PR checklist (AKTA 1.1 / WS12)
+# SCOPE sibling PR checklist
 
-AKTA lands the 2.1 authorization stack first. SCOPE (and other siblings) must
+> **Current status:** Package **1.2.0** + AS hardening. This page is a **sibling coordination checklist** for SCOPE/shared-contracts pins in `policy/scope_compatibility_manifest.json` and `policy/release_pins.yaml` — those peer IDs are not the AKTA PyPI version. Prefer [RELEASE.md](RELEASE.md) and [integration_guide.md](integration_guide.md) for operator-facing release steps.
+
+AKTA lands the authorization stack first. SCOPE (and other siblings) must
 update integration constants in a coordinated PR so strict negotiation does not
 fail closed on legacy IDs.
 
@@ -45,8 +47,7 @@ to the commit recorded in `policy/release_pins.yaml`. Mismatches fail closed und
 
 ## Suggested sibling PR order
 
-1. Land AKTA 1.1 compatibility manifest + pins (this repo).
-2. Open SCOPE PR updating peer version advertisements and installing shared contracts 2.1.0.
+1. Land AKTA compatibility manifest + pins (this repo; package line **1.2.x**).
+2. Open SCOPE PR updating peer version advertisements and installing shared contracts per the pin table above.
 3. Re-run AKTA strict negotiation / cross-repo matrix against the pinned SCOPE SHA.
-4. VSA is pinned to `v0.7.2` (`903d834f…`); keep checkout HEAD aligned with
-   `policy/release_pins.yaml` under institutional release.
+4. VSA checkout HEAD must align with `policy/release_pins.yaml` under institutional release (see [RELEASE.md](RELEASE.md) for the pinned tag).
