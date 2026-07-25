@@ -4,11 +4,9 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.7.x   | Yes       |
-| 0.6.x   | Yes       |
-| 0.5.x   | Yes       |
-| 0.4.x   | Yes       |
-| 0.3.x   | Yes       |
+| 1.2.x   | Yes       |
+| 1.0.x   | Security fixes only |
+| 0.8.x and earlier | Best effort; upgrade to 1.2.x |
 
 ## Reporting a vulnerability
 
@@ -22,7 +20,17 @@ AKTA is part of the agent supply chain. Threats include policy tampering, fake A
 
 See [docs/threat_model.md](docs/threat_model.md).
 
-### Policy integrity modes (v0.7)
+### Admissibility-Stack controls (1.2.x)
+
+- Digest bindings on decisions/records; `akta reconstruct` for release-bundle verification
+- `akta validate-stack-profile` against institutional release pins (placeholder signers fail closed)
+- Pilot modes via `akta gate --mode` (distinct from REST service `--mode`)
+- Append-only `outcome_ref` linkage; pilot metrics exclude raw evidence/PII
+- Uniform failure mapping (`failure` / `failures[]`) additive to existing local reason codes
+
+See [docs/threat_model.md](docs/threat_model.md), [docs/adr/0001-admissibility-boundary.md](docs/adr/0001-admissibility-boundary.md).
+
+### Policy integrity modes (v0.7+)
 
 | Mode | Environment variables | Manifest | Verification |
 |------|----------------------|----------|--------------|
@@ -79,3 +87,13 @@ See [docs/policy_integrity.md](docs/policy_integrity.md).
 - Model truthfulness guarantees
 - P7 fully autonomous scientific operator runtime
 - Safety or regulatory certification
+- Learning or updating policy from pilot outcome metrics
+- Treating gate admissibility as scientific truth or efficacy certification
+
+### Test fixtures
+
+The following PEMs are **test-only** keys for deterministic CI. They are not production release or institutional SCOPE issuer keys; do not reuse them outside the test suite:
+
+- `tests/fixtures/empirical/preregistration_signer.pem` — preregistration lock unit tests
+- `tests/fixtures/trust_keys/issuer_ed25519.pem` — documented in `tests/fixtures/trust_keys/README.md`
+- `evals/empirical/keys/preregistration_signer.pub.pem` — public verification material only

@@ -109,6 +109,22 @@ akta record \
 
 For the full integrated chain (evidence import through packaging), see [examples/integrated_weak_evidence](examples/integrated_weak_evidence/) and `python scripts/demo_integrated_weak_evidence.py`.
 
+### Pilot modes and reconstruction (Admissibility-Stack)
+
+Institutional pilots can pin a **PilotMode** on the gate (`akta gate --mode …`), validate a stack profile, link append-only outcomes, export privacy-preserving metrics, and reconstruct a release bundle:
+
+```bash
+akta gate --output examples/weak_evidence/ai_output.json \
+  --tool analysis.literature_summary \
+  --mode prospective_shadow \
+  --context examples/weak_evidence/context.json \
+  --out /tmp/shadow_decision.json
+akta validate-stack-profile path/to/stack_profile.json
+akta reconstruct --release path/to/pcs_bundle/ --out /tmp/reconstruction.json
+```
+
+`akta gate --mode` is **not** the REST server deployment `--mode`. See [operator pilot guide](docs/operator_pilot_guide.md) and [stack profile](docs/stack_profile.md).
+
 ---
 
 ## What you get
@@ -176,13 +192,20 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for pull-request expectations, [GOVERNAN
 - [Field thesis](docs/field_thesis.md) — problem framing
 - [Integration guide](docs/integration_guide.md) — wiring AKTA into your stack
 - [AKTA Card guide](docs/akta_card_guide.md) — institutional disclosure artifact
+- [PROTOCOL v1.0](docs/PROTOCOL_v1.0.md) — frozen schema declaration
+
+### Admissibility-Stack (AS-00–08)
+
+- [AS baseline freeze](docs/as_baseline.md) · [ADR 0001 boundary](docs/adr/0001-admissibility-boundary.md) · [ADR 0002 pilot modes](docs/adr/0002-pilot-modes.md) · [ADR 0003 reconstruction](docs/adr/0003-artifact-immutability-and-reconstruction.md)
+- [Operator pilot guide](docs/operator_pilot_guide.md) · [Reviewer pilot guide](docs/reviewer_pilot_guide.md)
+- [Stack profile](docs/stack_profile.md) · [Failure taxonomy + uniform mapping](docs/failure_class_taxonomy.md)
 
 ### Integration
 
 - [Review integration](docs/review_integration.md)
 - [SCOPE bridge](docs/scope_bridge.md) · [Live SCOPE conformance](docs/scope_live_conformance.md)
 - [PF-Core bridge](docs/pf_core_bridge.md) · [PCS export](docs/pcs_export.md) · [VSA import](docs/vsa_import.md)
-- [AKTA v0.3 integration summary](docs/akta_v03_integration.md)
+- [AKTA v0.3 integration summary](docs/akta_v03_integration.md) (historical; prefer integration guide)
 
 ### Policy and security
 
@@ -201,16 +224,16 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for pull-request expectations, [GOVERNAN
 
 ## Project status
 
-**v1.2.0** (`akta-protocol`) is the current reference kernel targeting native SCOPE 2.2 consumption.
+**v1.2.0** (`akta-protocol`) is the current reference kernel targeting native SCOPE 2.2 consumption. Admissibility-Stack hardening (AS-00–08) adds reconstructable bindings, pilot modes, stack profiles, uniform failures, outcome linkage, and reconstruction CLI without rewriting frozen PROTOCOL v1.0 required fields.
 
 | Claim | What CI proves | What requires local siblings |
 |-------|----------------|------------------------------|
-| Reference kernel + policy v1.2 | `make ci` on every PR (359+ tests, evals, demos) | — |
-| AKTA-Bench v1 | `make eval-bench-v1` in release-gate (105 oracle scenarios, holdout, behavioral middleware) | — |
+| Reference kernel + policy v1.2 | `make ci` on every PR (tests, evals, demos) | — |
+| AKTA-Bench v1 | `make eval-bench-v1` in release-gate (oracle scenarios, holdout, behavioral middleware) | — |
 | Live SCOPE pilot gate | Release-gate clones public SCOPE and runs python-import + pilot bundle | SCOPE CLI / akta-review modes need `scope` on runner |
 | PF / PCS / VSA / Memory / PCS-Bench matrix | Release-gate sibling job when clone URLs or `*_REPO_PATH` vars set | Full matrix locally: `python scripts/verify_v1_release.py` |
 
-Biology, chemistry, and clinical domain overlays remain experimental unless upgraded to institutional or expert-reviewed tiers. P7 autonomous operator profiles are taxonomy-only and refused at runtime. AKTA is a reference implementation — not a safety certification. See [docs/limitations.md](docs/limitations.md) and [docs/PROTOCOL_v1.0.md](docs/PROTOCOL_v1.0.md).
+Biology, chemistry, and clinical domain overlays remain experimental unless upgraded to institutional or expert-reviewed tiers. P7 autonomous operator profiles are taxonomy-only and refused at runtime. Gate admissibility is not scientific truth certification, and pilot metrics are not efficacy scores. See [docs/limitations.md](docs/limitations.md), [docs/PROTOCOL_v1.0.md](docs/PROTOCOL_v1.0.md), and [ADR 0001](docs/adr/0001-admissibility-boundary.md).
 
 ---
 
