@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://akta.dev/schemas/pilot_metrics.schema.json",
+  "title": "AKTA Pilot Metrics",
+  "description": "Privacy-preserving pilot aggregates; no raw evidence text (AS-07).",
+  "type": "object",
+  "required": [
+    "pilot_metrics_version",
+    "record_count",
+    "evidence_sufficiency",
+    "admissibility_rates",
+    "reason_code_distribution",
+    "human_disagreement_rate",
+    "later_inappropriate_authorization_rate",
+    "unnecessary_blocking_rate",
+    "time_to_decision",
+    "reconstruction_completeness",
+    "non_claims"
+  ],
+  "properties": {
+    "pilot_metrics_version": {
+      "type": "string",
+      "const": "akta-pilot-metrics-v1"
+    },
+    "record_count": { "type": "integer", "minimum": 0 },
+    "evidence_sufficiency": {
+      "type": "object",
+      "additionalProperties": { "type": "number" }
+    },
+    "admissibility_rates": {
+      "type": "object",
+      "additionalProperties": { "type": "number" }
+    },
+    "reason_code_distribution": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
+    "human_disagreement_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+    "later_inappropriate_authorization_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+    "unnecessary_blocking_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+    "time_to_decision": {
+      "type": "object",
+      "properties": {
+        "count": { "type": "integer" },
+        "mean_seconds": { "type": ["number", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "reconstruction_completeness": { "type": "number", "minimum": 0, "maximum": 1 },
+    "non_claims": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false
+}
